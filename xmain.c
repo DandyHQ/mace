@@ -6,6 +6,8 @@
 #include <X11/XKBlib.h>
 #include <X11/keysymdef.h>
 #include <err.h>
+#include <freetype2/ft2build.h>
+#include FT_FREETYPE_H
 
 #include "mace.h"
 
@@ -15,22 +17,21 @@ int screen;
 XImage *img = NULL;
 
 static void
-xresize(size_t w, size_t h)
+xresize(int w, int h)
 {
   char *nbuf;
-  
+
   nbuf = malloc(w * h * 4);
   if (nbuf == NULL) {
     err(1, "Failed to allocate window buffer!\n");
   }
 
-  resize(nbuf, w, h, 4);
+  resize(nbuf, w, h);
 
   if (img != NULL) {
     XDestroyImage(img);
   }
 
-  redraw();
   img = XCreateImage(display, CopyFromParent, 24, ZPixmap, 0, buf,
 		     width, height, 32, 0);
 }
@@ -38,7 +39,6 @@ xresize(size_t w, size_t h)
 static void
 updatewindow(void)
 {
-  redraw();
   XPutImage(display, win, DefaultGC(display, screen), img,
 	    0, 0, 0, 0, width, height);
 }
@@ -82,6 +82,7 @@ eventLoop(void)
     case ConfigureNotify:
       if (e.xconfigure.width != width
 	  || e.xconfigure.height != height) {
+
 	xresize(e.xconfigure.width, e.xconfigure.height);
       }
 
@@ -132,7 +133,7 @@ eventLoop(void)
 int
 main(int argc, char **argv)
 {
-  size_t width, height;
+  int width, height;
   
   width = 800;
   height = 500;
@@ -154,9 +155,7 @@ main(int argc, char **argv)
   XSetStandardProperties(display, win, "mace", "um",
 			 None, NULL, 0, NULL);
 
-  if (!init()) {
-    err(1, "Initialiazation failed!\n");
-  }
+  init();
 
   xresize(width, height);
   

@@ -2,17 +2,22 @@
 .SUFFIXES: .c .h .o
 
 CFLAGS := -I/usr/X11R6/include -I/usr/local/include \
+	-I/usr/X11R6/include/freetype2 \
 	-fPIC -Wall
 
 LDFLAGS := -L/usr/X11R6/lib -L/usr/local/lib \
 	-fPIC
 
-LIBS := -lX11 -lXft
+LIBS := -lX11 -lXft -lfreetype -lz
 
 
 SRC := \
-	xmain.c     \
-	main.c
+	mouse.c     \
+	draw.c      \
+	tab.c       \
+	pane.c      \
+	main.c      \
+	xmain.c
 
 OBJECTS := $(SRC:%.c=%.o)
 
