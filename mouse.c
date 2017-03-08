@@ -197,9 +197,8 @@ moveselected(struct pane *p, int x, int y)
     if (from->x < x && x < from->x + from->width
 	&& from->y < y && y < from->y + listheight) {
 
-      /* Rearanging tabs in pane. */
+      /* TODO: Rearanging tabs in pane. */
 
-      printf("rearange tabs\n");
     } else {
       printf("remove tab from pane\n");
       paneremovetab(from, selected);
