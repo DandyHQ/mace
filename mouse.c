@@ -9,7 +9,7 @@
 
 #include "mace.h"
 
-typedef enum { LEFT, RIGHT, TOP, BOTTOM, NONE } pos_t;
+typedef enum { LEFT, RIGHT, TOP, BOTTOM, LIST } pos_t;
 
 static pos_t position;
 static struct tab *selected;
@@ -42,7 +42,6 @@ placeselected(struct pane *p, int x, int y)
   if (from != NULL) {
     /* Tab order may have change so change focus. */
 
-    printf("update focus\n");
     from->norm.focus = selected;
     drawpane(from);
 
@@ -60,7 +59,7 @@ placeselected(struct pane *p, int x, int y)
     case BOTTOM:
       panesplit(p, selected, PANE_vsplit, false);
       break;
-    case NONE:
+    case LIST:
       break;
     };
 
@@ -123,9 +122,8 @@ updateposition(struct pane *p, pos_t old, int x, int y)
 
     break;
 
-  case NONE:
+  case LIST:
     if (y > p->y + listheight) {
-      printf("moved into top\n");
       return TOP;
     }
 
@@ -169,37 +167,53 @@ drawhint(struct pane *p, pos_t pos)
 	     &hint);
     break;
 
-  case NONE:
-    printf("pos is none\n");
+  case LIST:
     break;
   };
+}
+
+static void
+inserttab(struct pane *p, struct tab *t, int x)
+{
+  struct tab **tt;
+  int xx;
+
+  xx = p->x + p->norm.loff;
+  tt = &p->norm.tabs;
+  while (*tt != NULL && !(xx < x && x < xx + tabwidth)) {
+    tt = &(*tt)->next;
+    xx += tabwidth;
+  }
+    
+  t->next = *tt;
+  *tt = t;
+
+  p->norm.focus = t;
 }
 
 static bool
 moveselected(struct pane *p, int x, int y)
 {
+ 
   if (from == NULL
       && p->x < x && x < p->x + p->width
       && p->y < y && y < p->y + listheight) {
 
     /* Put tab into a new pane's list. */
 
-    position = NONE;
+    position = LIST;
     from = p;
-
-    selected->next = from->norm.tabs;
-    from->norm.tabs = selected;
+    inserttab(p, selected, x);
   }
   
   if (from != NULL) {
     if (from->x < x && x < from->x + from->width
 	&& from->y < y && y < from->y + listheight) {
 
-      /* Rearanging tabs in pane. */
+      paneremovetab(from, selected);
+      inserttab(from, selected, x);
 
     } else {
-      /* Remove tab from pane and maybe remove pane. */
-      
       paneremovetab(from, selected);
 
       if (from->norm.tabs == NULL) {
@@ -221,13 +235,13 @@ moveselected(struct pane *p, int x, int y)
   if (from == NULL) {
     position = updateposition(p, position, x, y);
     drawhint(p, position);
-  }
 
-  drawprerender(buf, width, height,
-		x - xoff, y - yoff,
-		selected->buf, tabwidth, listheight,
-		0, 0,
-		tabwidth, listheight);
+    drawprerender(buf, width, height,
+		  x - xoff, y - yoff,
+		  selected->buf, tabwidth, listheight,
+		  0, 0,
+		  tabwidth, listheight);
+  }
  
   return true;
 }
@@ -251,7 +265,7 @@ initselected(struct pane *p, int x, int y)
     return false;
   }
 
-  position = NONE;
+  position = LIST;
   from = p;
   selected = t;
   xoff = x - xx;
