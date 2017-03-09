@@ -20,7 +20,7 @@ init(void)
 {
   struct tab *t;
   
-  initrender();
+  initrenderer();
 
   t = tabnew("Mace");
   if (t == NULL) {
@@ -44,17 +44,5 @@ resize(char *nbuf, int w, int h)
 
   resizepane(root, 0, 0, w, h);
   
-  redraw();
-}
-
-bool
-handlekeypress(unsigned int code)
-{
-  return false;
-}
-
-bool
-handlekeyrelease(unsigned int code)
-{
-  return false;
+  drawpane(root);
 }

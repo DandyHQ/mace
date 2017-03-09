@@ -12,11 +12,12 @@ LIBS := -lX11 -lXft -lfreetype -lz
 
 
 SRC := \
-	mouse.c     \
+	main.c      \
 	draw.c      \
+	mouse.c     \
+	keys.c      \
 	tab.c       \
 	pane.c      \
-	main.c      \
 	xmain.c
 
 OBJECTS := $(SRC:%.c=%.o)

@@ -243,3 +243,22 @@ paneremove(struct pane *p)
   panefree(p);
 }
 
+void
+panetablistscroll(struct pane *p, int s)
+{
+  struct tab *t;
+  int w;
+
+  w = 0;
+  for (t = p->norm.tabs; t != NULL; t = t->next)
+    w += tabwidth;
+
+  if (p->norm.loff + s > 0) {
+    p->norm.loff = 0;
+  } else if (p->norm.loff + s < -w) {
+    p->norm.loff = -w;
+  } else {
+    p->norm.loff += s;
+  }
+}
+  
