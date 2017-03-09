@@ -15,13 +15,13 @@ FT_Face face;
 struct colour bg = { 1.0f, 1.0f, 1.0f, 1.0f };
 struct colour fg = { 0, 0, 0, 1.0f };
 
-unsigned int fontsize;
-unsigned int listheight;
-unsigned int scrollwidth = 15;
-unsigned int tabwidth = 80;
+int fontsize;
+int listheight;
+int scrollwidth = 15;
+int tabwidth = 80;
 
 void
-initrender(void)
+initrenderer(void)
 {
   int e;
   
@@ -43,95 +43,6 @@ initrender(void)
   e = FT_Set_Pixel_Sizes(face, 0, fontsize);
   if (e != 0) {
     err(e, "Failed to set character size!\n");
-  }
-}
-
-static char
-blend(float cf, float cb, float a)
-{
-  float b;
-
-  b = (cf * a + cb * (1.0f - a));
-  return (char) (255.0f * b);
-}
-
-static void
-drawpixel(char *buf, int bw, int bh,
-	  int x, int y, struct colour *c)
-{
-  unsigned char *bb;
-  float r, g, b;
-
-  if (0 <= x && x < bw 
-      && 0 <= y && y < bh) {
-  
-    bb = &buf[(x + y * bw) * 4];
-
-    b = ((float) *(bb+0)) / 255.0f;
-    g = ((float) *(bb+1)) / 255.0f;
-    r = ((float) *(bb+2)) / 255.0f;
-
-    *(bb+0) = blend(c->b, b, c->a);
-    *(bb+1) = blend(c->g, g, c->a);
-    *(bb+2) = blend(c->r, r, c->a);
-  }
-} 
-
-void
-drawprerender(char *dest, int dw, int dh,
-	      int dx, int dy,
-	      char *src, int sw, int sh,
-	      int sx, int sy,
-	      int w, int h)
-{
-  int xx, yy;
-  char *d, *s;
-  
-  for (xx = 0; xx < w; xx++) {
-    for (yy = 0; yy < h; yy++) {
-      if (0 < dx + xx && dx + xx < dw
-	  && 0 < dy + yy && dy + yy < dh) {
-	if (0 < sx + xx && sx + xx < sw
-	    && 0 < sy + yy && sy + yy < sh) {
-
-	  d = &dest[((dx + xx) + (dy + yy) * dw) * 4];
-	  s = &src[((sx + xx) + (sy + yy) * sw) * 4];
-
-	  *(d+0) = *(s+0);
-	  *(d+1) = *(s+1);
-	  *(d+2) = *(s+2);
-	  *(d+3) = *(s+3);
-	}
-      }
-    }
-  }
-}
-
-void
-drawglyph(char *buf, int bw, int bh,
-	  int x, int y,
-	  int xoff, int yoff,
-	  int w, int h,
-	  struct colour *c)
-{
-  struct colour rc = { c->r, c->g, c->b, 0.0f };
-  FT_Bitmap *map = &face->glyph->bitmap;
-  int xx, yy;
-  
-  for (xx = xoff; xx < w; xx++) {
-    for (yy = yoff; yy < h; yy++) {
-      if (x + xx < 0 || x + xx >= bw) {
-	continue;
-      } else if (y + yy < 0 || y + yy >= bh) {
-	continue;
-      } 
-
-      rc.a = c->a * (float ) map->buffer[xx + yy * map->width]
-	/ 255.0f;
-
-      drawpixel(buf, bw, bh,
-		x + xx, y + yy, &rc);
-    }
   }
 }
 
@@ -158,16 +69,133 @@ loadchar(long c)
   return true;
 }
 
+static char
+blend(float cf, float cb, float a)
+{
+  float b;
+
+  b = (cf * a + cb * (1.0f - a));
+  return (char) (255.0f * b);
+}
+
+static void
+drawpixel(char *dest, int dw, int dh,
+	  int x, int y, struct colour *c)
+{
+  unsigned char *bb;
+  float r, g, b;
+
+  bb = &dest[(x + y * dw) * 4];
+
+  b = ((float) *(bb+0)) / 255.0f;
+  g = ((float) *(bb+1)) / 255.0f;
+  r = ((float) *(bb+2)) / 255.0f;
+
+  *(bb+0) = blend(c->b, b, c->a);
+  *(bb+1) = blend(c->g, g, c->a);
+  *(bb+2) = blend(c->r, r, c->a);
+} 
+
+#define fixboundswh(dx, dy, sx, sy, w, h, dw, dh) \
+{ \
+  if (dx < 0) { \
+    sx -= dx; \
+    w += dx; \
+    dx = 0; \
+  } if (dy < 0) { \
+    sy -= dy; \
+    h += dy; \
+    dy = 0; \
+  } if (dx + w >= dw) { \
+    w = dw - 1 - dx; \
+  } if (dy + h >= dh) { \
+    h = dh - 1 - dy; \
+  } \
+}
+
 void
-drawrect(char *buf, int bw, int bh,
+drawprerender(char *dest, int dw, int dh,
+	      int dx, int dy,
+	      char *src, int sw, int sh,
+	      int sx, int sy,
+	      int w, int h)
+{
+  char *d, *s;
+  int xx, yy;
+
+  fixboundswh(dx, dy, sx, sy, w, h, dw, dh);
+ 
+  for (xx = 0; xx < w; xx++) {
+    for (yy = 0; yy < h; yy++) {
+      d = &dest[((dx + xx) + (dy + yy) * dw) * 4];
+      s = &src[((sx + xx) + (sy + yy) * sw) * 4];
+
+      *(d+0) = *(s+0);
+      *(d+1) = *(s+1);
+      *(d+2) = *(s+2);
+      *(d+3) = *(s+3);
+    }
+  }
+}
+
+void
+drawglyph(char *dest, int dw, int dh,
+	  int dx, int dy,
+	  int sx, int sy,
+	  int w, int h,
+	  struct colour *c)
+{
+  struct colour rc = { c->r, c->g, c->b, 0.0f };
+  FT_Bitmap *map = &face->glyph->bitmap;
+  int xx, yy;
+  
+  fixboundswh(dx, dy, sx, sy, w, h, dw, dh);
+
+  for (xx = 0; xx < w; xx++) {
+    for (yy = 0; yy < h; yy++) {
+      rc.a = c->a *
+	(float ) map->buffer[(sx + xx) + (sy + yy) * map->width]
+	/ 255.0f;
+
+      drawpixel(dest, dw, dh,
+		dx + xx, dy + yy, &rc);
+    }
+  }
+}
+
+#define fixboundspp(x1, y1, x2, y2, dw, dh)	\
+{ \
+  if (x1 < 0) { \
+    x1 = 0; \
+  } else if (x1 >= dw) { \
+    x1 = dw - 1; \
+  } if (y1 < 0) { \
+    y1 = 0; \
+  } else if (y1 >= dh) { \
+    y1 = dh - 1; \
+  } if (x2 < 0) { \
+    x2 = 0; \
+  } else if (x2 >= dw) { \
+    x2 = dw - 1; \
+  } if (y2 < 0) { \
+    y2 = 0; \
+  } else if (y2 >= dh) { \
+    y2 = dh - 1; \
+  } \
+}
+
+void
+drawrect(char *dest, int dw, int dh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c)
 {
   int xx, yy;
-  
+
+  fixboundspp(x1, y1, x2, y2, dw, dh);
+ 
   for (xx = x1; xx <= x2; xx++) {
     for (yy = y1; yy <= y2; yy++) {
-      drawpixel(buf, bw, bh,
+      drawpixel(dest, dw, dh,
 		xx, yy, c);
     }
   }
@@ -176,17 +204,19 @@ drawrect(char *buf, int bw, int bh,
 /* Only works with vertical or horizontal lines */
 
 void
-drawline(char *buf, int bw, int bh,
+drawline(char *dest, int dw, int dh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c)
 {
   int xd, yd;
 
+  fixboundspp(x1, y1, x2, y2, dw, dh);
+
   xd = x1 == x2 ? 0 : (x1 < x2 ? 1 : -1);
   yd = y1 == y2 ? 0 : (y1 < y2 ? 1 : -1);
 
   while (x1 != x2 || y1 != y2) {
-    drawpixel(buf, bw, bh,
+    drawpixel(dest, dw, dh,
 	      x1, y1, c);
 
     x1 += xd;
@@ -194,37 +224,51 @@ drawline(char *buf, int bw, int bh,
   }
 }
 
-static void
+void
 drawtablist(struct pane *p)
 {
   struct tab *t;
-  int xo;
+  int xo, x, w;
 
-  xo = 0;
+  xo = p->norm.loff;
 
-  for (t = p->norm.tabs; t != NULL; t = t->next) {
-    drawprerender(buf, width, height,
-		  p->x + xo, p->y,
-		  t->buf, tabwidth, listheight,
-		  0, 0,
-		  tabwidth, listheight);
+  for (t = p->norm.tabs; t != NULL && xo < p->width; t = t->next) {
+    if (xo + tabwidth > 0) {
+      if (xo < 0) {
+	x = -xo;
+      } else {
+	x = 0;
+      }
 
-    if (p->norm.focus == t) {
-      drawline(buf, width, height,
-	       p->x + xo, p->y + listheight - 1,
-	       p->x + xo + tabwidth, p->y + listheight - 1,
-	       &bg);
-    } else {
-      drawline(buf, width, height,
-	       p->x + xo, p->y + listheight - 1,
-	       p->x + xo + tabwidth, p->y + listheight - 1,
-	       &fg);
+      if (xo + tabwidth < p->width) {
+	w = tabwidth;
+      } else {
+	w = p->width - xo;
+      }
+      
+      drawprerender(buf, width, height,
+		    p->x + xo + x, p->y,
+		    t->buf, tabwidth, listheight,
+		    x, 0,
+		    w, listheight);
+
+      if (p->norm.focus == t) {
+	drawline(buf, width, height,
+		 p->x + xo + x, p->y + listheight - 1,
+		 p->x + xo + w, p->y + listheight - 1,
+		 &bg);
+      } else {
+	drawline(buf, width, height,
+		 p->x + xo + x, p->y + listheight - 1,
+		 p->x + xo + w, p->y + listheight - 1,
+		 &fg);
+      }
     }
-   
+
     xo += tabwidth;
   }
 
-  if (xo < p->width) {
+  if (xo > 0 && xo < p->width) {
     drawrect(buf, width, height,
 	     p->x + xo, p->y,
 	     p->x + p->width, p->y + listheight - 1,
@@ -278,10 +322,3 @@ drawpane(struct pane *p)
     break;
   }
 }
-
-void
-redraw(void)
-{
-  drawpane(root);
-}
-

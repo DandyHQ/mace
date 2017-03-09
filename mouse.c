@@ -64,7 +64,7 @@ placeselected(struct pane *p, int x, int y)
       break;
     };
 
-    redraw();
+    drawpane(root);
   }
     
   selected = NULL;
@@ -75,6 +75,9 @@ placeselected(struct pane *p, int x, int y)
 static pos_t
 updateposition(struct pane *p, pos_t old, int x, int y)
 {
+  /* TODO: add some sort of hysterias so it doesn't alternate between
+     two states when it is on a borderline. */
+  
   switch (old) {
   case LEFT:
     if (x > p->x + p->width / 3) {
@@ -175,17 +178,12 @@ drawhint(struct pane *p, pos_t pos)
 static bool
 moveselected(struct pane *p, int x, int y)
 {
-  struct tab *t;
-  int xx;
-  
   if (from == NULL
       && p->x < x && x < p->x + p->width
       && p->y < y && y < p->y + listheight) {
 
-    /* Put tab into a new panes list. */
+    /* Put tab into a new pane's list. */
 
-    printf("put tab in pane\n");
-    
     position = NONE;
     from = p;
 
@@ -199,9 +197,9 @@ moveselected(struct pane *p, int x, int y)
 
       /* Rearanging tabs in pane. */
 
-      printf("rearange tabs\n");
     } else {
-      printf("remove tab from pane\n");
+      /* Remove tab from pane and maybe remove pane. */
+      
       paneremovetab(from, selected);
 
       if (from->norm.tabs == NULL) {
@@ -218,7 +216,7 @@ moveselected(struct pane *p, int x, int y)
     }
   }
 
-  redraw();
+  drawpane(root);
 
   if (from == NULL) {
     position = updateposition(p, position, x, y);
@@ -235,13 +233,12 @@ moveselected(struct pane *p, int x, int y)
 }
 
 static bool
-handletablistpress(struct pane *p, int x, int y,
-		   unsigned int button)
+initselected(struct pane *p, int x, int y)
 {
   struct tab *t;
   int xx;
-  
-  xx = p->x;
+
+  xx = p->x + p->norm.loff;
   for (t = p->norm.tabs; t != NULL; t = t->next) {
     if (xx < x && x < xx + tabwidth) {
       break;
@@ -264,25 +261,52 @@ handletablistpress(struct pane *p, int x, int y,
 }
 
 static bool
+handletablistpress(struct pane *p, int x, int y,
+		   unsigned int button)
+{
+  switch (button) {
+  case 1:
+    return initselected(p, x, y);
+
+  case 4:
+    panetablistscroll(p, -5);
+    drawtablist(p);
+    return true;
+    
+  case 5:
+    panetablistscroll(p, 5);
+    drawtablist(p);
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+static bool
 handletablistrelease(struct pane *p, int x, int y,
 		     unsigned int button)
 {
   struct tab *t, *tp;
 
-  t = tabnew("new");
-  if (t == NULL) {
+  if (button == 1) {
+    t = tabnew("new");
+    if (t == NULL) {
+      return false;
+    }
+
+    for (tp = p->norm.tabs; tp->next != NULL; tp = tp->next)
+      ;
+
+    tp->next = t;
+    p->norm.focus = t;
+  
+    drawpane(p);
+
+    return true;
+  } else {
     return false;
   }
-
-  for (tp = p->norm.tabs; tp->next != NULL; tp = tp->next)
-    ;
-
-  tp->next = t;
-  p->norm.focus = t;
-  
-  drawpane(p);
-
-  return true;
 }
 
 bool

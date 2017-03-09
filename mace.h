@@ -7,21 +7,27 @@ struct colour {
 
 struct tab {
   uint8_t name[NAMEMAX];
+  struct tab *next;
+  int voff;
 
   /* Pre-rendered rgba buffer of header.
-   * Has length tabwidth * listheight */
+   * Has size (tabwidth * listheight * 4) */
   char *buf;
-
-  int voff;
-  struct tab *next;
 };
+
+/* PANE_norm has its norm structure populated to contain a list of
+   tabs, a focus and a list offset (for scrolling).
+   PANE_vsplit and PANE_hsplit have their split structure populated to
+   work as a binary search tree representing the way the window has
+   been split. Each leaf node will always be of type PANE_norm.
+*/
 
 typedef enum { PANE_norm, PANE_vsplit, PANE_hsplit } pane_t;
 
 struct pane {
-  struct pane *parent;
-  
   pane_t type;
+  struct pane *parent;
+
   int x, y;
   int width, height;
   
@@ -38,18 +44,14 @@ struct pane {
   };
 };
 
-
 void
 init(void);
 
 void
-initrender(void);
+initrenderer(void);
 
 void
 resize(char *nbuf, int w, int h);
-
-void
-redraw(void);
 
 void
 drawline(char *buf, int bw, int bh,
@@ -65,9 +67,9 @@ bool
 loadchar(long c);
 
 void
-drawglyph(char *buf, int bw, int bh,
-	int x, int y,
-	  int xoff, int yoff,
+drawglyph(char *dest, int dw, int dh,
+	  int dx, int dy,
+	  int sx, int sy,
 	  int w, int h,
 	  struct colour *c);
 
@@ -80,6 +82,9 @@ drawprerender(char *dest, int dw, int dh,
 
 void
 drawpane(struct pane *p);
+
+void
+drawtablist(struct pane *p);
 
 bool
 handlekeypress(unsigned int code);
@@ -119,6 +124,9 @@ paneremovetab(struct pane *p, struct tab *t);
 void
 paneremove(struct pane *p);
 
+void
+panetablistscroll(struct pane *p, int s);
+
 struct tab *
 tabnew(uint8_t *name);
 
@@ -135,9 +143,9 @@ extern FT_Face face;
 extern struct colour bg;
 extern struct colour fg;
 
-extern unsigned int fontsize;
-extern unsigned int listheight;
-extern unsigned int tabwidth;
-extern unsigned int scrollwidth;
+extern int fontsize;
+extern int listheight;
+extern int tabwidth;
+extern int scrollwidth;
 
 extern struct pane *root;
