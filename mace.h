@@ -48,7 +48,7 @@ void
 init(void);
 
 void
-initrenderer(void);
+fontinit(void);
 
 void
 resize(char *nbuf, int w, int h);

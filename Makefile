@@ -14,6 +14,7 @@ LIBS := -lX11 -lXft -lfreetype -lz
 SRC := \
 	main.c      \
 	draw.c      \
+	font.c      \
 	mouse.c     \
 	keys.c      \
 	tab.c       \

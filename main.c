@@ -20,7 +20,7 @@ init(void)
 {
   struct tab *t;
   
-  initrenderer();
+  fontinit();
 
   t = tabnew("Mace");
   if (t == NULL) {

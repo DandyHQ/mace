@@ -9,65 +9,12 @@
 
 #include "mace.h"
 
-FT_Library library;
-FT_Face face;
-
 struct colour bg = { 1.0f, 1.0f, 1.0f, 1.0f };
 struct colour fg = { 0, 0, 0, 1.0f };
 
-int fontsize;
 int listheight;
 int scrollwidth = 15;
 int tabwidth = 80;
-
-void
-initrenderer(void)
-{
-  int e;
-  
-  e = FT_Init_FreeType(&library);
-  if (e != 0) {
-    err(e, "Failed to initialize freetype2 library!\n");
-  }
-
-  e = FT_New_Face(library,
-		  "/usr/local/share/fonts/Liberation/LiberationMono-Regular.ttf",
-		  0, &face);
-  if (e != 0) {
-    err(e, "Failed to load freetype2 face!\n");
-  }
-
-  fontsize = 15;
-  listheight = fontsize + 5;
-  
-  e = FT_Set_Pixel_Sizes(face, 0, fontsize);
-  if (e != 0) {
-    err(e, "Failed to set character size!\n");
-  }
-}
-
-bool
-loadchar(long c)
-{
-  FT_UInt i;
-  int e;
-  
-  i = FT_Get_Char_Index(face, c);
-  if (i == 0) {
-    return false;
-  }
-
-  e = FT_Load_Glyph(face, i, FT_LOAD_DEFAULT);
-  if (e != 0) {
-    return false;
-  }
-
-  if (FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0) {
-    return false;
-  }
-
-  return true;
-}
 
 static char
 blend(float cf, float cb, float a)
