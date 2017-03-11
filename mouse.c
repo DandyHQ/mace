@@ -136,7 +136,7 @@ updateposition(struct pane *p, pos_t old, int x, int y)
 static void
 drawhint(struct pane *p, pos_t pos)
 {
-  struct colour hint = { 0.8, 0.3, 0.1, 0.5 };
+  struct colour hint = { 200, 50, 30, 128 };
 
   switch (pos) {
   case LEFT:

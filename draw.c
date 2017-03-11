@@ -9,20 +9,17 @@
 
 #include "mace.h"
 
-struct colour bg = { 1.0f, 1.0f, 1.0f, 1.0f };
-struct colour fg = { 0, 0, 0, 1.0f };
+struct colour bg = { 255, 255, 255, 255 };
+struct colour fg = { 0, 0, 0, 255 };
 
 int listheight;
 int scrollwidth = 15;
 int tabwidth = 80;
 
-static char
-blend(float cf, float cb, float a)
+static unsigned char
+blend(unsigned int cf, unsigned int cb, unsigned int a)
 {
-  float b;
-
-  b = (cf * a + cb * (1.0f - a));
-  return (char) (255.0f * b);
+  return (unsigned char) ((cf * a + cb * (255 - a)) / 255);
 }
 
 static void
@@ -30,17 +27,12 @@ drawpixel(char *dest, int dw, int dh,
 	  int x, int y, struct colour *c)
 {
   unsigned char *bb;
-  float r, g, b;
-
+  
   bb = &dest[(x + y * dw) * 4];
 
-  b = ((float) *(bb+0)) / 255.0f;
-  g = ((float) *(bb+1)) / 255.0f;
-  r = ((float) *(bb+2)) / 255.0f;
-
-  *(bb+0) = blend(c->b, b, c->a);
-  *(bb+1) = blend(c->g, g, c->a);
-  *(bb+2) = blend(c->r, r, c->a);
+  *(bb+0) = blend(c->b, *(bb+0), c->a);
+  *(bb+1) = blend(c->g, *(bb+1), c->a);
+  *(bb+2) = blend(c->r, *(bb+2), c->a);
 } 
 
 #define fixboundswh(dx, dy, sx, sy, w, h, dw, dh) \
@@ -100,9 +92,9 @@ drawglyph(char *dest, int dw, int dh,
 
   for (xx = 0; xx < w; xx++) {
     for (yy = 0; yy < h; yy++) {
-      rc.a = c->a *
-	(float ) map->buffer[(sx + xx) + (sy + yy) * map->width]
-	/ 255.0f;
+      rc.a = c->a
+	* map->buffer[(sx + xx) + (sy + yy) * map->width]
+	/ 255;
 
       drawpixel(dest, dw, dh,
 		dx + xx, dy + yy, &rc);

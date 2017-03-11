@@ -2,7 +2,7 @@
 #define NAMEMAX 32
 
 struct colour {
-  float r, g, b, a;
+  unsigned char r, g, b, a;
 };
 
 struct tab {
@@ -139,11 +139,12 @@ tabprerender(struct tab *t);
 extern unsigned int width, height;
 extern unsigned char *buf;
 
-extern FT_Face face;
 extern struct colour bg;
 extern struct colour fg;
 
+extern FT_Face face;
 extern int fontsize;
+
 extern int listheight;
 extern int tabwidth;
 extern int scrollwidth;
