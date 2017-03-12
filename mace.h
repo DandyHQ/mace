@@ -6,13 +6,13 @@ struct colour {
 };
 
 struct tab {
-  uint8_t name[NAMEMAX];
+  char name[NAMEMAX];
   struct tab *next;
   int voff;
 
   /* Pre-rendered rgba buffer of header.
    * Has size (tabwidth * listheight * 4) */
-  char *buf;
+  unsigned char *buf;
 };
 
 /* PANE_norm has its norm structure populated to contain a list of
@@ -51,15 +51,15 @@ void
 fontinit(void);
 
 void
-resize(char *nbuf, int w, int h);
+resize(unsigned char *nbuf, int w, int h);
 
 void
-drawline(char *buf, int bw, int bh,
+drawline(unsigned char *buf, int bw, int bh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c);
 
 void
-drawrect(char *buf, int bw, int bh,
+drawrect(unsigned char *buf, int bw, int bh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c);
 
@@ -67,16 +67,16 @@ bool
 loadchar(long c);
 
 void
-drawglyph(char *dest, int dw, int dh,
+drawglyph(unsigned char *dest, int dw, int dh,
 	  int dx, int dy,
 	  int sx, int sy,
 	  int w, int h,
 	  struct colour *c);
 
 void
-drawprerender(char *dest, int dw, int dh,
+drawprerender(unsigned char *dest, int dw, int dh,
 	      int dx, int dy,
-	      char *src, int sw, int sh,
+	      unsigned char *src, int sw, int sh,
 	      int sx, int sy,
 	      int w, int h);
 
@@ -128,7 +128,7 @@ void
 panetablistscroll(struct pane *p, int s);
 
 struct tab *
-tabnew(uint8_t *name);
+tabnew(char *name);
 
 void
 tabfree(struct tab *t);

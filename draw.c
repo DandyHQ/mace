@@ -23,7 +23,7 @@ blend(unsigned int cf, unsigned int cb, unsigned int a)
 }
 
 static void
-drawpixel(char *dest, int dw, int dh,
+drawpixel(unsigned char *dest, int dw, int dh,
 	  int x, int y, struct colour *c)
 {
   unsigned char *bb;
@@ -53,13 +53,13 @@ drawpixel(char *dest, int dw, int dh,
 }
 
 void
-drawprerender(char *dest, int dw, int dh,
+drawprerender(unsigned char *dest, int dw, int dh,
 	      int dx, int dy,
-	      char *src, int sw, int sh,
+	      unsigned char *src, int sw, int sh,
 	      int sx, int sy,
 	      int w, int h)
 {
-  char *d, *s;
+  unsigned char *d, *s;
   int xx, yy;
 
   fixboundswh(dx, dy, sx, sy, w, h, dw, dh);
@@ -78,7 +78,7 @@ drawprerender(char *dest, int dw, int dh,
 }
 
 void
-drawglyph(char *dest, int dw, int dh,
+drawglyph(unsigned char *dest, int dw, int dh,
 	  int dx, int dy,
 	  int sx, int sy,
 	  int w, int h,
@@ -124,7 +124,7 @@ drawglyph(char *dest, int dw, int dh,
 }
 
 void
-drawrect(char *dest, int dw, int dh,
+drawrect(unsigned char *dest, int dw, int dh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c)
 {
@@ -143,7 +143,7 @@ drawrect(char *dest, int dw, int dh,
 /* Only works with vertical or horizontal lines */
 
 void
-drawline(char *dest, int dw, int dh,
+drawline(unsigned char *dest, int dw, int dh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c)
 {

@@ -10,7 +10,7 @@
 #include "mace.h"
 
 struct tab *
-tabnew(uint8_t *name)
+tabnew(char *name)
 {
   struct tab *t;
 

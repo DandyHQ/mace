@@ -19,7 +19,7 @@ XImage *img = NULL;
 static void
 xresize(int w, int h)
 {
-  char *nbuf;
+  unsigned char *nbuf;
 
   nbuf = malloc(w * h * 4);
   if (nbuf == NULL) {
@@ -32,7 +32,8 @@ xresize(int w, int h)
     XDestroyImage(img);
   }
 
-  img = XCreateImage(display, CopyFromParent, 24, ZPixmap, 0, buf,
+  img = XCreateImage(display, CopyFromParent, 24, ZPixmap, 0,
+		     (char *) buf,
 		     width, height, 32, 0);
 }
 

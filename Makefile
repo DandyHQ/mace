@@ -3,7 +3,7 @@
 
 CFLAGS := -I/usr/X11R6/include -I/usr/local/include \
 	-I/usr/X11R6/include/freetype2 \
-	-fPIC -Wall
+        -fPIC -Wall -Wpointer-sign
 
 LDFLAGS := -L/usr/X11R6/lib -L/usr/local/lib \
 	-fPIC

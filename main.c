@@ -34,7 +34,7 @@ init(void)
 }
 
 void
-resize(char *nbuf, int w, int h)
+resize(unsigned char *nbuf, int w, int h)
 {
   printf("resize to %ix%i\n", (int) w, (int) h);
 
