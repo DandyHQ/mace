@@ -45,28 +45,29 @@ tabfree(struct tab *t)
 void
 tabprerender(struct tab *t)
 {
+  struct colour border = { 100, 100, 100, 255 };
   int xx, ww;
   char *s;
 
   drawline(t->buf, tabwidth, listheight,
 	   0, 0,
 	   tabwidth - 1, 0,
-	   &fg);
+	   &border);
 
   drawline(t->buf, tabwidth, listheight,
 	   0, listheight - 1,
 	   tabwidth - 1, listheight - 1,
-	   &fg);
+	   &border);
 
   drawline(t->buf, tabwidth, listheight,
 	   tabwidth - 1, 0,
 	   tabwidth - 1, listheight - 1,
-	   &fg);
+	   &border);
 
   drawline(t->buf, tabwidth, listheight,
 	   0, 0,
 	   0, listheight - 1,
-	   &fg);
+	   &border);
 
   drawrect(t->buf, tabwidth, listheight,
 	   1, 1,
