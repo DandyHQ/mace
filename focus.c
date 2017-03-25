@@ -112,7 +112,37 @@ insert(struct line *lo, int p, char *a, size_t an)
 bool
 handleactionkeypress(unsigned int code)
 {
-  return false;
+  struct line *lo, *ln;
+  struct tab *f;
+  char a[16];
+  size_t an;
+  int p;
+
+  f = focus->norm.focus;
+
+  lo = f->actionfocus.line;
+  p = f->actionfocus.pos;
+  
+  printf("add char %i\n", code);
+
+  /* TODO: convert code into utf8 sequence. */
+  an = 1;
+  a[0] = code;
+  a[1] = 0;
+  
+  ln = insert(lo, p, a, an);
+  if (ln == NULL) {
+    return false;
+  } else {
+    *lo->prev = ln;
+
+    f->actionfocus.line = ln;
+    f->actionfocus.pos = p + an;
+
+    panedraw(focus);
+
+    return true;
+  }
 }
 
 bool
