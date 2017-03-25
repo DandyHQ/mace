@@ -174,7 +174,6 @@ inserttab(struct pane *p, struct tab *t, int x)
 static bool
 moveselected(struct pane *p, int x, int y)
 {
- 
   if (from == NULL
       && p->x < x && x < p->x + p->width
       && p->y < y && y < p->y + lineheight) {
@@ -193,7 +192,7 @@ moveselected(struct pane *p, int x, int y)
       paneremovetab(from, selected);
       inserttab(from, selected, x);
 
-    } else if (from != root) {
+    } else {
       paneremovetab(from, selected);
 
       if (from->norm.tabs == NULL) {
@@ -258,9 +257,26 @@ static bool
 handletablistpress(struct pane *p, int x, int y,
 		   unsigned int button)
 {
+  struct tab *t, *tp;
+  
   switch (button) {
   case 1:
     return initselected(p, x, y);
+
+  case 2:
+    t = tabnew("new");
+    if (t == NULL) {
+      return false;
+    }
+
+    for (tp = p->norm.tabs; tp->next != NULL; tp = tp->next)
+      ;
+
+    tp->next = t;
+    p->norm.focus = t;
+    panedraw(p);
+    
+    return true;
 
   case 4:
     panetablistscroll(p, -5);
