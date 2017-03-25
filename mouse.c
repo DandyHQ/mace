@@ -16,26 +16,6 @@ static struct tab *selected;
 static struct pane *from;
 static int xoff, yoff;
 
-static bool
-handlefocuspress(struct pane *p, int x, int y,
-	       unsigned int button)
-{
-  return false;
-}
-
-static bool
-handlefocusrelease(struct pane *p, int x, int y,
-		 unsigned int button)
-{
-  return false;
-}
-
-static bool
-handlefocusmotion(struct pane *p, int x, int y)
-{
-  return false;
-}
-
 bool
 placeselected(struct pane *p, int x, int y)
 {
@@ -43,7 +23,7 @@ placeselected(struct pane *p, int x, int y)
     /* Tab order may have change so change focus. */
 
     from->norm.focus = selected;
-    drawpane(from);
+    panedraw(from);
 
   } else {
     switch (position) {
@@ -63,7 +43,7 @@ placeselected(struct pane *p, int x, int y)
       break;
     };
 
-    drawpane(root);
+    panedraw(root);
   }
     
   selected = NULL;
@@ -123,7 +103,7 @@ updateposition(struct pane *p, pos_t old, int x, int y)
     break;
 
   case LIST:
-    if (y > p->y + listheight) {
+    if (y > p->y + lineheight) {
       return TOP;
     }
 
@@ -141,21 +121,21 @@ drawhint(struct pane *p, pos_t pos)
   switch (pos) {
   case LEFT:
     drawrect(buf, width, height,
-	     p->x, p->y + listheight,
+	     p->x, p->y + lineheight,
 	     p->x + p->width / 2, p->y + p->height,
 	     &hint);
     break;
 
   case RIGHT:
     drawrect(buf, width, height,
-	     p->x + p->width / 2, p->y + listheight,
+	     p->x + p->width / 2, p->y + lineheight,
 	     p->x + p->width, p->y + p->height,
 	     &hint);
     break;
 
   case TOP:
     drawrect(buf, width, height,
-	     p->x, p->y + listheight,
+	     p->x, p->y + lineheight,
 	     p->x + p->width, p->y + p->height / 2,
 	     &hint);
     break;
@@ -197,7 +177,7 @@ moveselected(struct pane *p, int x, int y)
  
   if (from == NULL
       && p->x < x && x < p->x + p->width
-      && p->y < y && y < p->y + listheight) {
+      && p->y < y && y < p->y + lineheight) {
 
     /* Put tab into a new pane's list. */
 
@@ -208,12 +188,12 @@ moveselected(struct pane *p, int x, int y)
   
   if (from != NULL) {
     if (from->x < x && x < from->x + from->width
-	&& from->y < y && y < from->y + listheight) {
+	&& from->y < y && y < from->y + lineheight) {
 
       paneremovetab(from, selected);
       inserttab(from, selected, x);
 
-    } else {
+    } else if (from != root) {
       paneremovetab(from, selected);
 
       if (from->norm.tabs == NULL) {
@@ -230,7 +210,7 @@ moveselected(struct pane *p, int x, int y)
     }
   }
 
-  drawpane(root);
+  panedraw(root);
 
   if (from == NULL) {
     position = updateposition(p, position, x, y);
@@ -238,9 +218,9 @@ moveselected(struct pane *p, int x, int y)
 
     drawprerender(buf, width, height,
 		  x - xoff, y - yoff,
-		  selected->buf, tabwidth, listheight,
+		  selected->buf, tabwidth, lineheight,
 		  0, 0,
-		  tabwidth, listheight);
+		  tabwidth, lineheight);
   }
  
   return true;
@@ -284,41 +264,15 @@ handletablistpress(struct pane *p, int x, int y,
 
   case 4:
     panetablistscroll(p, -5);
-    drawtablist(p);
+    panedrawtablist(p);
     return true;
     
   case 5:
     panetablistscroll(p, 5);
-    drawtablist(p);
+    panedrawtablist(p);
     return true;
 
   default:
-    return false;
-  }
-}
-
-static bool
-handletablistrelease(struct pane *p, int x, int y,
-		     unsigned int button)
-{
-  struct tab *t, *tp;
-
-  if (button == 1) {
-    t = tabnew("new");
-    if (t == NULL) {
-      return false;
-    }
-
-    for (tp = p->norm.tabs; tp->next != NULL; tp = tp->next)
-      ;
-
-    tp->next = t;
-    p->norm.focus = t;
-  
-    drawpane(p);
-
-    return true;
-  } else {
     return false;
   }
 }
@@ -333,10 +287,10 @@ handlebuttonpress(int x, int y, unsigned int button)
     return false;
   }
 
-  if (y < p->y + listheight) {
+  if (y < p->y + lineheight) {
     return handletablistpress(p, x, y, button);
   } else {
-    return handlefocuspress(p, x, y, button);
+    return handlepanepress(p, x, y, button);
   }
 }
 
@@ -352,10 +306,8 @@ handlebuttonrelease(int x, int y, unsigned int button)
 
   if (selected != NULL) {
     return placeselected(p, x, y);
-  } else if (y < p->y + listheight) {
-    return handletablistrelease(p, x, y, button);
   } else {
-    return handlefocusrelease(p, x, y, button);
+    return handlepanerelease(p, x, y, button);
   }
 }
 
@@ -371,8 +323,8 @@ handlemotion(int x, int y)
 
   if (selected != NULL) {
     return moveselected(p, x, y);
-  } else if (y > p->y + listheight) {
-    return handlefocusmotion(p, x, y);
+  } else if (y > p->y + lineheight) {
+    return handlepanemotion(p, x, y);
   } else {
     return false;
   } 

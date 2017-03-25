@@ -9,11 +9,26 @@
 
 #include "mace.h"
 
+FT_Face face;
+
+int fontsize;
+
+struct colour bg = { 255, 255, 255, 255 };
+struct colour fg = { 0, 0, 0, 255 };
+struct colour abg = { 200, 230, 255, 255 };
+
+int lineheight;
+int baseline;
+
+int tabwidth = 80;
+
 unsigned int width = 0;
 unsigned int height = 0;
 unsigned char *buf = NULL;
 
 struct pane *root = NULL;
+struct pane *focus = NULL;
+focus_t focustype = FOCUS_main;
 
 void
 init(void)
@@ -26,8 +41,8 @@ init(void)
   if (t == NULL) {
     err(1, "Failed to allocate root tab!\n");
   }
-  
-  root = panenew(NULL, t);
+
+  focus = root = panenew(NULL, t);
   if (root == NULL) {
     err(1, "Failed to allocate root pane!\n");
   }
@@ -44,5 +59,5 @@ resize(unsigned char *nbuf, int w, int h)
 
   resizepane(root, 0, 0, w, h);
   
-  drawpane(root);
+  panedraw(root);
 }

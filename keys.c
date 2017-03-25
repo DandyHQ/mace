@@ -8,15 +8,3 @@
 #include FT_FREETYPE_H
 
 #include "mace.h"
-
-bool
-handlekeypress(unsigned int code)
-{
-  return false;
-}
-
-bool
-handlekeyrelease(unsigned int code)
-{
-  return false;
-}

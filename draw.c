@@ -9,13 +9,6 @@
 
 #include "mace.h"
 
-struct colour bg = { 255, 255, 255, 255 };
-struct colour fg = { 0, 0, 0, 255 };
-
-int listheight;
-int scrollwidth = 15;
-int tabwidth = 80;
-
 static unsigned char
 blend(unsigned int cf, unsigned int cb, unsigned int a)
 {
@@ -102,6 +95,58 @@ drawglyph(unsigned char *dest, int dw, int dh,
   }
 }
 
+int
+drawstring(unsigned char *dest, int dw, int dh,
+	   int dx, int dy,
+	   int tx, int ty,
+	   int tw, int th,
+	   char *s, bool drawpart,
+	   struct colour *c)
+{
+  int i, a, xx, ww, x, w;
+
+  i = 0;
+
+  for (i = 0, xx = 0; s[i] != 0 && xx < tx + tw; xx += ww) {
+    if ((a = loadglyph(s + i)) == -1) {
+      i++;
+      continue;
+    } else {
+      i += a;
+    }
+
+    ww = face->glyph->advance.x >> 6;
+
+    if (xx > tx) {
+      x = 0;
+    } else if (xx + ww > tx) {
+      x = tx - xx;
+    } else {
+      continue;
+    }
+
+    if (xx + ww > tx + tw) {
+      if (drawpart) {
+	w = xx + ww - tx - tw;
+      } else {
+	i -= a;
+	break;
+      }
+    } else {
+      w = face->glyph->bitmap.width;
+    }
+    
+    drawglyph(dest, dw, dh,
+	      dx + xx + face->glyph->bitmap_left,
+	      dy + baseline - face->glyph->bitmap_top,
+	      x, ty,
+	      w, face->glyph->bitmap.rows,
+	      c);
+  }
+
+  return i;
+}
+
 #define fixboundspp(x1, y1, x2, y2, dw, dh)	\
 { \
   if (x1 < 0) { \
@@ -154,10 +199,14 @@ drawline(unsigned char *dest, int dw, int dh,
   xd = x1 == x2 ? 0 : (x1 < x2 ? 1 : -1);
   yd = y1 == y2 ? 0 : (y1 < y2 ? 1 : -1);
 
-  while (x1 != x2 || y1 != y2) {
+  while (true) {
     drawpixel(dest, dw, dh,
 	      x1, y1, c);
 
+    if (x1 == x2 && y1 == y2) {
+      break;
+    }
+    
     x1 += xd;
     y1 += yd;
   }

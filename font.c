@@ -9,10 +9,7 @@
 
 #include "mace.h"
 
-FT_Library library;
-FT_Face face;
-
-int fontsize;
+static FT_Library library;
 
 void
 fontinit(void)
@@ -32,34 +29,43 @@ fontinit(void)
   }
 
   fontsize = 15;
-  listheight = fontsize + 5;
   
   e = FT_Set_Pixel_Sizes(face, 0, fontsize);
   if (e != 0) {
     err(e, "Failed to set character size!\n");
   }
+ 
+  /* This is apparently what it should be */
+  baseline = face->size->metrics.height >> 6;
+  /* This seems to work */
+  lineheight = (face->ascender + face->descender) >> 6;
 }
 
-bool
-loadchar(long c)
+int
+loadglyph(char *s)
 {
   FT_UInt i;
+  long n;
   int e;
+
+  /* TODO: get utf8 code and number of bytes from string */
+  n = *s;
   
-  i = FT_Get_Char_Index(face, c);
+  i = FT_Get_Char_Index(face, n);
   if (i == 0) {
-    return false;
+    return -1;
   }
 
   e = FT_Load_Glyph(face, i, FT_LOAD_DEFAULT);
   if (e != 0) {
-    return false;
+    return -1;
   }
 
   if (FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0) {
-    return false;
+    return -1;
   }
 
-  return true;
+  /* Return number of bytes */
+  return 1;
 }
 

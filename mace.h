@@ -1,18 +1,39 @@
 
 #define NAMEMAX 32
+#define PADDING 5
+
+typedef enum { FOCUS_action, FOCUS_main, NFOCUS_T } focus_t;
 
 struct colour {
   unsigned char r, g, b, a;
 };
 
+struct line {
+  struct line **prev, *next;
+
+  size_t n;
+  char *s;
+};
+
+struct focus {
+  struct line *line;
+  unsigned int pos;
+};
+
 struct tab {
   char name[NAMEMAX];
   struct tab *next;
-  int voff;
 
   /* Pre-rendered rgba buffer of header.
-   * Has size (tabwidth * listheight * 4) */
+   * Has size (tabwidth * lineheight * 4) */
   unsigned char *buf;
+
+  struct line *action;
+  struct focus actionfocus;
+
+  int voff;
+  struct line *main;
+  struct focus mainfocus;
 };
 
 /* PANE_norm has its norm structure populated to contain a list of
@@ -50,8 +71,13 @@ init(void);
 void
 fontinit(void);
 
+int
+loadglyph(char *s);
+
 void
 resize(unsigned char *nbuf, int w, int h);
+
+
 
 void
 drawline(unsigned char *buf, int bw, int bh,
@@ -63,15 +89,20 @@ drawrect(unsigned char *buf, int bw, int bh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c);
 
-bool
-loadchar(long c);
-
 void
 drawglyph(unsigned char *dest, int dw, int dh,
 	  int dx, int dy,
 	  int sx, int sy,
 	  int w, int h,
 	  struct colour *c);
+
+int
+drawstring(unsigned char *dest, int dw, int dh,
+	   int dx, int dy,
+	   int tx, int ty,
+	   int tw, int th,
+	   char *s, bool drawpart,
+	   struct colour *c);
 
 void
 drawprerender(unsigned char *dest, int dw, int dh,
@@ -80,11 +111,6 @@ drawprerender(unsigned char *dest, int dw, int dh,
 	      int sx, int sy,
 	      int w, int h);
 
-void
-drawpane(struct pane *p);
-
-void
-drawtablist(struct pane *p);
 
 bool
 handlekeypress(unsigned int code);
@@ -101,6 +127,8 @@ handlebuttonrelease(int x, int y, unsigned int button);
 bool
 handlemotion(int x, int y);
 
+
+
 struct pane *
 panenew(struct pane *parent, struct tab *tabs);
 
@@ -113,6 +141,12 @@ resizepane(struct pane *p, int x, int y, int w, int h);
 struct pane *
 findpane(struct pane *p,
 	 int x, int y);
+
+void
+panedraw(struct pane *p);
+
+int
+panedrawtablist(struct pane *p);
 
 struct pane *
 panesplit(struct pane *h, struct tab *t,
@@ -127,6 +161,19 @@ paneremove(struct pane *p);
 void
 panetablistscroll(struct pane *p, int s);
 
+bool
+handlepanepress(struct pane *p, int x, int y,
+		unsigned int button);
+
+bool
+handlepanerelease(struct pane *p, int x, int y,
+		  unsigned int button);
+
+bool
+handlepanemotion(struct pane *p, int x, int y);
+
+
+
 struct tab *
 tabnew(char *name);
 
@@ -136,17 +183,36 @@ tabfree(struct tab *t);
 void
 tabprerender(struct tab *t);
 
+/* Claims s */
+struct line *
+linenew(char *s, size_t n);
+
+void
+linefree(struct line *l);
+
+/* Either returns the line that was clicked on and sets *pos to 
+ * be the index in the line's string. Or returns NULL and sets *pos
+ * to the distance from y checked
+ */
+struct line *
+findpos(struct line *line,
+	int x, int y, int linewidth,
+	int *pos);
+
+  
 extern unsigned int width, height;
 extern unsigned char *buf;
 
-extern struct colour bg;
-extern struct colour fg;
+extern struct colour bg, fg, abg;
 
 extern FT_Face face;
 extern int fontsize;
 
-extern int listheight;
-extern int tabwidth;
-extern int scrollwidth;
+extern int lineheight;
+extern int baseline;
 
-extern struct pane *root;
+extern int tabwidth;
+
+extern struct pane *root, *focus;
+extern focus_t focustype;
+

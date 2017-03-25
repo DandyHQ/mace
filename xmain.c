@@ -11,10 +11,10 @@
 
 #include "mace.h"
 
-Display *display;
-Window win;
-int screen;
-XImage *img = NULL;
+static Display *display;
+static Window win;
+static int screen;
+static XImage *img = NULL;
 
 static void
 xresize(int w, int h)

@@ -13,6 +13,8 @@ struct tab *
 tabnew(char *name)
 {
   struct tab *t;
+  size_t n;
+  char *s;
 
   t = malloc(sizeof(struct tab));
   if (t == NULL) {
@@ -24,14 +26,63 @@ tabnew(char *name)
 
   strlcpy(t->name, name, NAMEMAX);
 
-  t->buf = malloc(tabwidth * listheight * 4);
+  t->buf = malloc(tabwidth * lineheight * 4);
   if (t->buf == NULL) {
     free(t);
     return NULL;
   }
- 
-  tabprerender(t);
+
+  s = malloc(sizeof(char) * 128);
+  if (s == NULL) {
+    free(buf);
+    free(t);
+    return NULL;
+  }
   
+  n = snprintf(s, sizeof(char) * 128,
+	       "%s save copy cut search", name);
+
+  t->action = linenew(s, n);
+  if (t->action == NULL) {
+    free(s);
+    free(buf);
+    free(t);
+    return NULL;
+  }
+
+  t->action->prev = &t->action;
+  t->action->next = NULL;
+  
+  t->actionfocus.line = t->action;
+  t->actionfocus.pos = n;
+ 
+ 
+  s = malloc(sizeof(char) * 128);
+  if (s == NULL) {
+    free(buf);
+    free(t);
+    return NULL;
+  }
+  
+  n = strlcpy(s, "", sizeof(char) * 128);
+
+  t->main = linenew(s, n);
+  if (t->main == NULL) {
+    linefree(t->action);
+    free(s);
+    free(buf);
+    free(t);
+    return NULL;
+  }
+
+  t->main->prev = &t->main;
+  t->main->next = NULL;
+
+  t->mainfocus.line = t->main;
+  t->mainfocus.pos = n;
+
+  tabprerender(t);
+ 
   return t;
 }
 
@@ -46,52 +97,36 @@ void
 tabprerender(struct tab *t)
 {
   struct colour border = { 100, 100, 100, 255 };
-  int xx, ww;
-  char *s;
 
-  drawline(t->buf, tabwidth, listheight,
+  drawline(t->buf, tabwidth, lineheight,
 	   0, 0,
 	   tabwidth - 1, 0,
 	   &border);
 
-  drawline(t->buf, tabwidth, listheight,
-	   0, listheight - 1,
-	   tabwidth - 1, listheight - 1,
+  drawline(t->buf, tabwidth, lineheight,
+	   0, lineheight - 1,
+	   tabwidth - 1, lineheight - 1,
 	   &border);
 
-  drawline(t->buf, tabwidth, listheight,
+  drawline(t->buf, tabwidth, lineheight,
 	   tabwidth - 1, 0,
-	   tabwidth - 1, listheight - 1,
+	   tabwidth - 1, lineheight - 1,
 	   &border);
 
-  drawline(t->buf, tabwidth, listheight,
+  drawline(t->buf, tabwidth, lineheight,
 	   0, 0,
-	   0, listheight - 1,
+	   0, lineheight - 1,
 	   &border);
 
-  drawrect(t->buf, tabwidth, listheight,
+  drawrect(t->buf, tabwidth, lineheight,
 	   1, 1,
-	   tabwidth - 2, listheight - 2,
+	   tabwidth - 2, lineheight - 2,
 	   &bg);
- 
-  xx = 10; /* Padding */
-  for (s = t->name; *s && xx < tabwidth; s++) {
-    if (!loadchar(*s)) {
-      printf("failed to load glyph for %c\n", *s);
-      continue;
-    }
 
-    ww = face->glyph->advance.x >> 6;
-
-    drawglyph(t->buf, tabwidth, listheight,
-	      xx + face->glyph->bitmap_left,
-	      listheight - 4 - face->glyph->bitmap_top,
-	      0, 0,
-	      face->glyph->bitmap.width,
-	      face->glyph->bitmap.rows,
-	      &fg);
-
-    xx += ww;
-  }
+  drawstring(t->buf, tabwidth, lineheight,
+	     PADDING, 0,
+	     0, 0,
+	     tabwidth - PADDING, lineheight,
+	     t->name, true, &fg);
 }
 

@@ -16,9 +16,10 @@ SRC := \
 	draw.c      \
 	font.c      \
 	mouse.c     \
-	keys.c      \
 	tab.c       \
 	pane.c      \
+	focus.c     \
+	line.c      \
 	xmain.c
 
 OBJECTS := $(SRC:%.c=%.o)
@@ -30,6 +31,6 @@ mace: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) \
 		$(LIBS)
 
-CLEAN := $(OBJECTS) mace
+CLEAN := $(OBJECTS) mace mace.core
 clean:
 	rm -f $(CLEAN)

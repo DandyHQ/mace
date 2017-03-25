@@ -262,8 +262,8 @@ panetablistscroll(struct pane *p, int s)
   }
 }
   
-void
-drawtablist(struct pane *p)
+int
+panedrawtablist(struct pane *p)
 {
   struct tab *t;
   int xo, x, w;
@@ -283,22 +283,22 @@ drawtablist(struct pane *p)
       } else {
 	w = p->width - xo;
       }
-      
+
       drawprerender(buf, width, height,
 		    p->x + xo + x, p->y,
-		    t->buf, tabwidth, listheight,
+		    t->buf, tabwidth, lineheight,
 		    x, 0,
-		    w, listheight);
+		    w, lineheight);
 
       if (p->norm.focus == t) {
 	drawline(buf, width, height,
-		 p->x + xo + x, p->y + listheight - 1,
-		 p->x + xo + w, p->y + listheight - 1,
+		 p->x + xo + x, p->y + lineheight - 1,
+		 p->x + xo + w, p->y + lineheight - 1,
 		 &bg);
       } else {
 	drawline(buf, width, height,
-		 p->x + xo + x, p->y + listheight - 1,
-		 p->x + xo + w, p->y + listheight - 1,
+		 p->x + xo + x, p->y + lineheight - 1,
+		 p->x + xo + w, p->y + lineheight - 1,
 		 &fg);
       }
     }
@@ -309,7 +309,7 @@ drawtablist(struct pane *p)
   if (xo > 0 && xo < p->width) {
     drawrect(buf, width, height,
 	     p->x + xo, p->y,
-	     p->x + p->width, p->y + listheight - 1,
+	     p->x + p->width, p->y + lineheight - 1,
 	     &bg);
     
     drawline(buf, width, height,
@@ -318,45 +318,192 @@ drawtablist(struct pane *p)
 	     &fg);
 
     drawline(buf, width, height,
-	     p->x + xo - 1, p->y + listheight - 1,
-	     p->x + p->width, p->y + listheight - 1,
+	     p->x + xo - 1, p->y + lineheight - 1,
+	     p->x + p->width, p->y + lineheight - 1,
 	     &fg);
   }
+
+  drawline(buf, width, height,
+	   p->x + p->width, p->y,
+	   p->x + p->width, p->y + lineheight,
+	   &fg);
+ 
+  drawline(buf, width, height,
+	   p->x, p->y,
+	   p->x, p->y + lineheight,
+	   &fg);
+
+  return lineheight;
 }
 
 static void
-drawfocus(struct pane *p)
+drawactionoutline(struct pane *p, int y, int yy)
+{
+  drawline(buf, width, height,
+	   p->x + 1, p->y + yy - 1,
+	   p->x + p->width - 1, p->y + yy - 1,
+	   &fg);
+
+  drawline(buf, width, height,
+	   p->x + p->width, p->y + y,
+	   p->x + p->width, p->y + yy,
+	   &fg);
+ 
+  drawline(buf, width, height,
+	   p->x, p->y + y,
+	   p->x, p->y + yy,
+	   &fg);
+}
+
+static void
+drawmainoutline(struct pane *p, int y)
 {
   drawrect(buf, width, height,
-	   p->x, p->y + listheight,
+	   p->x, p->y + y,
 	   p->x + p->width - 1, p->y + p->height - 1,
 	   &bg);
 
   drawline(buf, width, height,
-	   p->x + p->width - scrollwidth, p->y + listheight + 1,
-	   p->x + p->width - scrollwidth, p->y + p->height,
+	   p->x + p->width, p->y + y,
+	   p->x + p->width, p->y + p->height - 1,
 	   &fg);
-
+ 
   drawline(buf, width, height,
-	   p->x + p->width - 1, p->y,
-	   p->x + p->width - 1, p->y + p->height - 1,
+	   p->x, p->y + y,
+	   p->x, p->y + p->height - 1,
 	   &fg);
 }
 
-void
-drawpane(struct pane *p)
+
+int
+panedrawaction(struct pane *p, int y)
 {
+  int i, a, xx, yy, ww;
+  struct line *l;
+  struct tab *t;
+
+  t = p->norm.focus;
+  yy = y;
+
+  for (l = t->action; l != NULL; l = l->next) {
+    xx = 0;
+    drawrect(buf, width, height,
+	     p->x, p->y + yy,
+	     p->x + p->width - 1, p->y + yy + lineheight,
+	     &abg);
+
+    for (i = 0; i < l->n; i += a) {
+      a = loadglyph(l->s + i);
+      if (a == -1) {
+	a = 1;
+	continue;
+      } 
+
+      ww = face->glyph->advance.x >> 6;
+
+      if (PADDING + xx + ww >= p->width - PADDING) {
+	xx = 0;
+	yy += lineheight;
+
+	drawrect(buf, width, height,
+		 p->x, p->y + yy,
+		 p->x + p->width - 1, p->y + yy + lineheight,
+		 &abg);
+      }
+
+      drawglyph(buf, width, height,
+		p->x + PADDING + xx + face->glyph->bitmap_left,
+		p->y + yy + baseline - face->glyph->bitmap_top,
+		0, 0,
+		face->glyph->bitmap.width, face->glyph->bitmap.rows,
+		&fg);
+
+      xx += ww;
+    }
+
+    yy += lineheight;
+  }
+
+  drawactionoutline(p, y, yy);
+  
+  return yy;
+}
+
+void
+panedrawmain(struct pane *p, int y)
+{
+  int i, a, xx, yy, ww, ty;
+  struct line *l;
+  struct tab *t;
+
+  drawmainoutline(p, y);
+
+  t = p->norm.focus;
+  yy = 0;
+
+  for (l = t->main; l != NULL; l = l->next) {
+    xx = 0;
+
+    for (i = 0; i < l->n; i += a) {
+      a = loadglyph(l->s + i);
+      if (a == -1) {
+	a = 1;
+	continue;
+      } 
+
+      ww = face->glyph->advance.x >> 6;
+
+      if (PADDING + xx + ww >= p->width - PADDING) {
+	xx = 0;
+	yy += lineheight;
+      }
+
+      if (y + yy - t->voff >= p->height) {
+	return;
+      }
+      
+      if (yy + lineheight < t->voff) {
+	xx += ww;
+	continue;
+      } else if (yy < t->voff) {
+	ty = t->voff - yy;
+	yy = t->voff;
+      } else {
+	ty = 0;
+      }
+
+      drawglyph(buf, width, height,
+		p->x + PADDING + xx + face->glyph->bitmap_left,
+		p->y + y + yy - t->voff
+		+ baseline - face->glyph->bitmap_top,
+		0, ty,
+		face->glyph->bitmap.width,
+		face->glyph->bitmap.rows - ty,
+		&fg);
+
+      xx += ww;
+    }
+
+    yy += lineheight;
+  }
+}
+
+void
+panedraw(struct pane *p)
+{
+  int y;
+  
   switch (p->type) {
   case PANE_norm:
-    drawtablist(p);
-    drawfocus(p);
-
+    y = panedrawtablist(p);
+    y = panedrawaction(p, y);
+    panedrawmain(p, y);
     break;
 
   case PANE_hsplit:
   case PANE_vsplit:
-    drawpane(p->split.a);
-    drawpane(p->split.b);
+    panedraw(p->split.a);
+    panedraw(p->split.b);
     break;
   }
 }
