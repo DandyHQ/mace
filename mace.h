@@ -8,15 +8,15 @@ struct colour {
   unsigned char r, g, b, a;
 };
 
-struct line {
-  struct line **prev, *next;
+struct piece {
+  struct piece **prev, *next;
 
   size_t n;
   char *s;
 };
 
 struct focus {
-  struct line *line;
+  struct piece *piece;
   unsigned int pos;
 };
 
@@ -28,11 +28,11 @@ struct tab {
    * Has size (tabwidth * lineheight * 4) */
   unsigned char *buf;
 
-  struct line *action;
+  struct piece *action;
   struct focus actionfocus;
 
   int voff;
-  struct line *main;
+  struct piece *main;
   struct focus mainfocus;
 };
 
@@ -184,18 +184,18 @@ void
 tabprerender(struct tab *t);
 
 /* Claims s */
-struct line *
-linenew(char *s, size_t n);
+struct piece *
+piecenew(char *s, size_t n);
 
 void
-linefree(struct line *l);
+piecefree(struct piece *p);
 
 /* Either returns the line that was clicked on and sets *pos to 
  * be the index in the line's string. Or returns NULL and sets *pos
  * to the distance from y checked
  */
-struct line *
-findpos(struct line *line,
+struct piece *
+findpos(struct piece *pieces,
 	int x, int y, int linewidth,
 	int *pos);
 

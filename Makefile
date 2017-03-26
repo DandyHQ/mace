@@ -19,7 +19,7 @@ SRC := \
 	tab.c       \
 	pane.c      \
 	focus.c     \
-	line.c      \
+	piece.c     \
 	xmain.c
 
 OBJECTS := $(SRC:%.c=%.o)

@@ -9,33 +9,33 @@
 
 #include "mace.h"
 
-struct line *
-linenew(char *s, size_t n)
+struct piece *
+piecenew(char *s, size_t n)
 {
-  struct line *l;
+  struct piece *p;
 
-  l = malloc(sizeof(struct line));
-  if (l == NULL) {
+  p = malloc(sizeof(struct piece));
+  if (p == NULL) {
     return NULL;
   }
 
-  l->s = s;
-  l->n = n;
+  p->s = s;
+  p->n = n;
 
-  l->next = NULL;
+  p->next = NULL;
   
-  return l;
+  return p;
 }
 
 void
-linefree(struct line *l)
+piecefree(struct piece *p)
 {
-  free(l->s);
-  free(l);
+  free(p->s);
+  free(p);
 }
 
-struct line *
-findpos(struct line *l,
+struct piece *
+findpos(struct piece *l,
 	int x, int y, int linewidth,
 	int *pos)
 {

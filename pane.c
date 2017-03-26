@@ -379,21 +379,35 @@ int
 panedrawaction(struct pane *p, int y)
 {
   int i, a, xx, yy, ww;
-  struct line *l;
+  struct piece *tp;
   struct tab *t;
 
   t = p->norm.focus;
   yy = y;
+  xx = 0;
 
-  for (l = t->action; l != NULL; l = l->next) {
-    xx = 0;
-    drawrect(buf, width, height,
-	     p->x, p->y + yy,
-	     p->x + p->width - 1, p->y + yy + lineheight,
-	     &abg);
+  drawrect(buf, width, height,
+	   p->x, p->y + yy,
+	   p->x + p->width - 1, p->y + yy + lineheight,
+	   &abg);
 
-    for (i = 0; i < l->n; i += a) {
-      a = loadglyph(l->s + i);
+  for (tp = t->action; tp != NULL; tp = tp->next) {
+    for (i = 0; i < tp->n; i += a) {
+      /* TODO: Improve this to support utf8 */
+      if (tp->s[i] == '\n') {
+	a = 1;
+ 	xx = 0;
+	yy += lineheight;
+
+	drawrect(buf, width, height,
+		 p->x, p->y + yy,
+		 p->x + p->width - 1, p->y + yy + lineheight,
+		 &abg);
+
+	continue;
+      }
+      
+      a = loadglyph(tp->s + i);
       if (a == -1) {
 	a = 1;
 	continue;
@@ -420,9 +434,9 @@ panedrawaction(struct pane *p, int y)
 
       xx += ww;
     }
-
-    yy += lineheight;
   }
+
+  yy += lineheight;
 
   drawactionoutline(p, y, yy);
   
@@ -433,19 +447,27 @@ void
 panedrawmain(struct pane *p, int y)
 {
   int i, a, xx, yy, ww, ty;
-  struct line *l;
+  struct piece *tp;
   struct tab *t;
 
   drawmainoutline(p, y);
 
   t = p->norm.focus;
   yy = 0;
+  xx = 0;
 
-  for (l = t->main; l != NULL; l = l->next) {
-    xx = 0;
+  for (tp = t->main; tp != NULL; tp = tp->next) {
+    for (i = 0; i < tp->n; i += a) {
+      /* TODO: Improve this to support utf8 */
+      if (tp->s[i] == '\n') {
+	a = 1;
+	
+ 	xx = 0;
+	yy += lineheight;
+	continue;
+      }
 
-    for (i = 0; i < l->n; i += a) {
-      a = loadglyph(l->s + i);
+      a = loadglyph(tp->s + i);
       if (a == -1) {
 	a = 1;
 	continue;

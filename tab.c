@@ -42,7 +42,7 @@ tabnew(char *name)
   n = snprintf(s, sizeof(char) * 128,
 	       "%s save copy cut search", name);
 
-  t->action = linenew(s, n);
+  t->action = piecenew(s, n);
   if (t->action == NULL) {
     free(s);
     free(buf);
@@ -53,7 +53,7 @@ tabnew(char *name)
   t->action->prev = &t->action;
   t->action->next = NULL;
   
-  t->actionfocus.line = t->action;
+  t->actionfocus.piece = t->action;
   t->actionfocus.pos = n;
  
  
@@ -66,9 +66,9 @@ tabnew(char *name)
   
   n = strlcpy(s, "", sizeof(char) * 128);
 
-  t->main = linenew(s, n);
+  t->main = piecenew(s, n);
   if (t->main == NULL) {
-    linefree(t->action);
+    piecefree(t->action);
     free(s);
     free(buf);
     free(t);
@@ -78,7 +78,7 @@ tabnew(char *name)
   t->main->prev = &t->main;
   t->main->next = NULL;
 
-  t->mainfocus.line = t->main;
+  t->mainfocus.piece = t->main;
   t->mainfocus.pos = n;
 
   tabprerender(t);

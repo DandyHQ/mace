@@ -12,45 +12,45 @@
 void
 updatefocus(struct pane *p, int x, int y)
 {
+  struct piece *tp;
   struct tab *f;
-  struct line *l;
   int pos;
 
   focus = p;
   
   f = p->norm.focus;
 
-  l = findpos(f->action,
+  tp = findpos(f->action,
 	      x - p->x - PADDING,
 	      y - p->y - lineheight,
 	      p->width - PADDING * 2,
 	      &pos);
 
-  if (l != NULL) {
+  if (tp != NULL) {
     focustype = FOCUS_action;
     
     printf("clicked in actionbar at pos %i\n", pos);
-    f->actionfocus.line = l;
+    f->actionfocus.piece = tp;
     f->actionfocus.pos = pos;
     
   } else {
     focustype = FOCUS_main;
 
-    l = findpos(f->main,
+    tp = findpos(f->main,
 		x - p->x - PADDING,
 		y - p->y - lineheight - pos - f->voff,
 		p->width - PADDING * 2,
 		&pos);
 
-    if (l == NULL) {
-      l = f->main;
-      while (l->next != NULL)
-	l = l->next;
+    if (tp == NULL) {
+      tp = f->main;
+      while (tp->next != NULL)
+	tp = tp->next;
 
-      pos = l->n;
+      pos = tp->n;
     }
 
-    f->mainfocus.line = l;
+    f->actionfocus.piece = tp;
     f->mainfocus.pos = pos;
     printf("clicked in main at pos %i\n", pos);
   }
@@ -80,39 +80,39 @@ handlepanemotion(struct pane *p, int x, int y)
   return false;
 }
 
-struct line *
-insert(struct line *lo, int p, char *a, size_t an)
+struct piece *
+insert(struct piece *po, int pos, char *a, size_t an)
 {
-  struct line *ln;
+  struct piece *pn;
   size_t n;
   char *s;
 
-  n = lo->n + an;
+  n = po->n + an;
   s = malloc(sizeof(char) * n);
   if (s == NULL) {
     return NULL;
   }
 
-  memmove(s, lo->s, p);
-  memmove(s + p, a, an);
-  memmove(s + p + an, lo->s + p, lo->n - p);
+  memmove(s, po->s, pos);
+  memmove(s + pos, a, an);
+  memmove(s + pos + an, po->s + pos, po->n - pos);
 
-  ln = linenew(s, n);
-  if (ln == NULL) {
+  pn = piecenew(s, n);
+  if (pn == NULL) {
     free(s);
     return NULL;
   }
 
-  ln->next = lo->next;
-  ln->prev = lo->prev;
+  pn->next = po->next;
+  pn->prev = po->prev;
 
-  return ln;
+  return pn;
 }
 
 bool
 handleactionkeypress(unsigned int code)
 {
-  struct line *lo, *ln;
+  struct piece *po, *pn;
   struct tab *f;
   char a[16];
   size_t an;
@@ -120,7 +120,7 @@ handleactionkeypress(unsigned int code)
 
   f = focus->norm.focus;
 
-  lo = f->actionfocus.line;
+  po = f->actionfocus.piece;
   p = f->actionfocus.pos;
   
   printf("add char %i\n", code);
@@ -130,13 +130,13 @@ handleactionkeypress(unsigned int code)
   a[0] = code;
   a[1] = 0;
   
-  ln = insert(lo, p, a, an);
-  if (ln == NULL) {
+  pn = insert(po, p, a, an);
+  if (pn == NULL) {
     return false;
   } else {
-    *lo->prev = ln;
+    *po->prev = pn;
 
-    f->actionfocus.line = ln;
+    f->actionfocus.piece = pn;
     f->actionfocus.pos = p + an;
 
     panedraw(focus);
@@ -154,7 +154,7 @@ handleactionkeyrelease(unsigned int code)
 bool
 handlemainkeypress(unsigned int code)
 {
-  struct line *lo, *ln;
+  struct piece *po, *pn;
   struct tab *f;
   char a[16];
   size_t an;
@@ -162,7 +162,7 @@ handlemainkeypress(unsigned int code)
 
   f = focus->norm.focus;
 
-  lo = f->mainfocus.line;
+  po = f->mainfocus.piece;
   p = f->mainfocus.pos;
   
   printf("add char %i\n", code);
@@ -172,13 +172,13 @@ handlemainkeypress(unsigned int code)
   a[0] = code;
   a[1] = 0;
   
-  ln = insert(lo, p, a, an);
-  if (ln == NULL) {
+  pn = insert(po, p, a, an);
+  if (pn == NULL) {
     return false;
   } else {
-    *lo->prev = ln;
+    *po->prev = pn;
 
-    f->mainfocus.line = ln;
+    f->mainfocus.piece = pn;
     f->mainfocus.pos = p + an;
 
     panedraw(focus);
