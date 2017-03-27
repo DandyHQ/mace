@@ -1,10 +1,14 @@
 project('mace', 'c')
 
-freetype   = dependency('freetype2')
-x11        = dependency('x11')
+cc = meson.get_compiler('c')
 
-executable(
-	'mace',
+inc = include_directories('/usr/local/include')
+
+x11        = dependency('x11')
+freetype   = dependency('freetype2')
+utf8proc   = cc.find_library('utf8proc', dirs : '/usr/local/lib')
+
+executable('mace',
 	sources:
 		[ 'main.c',
 		  'draw.c',
@@ -16,6 +20,9 @@ executable(
 		  'piece.c',
 		  'xmain.c'
 		],
+
+	include_directories: inc,
+
 	dependencies:
-		[ freetype, x11 ]
+		[ x11, freetype, utf8proc ]
 	)

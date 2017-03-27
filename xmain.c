@@ -8,6 +8,7 @@
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
+#include <utf8proc.h>
 
 #include "mace.h"
 
@@ -44,15 +45,72 @@ updatewindow(void)
 	    0, 0, 0, 0, width, height);
 }
 
+static keycode_t
+symtocode(KeySym sym)
+{
+  switch (sym) {
+  case XK_Shift_L:
+  case XK_Shift_R:
+    return KEY_shift;
+    
+  case XK_Alt_L:
+  case XK_Alt_R:
+  case XK_Meta_L:
+  case XK_Meta_R:
+    return KEY_alt;
+    
+  case XK_Super_L:
+  case XK_Super_R:
+    return KEY_super;
+
+  case XK_Control_L:
+  case XK_Control_R:
+    return KEY_control;
+
+  case XK_Left: return KEY_left;
+  case XK_Right: return KEY_right;
+  case XK_Up: return KEY_up;
+  case XK_Down: return KEY_down;
+  case XK_Page_Up: return KEY_pageup;
+  case XK_Page_Down: return KEY_pagedown;
+  case XK_Home: return KEY_home;
+  case XK_End: return KEY_end;
+
+  case XK_Return: return KEY_return;
+  case XK_Tab: return KEY_tab;
+  case XK_BackSpace: return KEY_backspace;
+  case XK_Delete: return KEY_delete;
+  case XK_Escape: return KEY_escape;
+
+  default:
+    return KEY_none;
+  }
+}
+
 static void
 xhandlekeypress(XKeyEvent *e)
 {
+  uint8_t s[16];
+  keycode_t c;
+  bool redraw;
   KeySym sym;
+  ssize_t n;
 
   sym = XkbKeycodeToKeysym(display, e->keycode, 0,
 			   e->state & ShiftMask);
 
-  if (handlekeypress((unsigned int) sym)) {
+  c = symtocode(sym);
+
+  if (c == KEY_none) {
+    n = utf8proc_encode_char(sym, s);
+    if (n > 0) {
+      redraw = handletyping(s, n);
+    }
+  } else {
+    redraw = handlekeypress(c);
+  }
+
+  if (redraw) {
     updatewindow();
   }
 }
@@ -60,12 +118,70 @@ xhandlekeypress(XKeyEvent *e)
 static void
 xhandlekeyrelease(XKeyEvent *e)
 {
+  keycode_t c;
+  bool redraw;
   KeySym sym;
 
   sym = XkbKeycodeToKeysym(display, e->keycode, 0,
 			   e->state & ShiftMask);
 
-  if (handlekeyrelease((unsigned int) sym)) {
+  c = symtocode(sym);
+
+  if (c != KEY_none) {
+    redraw = handlekeyrelease(c);
+  }
+
+  if (redraw) {
+    updatewindow();
+  }
+}
+
+static void
+xhandlebuttonpress(XButtonEvent *e)
+{
+  bool redraw;
+
+  switch (e->button) {
+  case 1:
+  case 2:
+  case 3:
+    redraw = handlebuttonpress(e->x, e->y, e->button);
+    break;
+
+  case 4:
+    redraw = handlescroll(e->x, e->y, 0, -5);
+    break;
+    
+  case 5:
+    redraw = handlescroll(e->x, e->y, 0, 5);
+    break;
+
+  default:
+    redraw = false;
+  }
+  
+  if (redraw) {
+    updatewindow();
+  }
+}
+
+static void
+xhandlebuttonrelease(XButtonEvent *e)
+{
+  bool redraw;
+
+  switch (e->button) {
+  case 1:
+  case 2:
+  case 3:
+    redraw = handlebuttonrelease(e->x, e->y, e->button);
+    break;
+
+  default:
+    redraw = false;
+  }
+  
+  if (redraw) {
     updatewindow();
   }
 }
@@ -103,19 +219,11 @@ eventLoop(void)
       break;
 
     case ButtonPress:
-      if (handlebuttonpress(e.xbutton.x, e.xbutton.y,
-			    e.xbutton.button)) {
-	updatewindow();
-      }
-      
+      xhandlebuttonpress(&e.xbutton);
       break;
 
     case ButtonRelease:
-      if (handlebuttonrelease(e.xbutton.x, e.xbutton.y,
-			      e.xbutton.button)) {
-	updatewindow();
-      }
-      
+      xhandlebuttonrelease(&e.xbutton);
       break;
 
     case MotionNotify:

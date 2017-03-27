@@ -6,6 +6,7 @@
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
+#include <utf8proc.h>
 
 #include "mace.h"
 
@@ -30,8 +31,7 @@ updatefocus(struct pane *p, int x, int y)
     focustype = FOCUS_action;
     
     printf("clicked in actionbar at pos %i\n", pos);
-    f->actionfocus.piece = tp;
-    f->actionfocus.pos = pos;
+    f->acursor = pos;
     
   } else {
     focustype = FOCUS_main;
@@ -43,15 +43,13 @@ updatefocus(struct pane *p, int x, int y)
 		&pos);
 
     if (tp == NULL) {
-      tp = f->main;
-      while (tp->next != NULL)
-	tp = tp->next;
-
-      pos = tp->n;
+      pos = 0;
+      for (tp = f->main; tp->next != NULL; tp = tp->next) {
+	pos += tp->pl;
+      }
     }
 
-    f->actionfocus.piece = tp;
-    f->mainfocus.pos = pos;
+    f->mcursor = pos;
     printf("clicked in main at pos %i\n", pos);
   }
 
@@ -80,137 +78,72 @@ handlepanemotion(struct pane *p, int x, int y)
   return false;
 }
 
-struct piece *
-insert(struct piece *po, int pos, char *a, size_t an)
-{
-  struct piece *pn;
-  size_t n;
-  char *s;
-
-  n = po->n + an;
-  s = malloc(sizeof(char) * n);
-  if (s == NULL) {
-    return NULL;
-  }
-
-  memmove(s, po->s, pos);
-  memmove(s + pos, a, an);
-  memmove(s + pos + an, po->s + pos, po->n - pos);
-
-  pn = piecenew(s, n);
-  if (pn == NULL) {
-    free(s);
-    return NULL;
-  }
-
-  pn->next = po->next;
-  pn->prev = po->prev;
-
-  return pn;
-}
-
 bool
-handleactionkeypress(unsigned int code)
-{
-  struct piece *po, *pn;
-  struct tab *f;
-  char a[16];
-  size_t an;
-  int p;
-
-  f = focus->norm.focus;
-
-  po = f->actionfocus.piece;
-  p = f->actionfocus.pos;
-  
-  printf("add char %i\n", code);
-
-  /* TODO: convert code into utf8 sequence. */
-  an = 1;
-  a[0] = code;
-  a[1] = 0;
-  
-  pn = insert(po, p, a, an);
-  if (pn == NULL) {
-    return false;
-  } else {
-    *po->prev = pn;
-
-    f->actionfocus.piece = pn;
-    f->actionfocus.pos = p + an;
-
-    panedraw(focus);
-
-    return true;
-  }
-}
-
-bool
-handleactionkeyrelease(unsigned int code)
+handleactiontyping(uint8_t *s, size_t n)
 {
   return false;
 }
 
 bool
-handlemainkeypress(unsigned int code)
-{
-  struct piece *po, *pn;
-  struct tab *f;
-  char a[16];
-  size_t an;
-  int p;
-
-  f = focus->norm.focus;
-
-  po = f->mainfocus.piece;
-  p = f->mainfocus.pos;
-  
-  printf("add char %i\n", code);
-
-  /* TODO: convert code into utf8 sequence. */
-  an = 1;
-  a[0] = code;
-  a[1] = 0;
-  
-  pn = insert(po, p, a, an);
-  if (pn == NULL) {
-    return false;
-  } else {
-    *po->prev = pn;
-
-    f->mainfocus.piece = pn;
-    f->mainfocus.pos = p + an;
-
-    panedraw(focus);
-
-    return true;
-  }
-}
-
-bool
-handlemainkeyrelease(unsigned int code)
+handleactionkeypress(keycode_t k)
 {
   return false;
 }
 
-bool (*keypresshandlers[NFOCUS_T])(unsigned int) = {
+bool
+handleactionkeyrelease(keycode_t k)
+{
+  return false;
+}
+
+bool
+handlemaintyping(uint8_t *s, size_t n)
+{
+  printf("typed %i : %s into main\n", n, s);
+  return false;
+}
+
+bool
+handlemainkeypress(keycode_t k)
+{
+  return false;
+}
+
+bool
+handlemainkeyrelease(keycode_t k)
+{
+  return false;
+}
+
+bool (*typinghandlers[NFOCUS_T])(uint8_t *, size_t) = {
+  [FOCUS_action]    = handleactiontyping,
+  [FOCUS_main]      = handlemaintyping,
+};
+
+bool (*keypresshandlers[NFOCUS_T])(keycode_t) = {
   [FOCUS_action]    = handleactionkeypress,
   [FOCUS_main]      = handlemainkeypress,
 };
 
-bool (*keyreleasehandlers[NFOCUS_T])(unsigned int) = {
+bool (*keyreleasehandlers[NFOCUS_T])(keycode_t) = {
   [FOCUS_action]    = handleactionkeyrelease,
   [FOCUS_main]      = handlemainkeyrelease,
 };
 
 bool
-handlekeypress(unsigned int code)
+handletyping(uint8_t *s, size_t n)
 {
-  return keypresshandlers[focustype](code);
+  return typinghandlers[focustype](s, n);
 }
 
 bool
-handlekeyrelease(unsigned int code)
+handlekeypress(keycode_t k)
 {
-  return keyreleasehandlers[focustype](code);
+  return keypresshandlers[focustype](k);
+}
+
+bool
+handlekeyrelease(keycode_t k)
+{
+  return keyreleasehandlers[focustype](k);
 }

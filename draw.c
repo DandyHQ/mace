@@ -6,20 +6,21 @@
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
+#include <utf8proc.h>
 
 #include "mace.h"
 
-static unsigned char
+static uint8_t
 blend(unsigned int cf, unsigned int cb, unsigned int a)
 {
-  return (unsigned char) ((cf * a + cb * (255 - a)) / 255);
+  return (uint8_t) ((cf * a + cb * (255 - a)) / 255);
 }
 
 static void
-drawpixel(unsigned char *dest, int dw, int dh,
+drawpixel(uint8_t *dest, int dw, int dh,
 	  int x, int y, struct colour *c)
 {
-  unsigned char *bb;
+  uint8_t *bb;
   
   bb = &dest[(x + y * dw) * 4];
 
@@ -46,13 +47,13 @@ drawpixel(unsigned char *dest, int dw, int dh,
 }
 
 void
-drawprerender(unsigned char *dest, int dw, int dh,
+drawprerender(uint8_t *dest, int dw, int dh,
 	      int dx, int dy,
-	      unsigned char *src, int sw, int sh,
+	      uint8_t *src, int sw, int sh,
 	      int sx, int sy,
 	      int w, int h)
 {
-  unsigned char *d, *s;
+  uint8_t *d, *s;
   int xx, yy;
 
   fixboundswh(dx, dy, sx, sy, w, h, dw, dh);
@@ -71,7 +72,7 @@ drawprerender(unsigned char *dest, int dw, int dh,
 }
 
 void
-drawglyph(unsigned char *dest, int dw, int dh,
+drawglyph(uint8_t *dest, int dw, int dh,
 	  int dx, int dy,
 	  int sx, int sy,
 	  int w, int h,
@@ -96,20 +97,27 @@ drawglyph(unsigned char *dest, int dw, int dh,
 }
 
 int
-drawstring(unsigned char *dest, int dw, int dh,
+drawstring(uint8_t *dest, int dw, int dh,
 	   int dx, int dy,
 	   int tx, int ty,
 	   int tw, int th,
-	   char *s, bool drawpart,
+	   uint8_t *s, bool drawpart,
 	   struct colour *c)
 {
-  int i, a, xx, ww, x, w;
+  int i, xx, ww, x, w;
+  int32_t code;
+  ssize_t a;
 
   i = 0;
 
   for (i = 0, xx = 0; s[i] != 0 && xx < tx + tw; xx += ww) {
-    if ((a = loadglyph(s + i)) == -1) {
-      i++;
+    a = utf8proc_iterate(s + i, -1, &code);
+    if (a <= 0) {
+      i += 1;
+      continue;
+    }
+    
+    if (!loadglyph(code)) {
       continue;
     } else {
       i += a;
@@ -169,7 +177,7 @@ drawstring(unsigned char *dest, int dw, int dh,
 }
 
 void
-drawrect(unsigned char *dest, int dw, int dh,
+drawrect(uint8_t *dest, int dw, int dh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c)
 {
@@ -188,7 +196,7 @@ drawrect(unsigned char *dest, int dw, int dh,
 /* Only works with vertical or horizontal lines */
 
 void
-drawline(unsigned char *dest, int dw, int dh,
+drawline(uint8_t *dest, int dw, int dh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c)
 {

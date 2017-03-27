@@ -6,6 +6,7 @@
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
+#include <utf8proc.h>
 
 #include "mace.h"
 
@@ -264,7 +265,7 @@ handletablistpress(struct pane *p, int x, int y,
     return initselected(p, x, y);
 
   case 2:
-    t = tabnew("new");
+    t = tabnew((uint8_t *) "new");
     if (t == NULL) {
       return false;
     }
@@ -278,23 +279,13 @@ handletablistpress(struct pane *p, int x, int y,
     
     return true;
 
-  case 4:
-    panetablistscroll(p, -5);
-    panedrawtablist(p);
-    return true;
-    
-  case 5:
-    panetablistscroll(p, 5);
-    panedrawtablist(p);
-    return true;
-
   default:
     return false;
   }
 }
 
 bool
-handlebuttonpress(int x, int y, unsigned int button)
+handlebuttonpress(int x, int y, int button)
 {
   struct pane *p;
 
@@ -311,7 +302,36 @@ handlebuttonpress(int x, int y, unsigned int button)
 }
 
 bool
-handlebuttonrelease(int x, int y, unsigned int button)
+handlebuttonrelease(int x, int y, int button)
+{
+  struct pane *p;
+
+  switch (button) {
+  case 1:
+    p = findpane(root, x, y);
+    if (p == NULL) {
+      return false;
+    }
+
+    if (selected != NULL) {
+      return placeselected(p, x, y);
+    } else if (y >= p->y + lineheight) {
+      return handlepanerelease(p, x, y, button);
+    } else {
+      return false;
+    }
+
+  case 2:
+  case 3:
+    return false;
+
+  default:
+    return false;
+  }
+}
+
+bool
+handlescroll(int x, int y, int dx, int dy)
 {
   struct pane *p;
 
@@ -320,11 +340,15 @@ handlebuttonrelease(int x, int y, unsigned int button)
     return false;
   }
 
-  if (selected != NULL) {
-    return placeselected(p, x, y);
+  if (y < p->y + lineheight) {
+    panetablistscroll(p, dx, dy);
+    panedrawtablist(p);
   } else {
-    return handlepanerelease(p, x, y, button);
+    panescroll(p, dx, dy);
+    panedraw(p);
   }
+    
+  return true;
 }
 
 bool

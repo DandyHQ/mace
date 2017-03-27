@@ -1,47 +1,67 @@
 
 #define NAMEMAX 32
 #define PADDING 5
+#define PIECE_min 16
+
+#define min(a, b) (a < b ? a : b)
+
+/* Most keys are just text and a given to functions as a utf8 encoded
+ * string. But some are not. And these are those special keys.
+ */
+typedef enum {
+  KEY_none,
+
+  KEY_shift,
+  KEY_alt,
+  KEY_super,
+  KEY_control,
+
+  KEY_left,
+  KEY_right,
+  KEY_up,
+  KEY_down,
+  KEY_pageup,
+  KEY_pagedown,
+  KEY_home,
+  KEY_end,
+
+  KEY_return,
+  KEY_tab,
+  KEY_backspace,
+  KEY_delete,
+
+  KEY_escape,
+} keycode_t;
 
 typedef enum { FOCUS_action, FOCUS_main, NFOCUS_T } focus_t;
 
 struct colour {
-  unsigned char r, g, b, a;
+  uint8_t r, g, b, a;
 };
 
 struct piece {
   struct piece **prev, *next;
 
-  size_t n;
-  char *s;
-};
-
-struct focus {
-  struct piece *piece;
-  unsigned int pos;
+  size_t rl; /* Real length of s. */
+  size_t pl; /* Currently populated length of s. */
+  uint8_t *s;
 };
 
 struct tab {
-  char name[NAMEMAX];
+  uint8_t name[NAMEMAX];
   struct tab *next;
 
   /* Pre-rendered rgba buffer of header.
    * Has size (tabwidth * lineheight * 4) */
-  unsigned char *buf;
+  uint8_t *buf;
 
+  unsigned int acursor;
   struct piece *action;
-  struct focus actionfocus;
 
   int voff;
+  unsigned int mcursor;
   struct piece *main;
-  struct focus mainfocus;
 };
-
-/* PANE_norm has its norm structure populated to contain a list of
-   tabs, a focus and a list offset (for scrolling).
-   PANE_vsplit and PANE_hsplit have their split structure populated to
-   work as a binary search tree representing the way the window has
-   been split. Each leaf node will always be of type PANE_norm.
-*/
 
 typedef enum { PANE_norm, PANE_vsplit, PANE_hsplit } pane_t;
 
@@ -71,63 +91,89 @@ init(void);
 void
 fontinit(void);
 
-int
-loadglyph(char *s);
+bool
+loadglyph(int32_t code);
 
 void
-resize(unsigned char *nbuf, int w, int h);
+resize(uint8_t *nbuf, int w, int h);
+
+/* User Input */
+
+bool
+handletyping(uint8_t *s, size_t n);
+
+bool
+handlekeypress(keycode_t k);
+
+bool
+handlekeyrelease(keycode_t k);
+
+bool
+handlebuttonpress(int x, int y, int b);
+
+bool
+handlebuttonrelease(int x, int y, int b);
+
+bool
+handlemotion(int x, int y);
+
+bool
+handlescroll(int x, int y, int dx, int dy);
+
+bool
+handlepanepress(struct pane *p, int x, int y,
+		unsigned int button);
+
+bool
+handlepanerelease(struct pane *p, int x, int y,
+		  unsigned int button);
+
+bool
+handlepanemotion(struct pane *p, int x, int y);
 
 
+/* Drawing */
 
 void
-drawline(unsigned char *buf, int bw, int bh,
+drawline(uint8_t *buf, int bw, int bh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c);
 
 void
-drawrect(unsigned char *buf, int bw, int bh,
+drawrect(uint8_t *buf, int bw, int bh,
 	 int x1, int y1, int x2, int y2,
 	 struct colour *c);
 
 void
-drawglyph(unsigned char *dest, int dw, int dh,
+drawglyph(uint8_t *dest, int dw, int dh,
 	  int dx, int dy,
 	  int sx, int sy,
 	  int w, int h,
 	  struct colour *c);
 
 int
-drawstring(unsigned char *dest, int dw, int dh,
+drawstring(uint8_t *dest, int dw, int dh,
 	   int dx, int dy,
 	   int tx, int ty,
 	   int tw, int th,
-	   char *s, bool drawpart,
+	   uint8_t *s, bool drawpart,
 	   struct colour *c);
 
 void
-drawprerender(unsigned char *dest, int dw, int dh,
+drawprerender(uint8_t *dest, int dw, int dh,
 	      int dx, int dy,
-	      unsigned char *src, int sw, int sh,
+	      uint8_t *src, int sw, int sh,
 	      int sx, int sy,
 	      int w, int h);
 
+void
+panedraw(struct pane *p);
 
-bool
-handlekeypress(unsigned int code);
-
-bool
-handlekeyrelease(unsigned int code);
-
-bool
-handlebuttonpress(int x, int y, unsigned int button);
-
-bool
-handlebuttonrelease(int x, int y, unsigned int button);
-
-bool
-handlemotion(int x, int y);
+int
+panedrawtablist(struct pane *p);
 
 
+/* Pane management */
 
 struct pane *
 panenew(struct pane *parent, struct tab *tabs);
@@ -142,12 +188,6 @@ struct pane *
 findpane(struct pane *p,
 	 int x, int y);
 
-void
-panedraw(struct pane *p);
-
-int
-panedrawtablist(struct pane *p);
-
 struct pane *
 panesplit(struct pane *h, struct tab *t,
 	  pane_t type, bool na);
@@ -159,23 +199,17 @@ void
 paneremove(struct pane *p);
 
 void
-panetablistscroll(struct pane *p, int s);
+panetablistscroll(struct pane *p, int dx, int dy);
 
-bool
-handlepanepress(struct pane *p, int x, int y,
-		unsigned int button);
-
-bool
-handlepanerelease(struct pane *p, int x, int y,
-		  unsigned int button);
-
-bool
-handlepanemotion(struct pane *p, int x, int y);
+void
+panescroll(struct pane *p, int dx, int dy);
 
 
+
+/* Tab Management */
 
 struct tab *
-tabnew(char *name);
+tabnew(uint8_t *name);
 
 void
 tabfree(struct tab *t);
@@ -183,9 +217,12 @@ tabfree(struct tab *t);
 void
 tabprerender(struct tab *t);
 
+
+/* Piece management */
+
 /* Claims s */
 struct piece *
-piecenew(char *s, size_t n);
+piecenew(uint8_t *s, size_t rl, size_t pl);
 
 void
 piecefree(struct piece *p);
@@ -199,9 +236,19 @@ findpos(struct piece *pieces,
 	int x, int y, int linewidth,
 	int *pos);
 
-  
+bool
+piecesplit(struct piece *p, size_t pos,
+	   struct piece **lr, struct piece **rr);
+
+struct piece *
+pieceinsert(struct piece *old, size_t pos,
+	    uint8_t *s, size_t rl, size_t pl);
+
+
+/* Variables */
+
 extern unsigned int width, height;
-extern unsigned char *buf;
+extern uint8_t *buf;
 
 extern struct colour bg, fg, abg;
 

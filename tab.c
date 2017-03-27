@@ -6,15 +6,16 @@
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
+#include <utf8proc.h>
 
 #include "mace.h"
 
 struct tab *
-tabnew(char *name)
+tabnew(uint8_t *name)
 {
   struct tab *t;
+  uint8_t *s;
   size_t n;
-  char *s;
 
   t = malloc(sizeof(struct tab));
   if (t == NULL) {
@@ -24,7 +25,7 @@ tabnew(char *name)
   t->next = NULL;
   t->voff = 0;
 
-  strlcpy(t->name, name, NAMEMAX);
+  strlcpy((char *) t->name, (char *) name, NAMEMAX);
 
   t->buf = malloc(tabwidth * lineheight * 4);
   if (t->buf == NULL) {
@@ -32,17 +33,17 @@ tabnew(char *name)
     return NULL;
   }
 
-  s = malloc(sizeof(char) * 128);
+  s = malloc(sizeof(uint8_t) * 128);
   if (s == NULL) {
     free(buf);
     free(t);
     return NULL;
   }
   
-  n = snprintf(s, sizeof(char) * 128,
+  n = snprintf((char *) s, sizeof(uint8_t) * 128,
 	       "%s save copy cut search", name);
 
-  t->action = piecenew(s, n);
+  t->action = piecenew(s, sizeof(uint8_t) * 128, n);
   if (t->action == NULL) {
     free(s);
     free(buf);
@@ -53,20 +54,18 @@ tabnew(char *name)
   t->action->prev = &t->action;
   t->action->next = NULL;
   
-  t->actionfocus.piece = t->action;
-  t->actionfocus.pos = n;
+  t->acursor = n;
  
- 
-  s = malloc(sizeof(char) * 128);
+  s = malloc(sizeof(uint8_t) * 128);
   if (s == NULL) {
     free(buf);
     free(t);
     return NULL;
   }
   
-  n = strlcpy(s, "", sizeof(char) * 128);
+  n = strlcpy((char *) s, "", sizeof(uint8_t) * 128);
 
-  t->main = piecenew(s, n);
+  t->main = piecenew(s, sizeof(uint8_t) * 128, n);
   if (t->main == NULL) {
     piecefree(t->action);
     free(s);
@@ -78,8 +77,7 @@ tabnew(char *name)
   t->main->prev = &t->main;
   t->main->next = NULL;
 
-  t->mainfocus.piece = t->main;
-  t->mainfocus.pos = n;
+  t->mcursor = n;
 
   tabprerender(t);
  

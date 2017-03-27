@@ -6,6 +6,7 @@
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
+#include <utf8proc.h>
 
 #include "mace.h"
 
@@ -41,31 +42,26 @@ fontinit(void)
   lineheight = (face->ascender + face->descender) >> 6;
 }
 
-int
-loadglyph(char *s)
+bool
+loadglyph(int32_t code)
 {
   FT_UInt i;
-  long n;
   int e;
 
-  /* TODO: get utf8 code and number of bytes from string */
-  n = *s;
-  
-  i = FT_Get_Char_Index(face, n);
+  i = FT_Get_Char_Index(face, code);
   if (i == 0) {
-    return -1;
+    return false;
   }
 
   e = FT_Load_Glyph(face, i, FT_LOAD_DEFAULT);
   if (e != 0) {
-    return -1;
+    return false;
   }
 
   if (FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0) {
-    return -1;
+    return false;
   }
 
-  /* Return number of bytes */
-  return 1;
+  return true;
 }
 

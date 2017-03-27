@@ -8,7 +8,7 @@ CFLAGS := -I/usr/X11R6/include -I/usr/local/include \
 LDFLAGS := -L/usr/X11R6/lib -L/usr/local/lib \
 	-fPIC
 
-LIBS := -lX11 -lXft -lfreetype -lz
+LIBS := -lX11 -lfreetype -lz -lutf8proc
 
 
 SRC := \
@@ -18,6 +18,7 @@ SRC := \
 	mouse.c     \
 	tab.c       \
 	pane.c      \
+	panedraw.c  \
 	focus.c     \
 	piece.c     \
 	xmain.c
