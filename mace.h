@@ -3,7 +3,7 @@
 #define PADDING 5
 #define PIECE_min 16
 
-#define min(a, b) (a < b ? a : b)
+#define max(a, b) (a > b ? a : b)
 
 /* Most keys are just text and a given to functions as a utf8 encoded
  * string. But some are not. And these are those special keys.
@@ -40,7 +40,7 @@ struct colour {
 };
 
 struct piece {
-  struct piece **prev, *next;
+  struct piece *prev, *next;
 
   size_t rl; /* Real length of s. */
   size_t pl; /* Currently populated length of s. */
@@ -57,7 +57,8 @@ struct tab {
 
   unsigned int acursor;
   struct piece *action;
-
+  int actionbarheight;
+  
   int voff;
   unsigned int mcursor;
   struct piece *main;
@@ -172,6 +173,11 @@ panedraw(struct pane *p);
 int
 panedrawtablist(struct pane *p);
 
+void
+panedrawaction(struct pane *p);
+
+void
+panedrawmain(struct pane *p);
 
 /* Pane management */
 
@@ -220,9 +226,14 @@ tabprerender(struct tab *t);
 
 /* Piece management */
 
-/* Claims s */
 struct piece *
-piecenew(uint8_t *s, size_t rl, size_t pl);
+piecenewgive(uint8_t *s, size_t rl, size_t pl);
+
+struct piece *
+piecenewcopy(uint8_t *s, size_t l);
+
+struct piece *
+piecenewtag(void);
 
 void
 piecefree(struct piece *p);
@@ -236,14 +247,21 @@ findpos(struct piece *pieces,
 	int x, int y, int linewidth,
 	int *pos);
 
+/* Finds pos in list of pieces.
+ * Sets *i to index in piece returned. */
+struct piece *
+findpiece(struct piece *p, int pos, int *i);
+
 bool
 piecesplit(struct piece *p, size_t pos,
 	   struct piece **lr, struct piece **rr);
 
 struct piece *
 pieceinsert(struct piece *old, size_t pos,
-	    uint8_t *s, size_t rl, size_t pl);
+	    uint8_t *s, size_t l);
 
+void
+piecelistprint(struct piece *p);
 
 /* Variables */
 

@@ -11,7 +11,7 @@
 #include "mace.h"
 
 struct piece *
-piecenew(uint8_t *s, size_t rl, size_t pl)
+piecenewgive(uint8_t *s, size_t rl, size_t pl)
 {
   struct piece *p;
 
@@ -30,6 +30,54 @@ piecenew(uint8_t *s, size_t rl, size_t pl)
   return p;
 }
 
+struct piece *
+piecenewcopy(uint8_t *s, size_t l)
+{
+  struct piece *p;
+  
+  p = malloc(sizeof(struct piece));
+  if (p == NULL) {
+    return NULL;
+  }
+
+  p->rl = max(PIECE_min, l);
+  p->s = malloc(p->rl);
+  if (p->s == NULL) {
+    free(p);
+    return NULL;
+  }
+
+  memmove(p->s, s, l);
+  memset(p->s + l, 0, p->rl - l);
+
+  p->pl = l;
+
+  p->prev = NULL;
+  p->next = NULL;
+  
+  return p;
+}
+
+struct piece *
+piecenewtag(void)
+{
+  struct piece *p;
+  
+  p = malloc(sizeof(struct piece));
+  if (p == NULL) {
+    return NULL;
+  }
+
+  p->rl = 0;
+  p->pl = 0;
+  p->s = NULL;
+
+  p->prev = NULL;
+  p->next = NULL;
+  
+  return p;
+}
+
 void
 piecefree(struct piece *p)
 {
@@ -41,51 +89,102 @@ bool
 piecesplit(struct piece *p, size_t pos,
 	   struct piece **lr, struct piece **rr)
 {
-  size_t len;
-  uint8_t *s;
-
-  len = min(PIECE_min, pos);
-  s = malloc(len);
-  if (s == NULL) {
-    return false;
-  }
-
-  *lr = piecenew(s, len, pos);
+  *lr = piecenewcopy(p->s, pos);
   if (*lr == NULL) {
-    free(s);
     return NULL;
   }
 
-  len = min(PIECE_min, p->pl - pos);
-  s = malloc(len);
-  if (s == NULL) {
-    return false;
-  }
-
-  *rr = piecenew(s, len, p->pl - pos);
+  *rr = piecenewcopy(p->s + pos, p->pl - pos);
   if (*rr == NULL) {
-    free(s);
     piecefree(*lr);
     return false;
   }
-
-  memmove((*lr)->s, p->s, pos);
-  memset((*lr)->s + pos, 0, (*lr)->rl - pos);
  
-  memmove((*rr)->s, p->s + pos, p->pl - pos);
-  memset((*rr)->s + (p->pl - pos), 0, (*rr)->rl - (p->pl - pos));
-
-  printf("split piece rl %i, pl %i, s = '%s'\n", p->rl, p->pl, p->s);
-  printf("into right  rl %i, pl %i, s = '%s'\n", (*lr)->rl, (*lr)->pl, (*lr)->s);
-  printf("and left    rl %i, pl %i, s = '%s'\n", (*rr)->rl, (*rr)->pl, (*rr)->s);
-  
   return true;
 }
 
 struct piece *
 pieceinsert(struct piece *old, size_t pos,
-	    uint8_t *s, size_t rl, size_t pl)
+	    uint8_t *s, size_t len)
 {
+  struct piece *ll, *rr, *l, *r, *n;
+
+  ll = old->prev;
+  rr = old->next;
+  
+  printf("insert '%s' into '%s' at pos %i\n", s, old->s, pos);
+  
+  n = piecenewcopy(s, len);
+  if (n == NULL) {
+    return false;
+  }
+
+  printf("copied piece '%s'\n", n->s);
+  
+  if (pos == 0) {
+    n->next = old;
+    old->prev = n;
+    l = n;
+    r = old;
+  } else if (pos == old->pl) {
+    old->next = n;
+    n->prev = old;
+    l = old;
+    r = n;
+  } else {
+    if (!piecesplit(old, pos, &l, &r)) {
+      piecefree(n);
+      return false;
+    }
+
+    printf("split        %i : '%s'\n", old->pl, old->s);
+    printf("into left    %i : '%s'\n", l->pl, l->s);
+    printf("into middle  %i : '%s'\n", n->pl, n->s);
+    printf("into right   %i : '%s'\n", r->pl, r->s);
+    
+    l->next = n;
+    n->prev = l;
+    n->next = r;
+    r->prev = n;
+  }
+
+  if (ll != NULL) {
+    printf("update left\n");
+    ll->next = l;
+  }
+  
+  l->prev = ll;
+
+  r->next = rr;
+  if (rr != NULL) {
+    rr->prev = r;
+  }
+
+  return n;
+}
+
+struct piece *
+findpiece(struct piece *p, int pos, int *i)
+{
+  int pi;
+
+  printf("find pos %i in string of pieces\n", pos);
+  
+  pi = 0;
+  while (p != NULL) {
+    if (pi + p->pl == pos) {
+      *i = 0;
+      return p->next;
+    } else if (pi + p->pl > pos) {
+      printf("will be inside '%s' which starts at %i and has lenght %i at index %i\n", p->s, pi, p->pl, pos - pi);
+      *i = pos - pi;
+      return p;
+    } else {
+      pi += p->pl;
+      p = p->next;
+    }
+  }
+
   return NULL;
 }
 
@@ -105,7 +204,12 @@ findpos(struct piece *p,
   *pos = 0;
   
   while (p != NULL) {
-    for (i = 0; i < p->pl && p->s[i] != 0; i += a) {
+    if (p->s == NULL) {
+      p = p->next;
+      continue;
+    }
+    
+    for (i = 0; i < p->pl; i += a) {
       a = utf8proc_iterate(p->s + i, p->pl - i, &code);
       if (a <= 0) {
 	a = 1;
@@ -151,11 +255,24 @@ findpos(struct piece *p,
       }
     }
   
-    p = p->next;
     *pos += i;
+    if ((p->next == NULL || p->next->s == NULL)
+	&& yy < y && y <= yy + lineheight) {
+      return p;
+    } else {
+      p = p->next;
+    }
   }
 
   *pos = yy;
   return NULL;
 }
 
+void
+piecelistprint(struct piece *p)
+{
+  printf("%s", p->s);
+  if (p->next != NULL) {
+    piecelistprint(p->next);
+  }
+}

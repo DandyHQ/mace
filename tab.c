@@ -13,76 +13,84 @@
 struct tab *
 tabnew(uint8_t *name)
 {
+  struct piece *ab, *ae, *mb, *me;
+  uint8_t s[128];
   struct tab *t;
-  uint8_t *s;
   size_t n;
 
   t = malloc(sizeof(struct tab));
   if (t == NULL) {
-    return NULL;
+    goto error0;
   }
 
+  t->buf = malloc(tabwidth * lineheight * 4);
+  if (t->buf == NULL) {
+    goto error1;
+  }
+
+  mb = piecenewtag();
+  if (mb == NULL) {
+    goto error5;
+  }
+
+  me = piecenewtag();
+  if (me == NULL) {
+    goto error6;
+  }
+
+  mb->next = me;
+  me->prev = mb;
+  t->main = mb;
+  t->mcursor = 0;
+
+  ab = piecenewtag();
+  if (ab == NULL) {
+    goto error2;
+  }
+
+  ae = piecenewtag();
+  if (ae == NULL) {
+    goto error3;
+  }
+
+  ab->next = ae;
+  ae->prev = ab;
+  
+  n = snprintf((char *) s, sizeof(s),
+	       "%s save cut copy paste search", name);
+
+  if (pieceinsert(ae, 0, s, n) == NULL) {
+    goto error4;
+  }
+
+  t->action = ab;
+  t->acursor = n;
+  t->actionbarheight = lineheight;
+  
   t->next = NULL;
   t->voff = 0;
 
   strlcpy((char *) t->name, (char *) name, NAMEMAX);
 
-  t->buf = malloc(tabwidth * lineheight * 4);
-  if (t->buf == NULL) {
-    free(t);
-    return NULL;
-  }
-
-  s = malloc(sizeof(uint8_t) * 128);
-  if (s == NULL) {
-    free(buf);
-    free(t);
-    return NULL;
-  }
-  
-  n = snprintf((char *) s, sizeof(uint8_t) * 128,
-	       "%s save copy cut search", name);
-
-  t->action = piecenew(s, sizeof(uint8_t) * 128, n);
-  if (t->action == NULL) {
-    free(s);
-    free(buf);
-    free(t);
-    return NULL;
-  }
-
-  t->action->prev = &t->action;
-  t->action->next = NULL;
-  
-  t->acursor = n;
- 
-  s = malloc(sizeof(uint8_t) * 128);
-  if (s == NULL) {
-    free(buf);
-    free(t);
-    return NULL;
-  }
-  
-  n = strlcpy((char *) s, "", sizeof(uint8_t) * 128);
-
-  t->main = piecenew(s, sizeof(uint8_t) * 128, n);
-  if (t->main == NULL) {
-    piecefree(t->action);
-    free(s);
-    free(buf);
-    free(t);
-    return NULL;
-  }
-
-  t->main->prev = &t->main;
-  t->main->next = NULL;
-
-  t->mcursor = n;
-
   tabprerender(t);
  
   return t;
-}
+
+ error6:
+  piecefree(me);
+ error5:
+  piecefree(mb);
+ error4:
+  piecefree(ae);
+ error3:
+  piecefree(ab);
+ error2:
+  free(buf);
+ error1:
+  free(t);
+ error0:
+  return NULL;
+} 
 
 void
 tabfree(struct tab *t)

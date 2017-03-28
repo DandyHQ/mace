@@ -21,24 +21,26 @@ updatefocus(struct pane *p, int x, int y)
   
   f = p->norm.focus;
 
-  tp = findpos(f->action,
-	      x - p->x - PADDING,
-	      y - p->y - lineheight,
-	      p->width - PADDING * 2,
-	      &pos);
-
-  if (tp != NULL) {
+  if (y < p->y + lineheight + f->actionbarheight) {
     focustype = FOCUS_action;
-    
-    printf("clicked in actionbar at pos %i\n", pos);
-    f->acursor = pos;
-    
+
+    tp = findpos(f->action,
+		 x - p->x - PADDING,
+		 y - p->y - lineheight,
+		 p->width - PADDING * 2,
+		 &pos);
+
+    if (tp != NULL) {
+      f->acursor = pos;
+    } else {
+      printf("Something has gone wronge\n");
+    }
   } else {
     focustype = FOCUS_main;
 
     tp = findpos(f->main,
 		x - p->x - PADDING,
-		y - p->y - lineheight - pos - f->voff,
+		y - p->y - lineheight - f->actionbarheight - f->voff,
 		p->width - PADDING * 2,
 		&pos);
 
@@ -50,7 +52,6 @@ updatefocus(struct pane *p, int x, int y)
     }
 
     f->mcursor = pos;
-    printf("clicked in main at pos %i\n", pos);
   }
 
   panedraw(p);
@@ -79,9 +80,28 @@ handlepanemotion(struct pane *p, int x, int y)
 }
 
 bool
-handleactiontyping(uint8_t *s, size_t n)
+handleactiontyping(uint8_t *s, size_t l)
 {
-  return false;
+  struct piece *o, *n;
+  struct tab *t;
+  int i;
+
+  t = focus->norm.focus;
+
+  o = findpiece(t->action, t->acursor, &i);
+  if (o == NULL) {
+    return false;
+  }
+
+  n = pieceinsert(o, i, s, l);
+  if (n == NULL) {
+    return false;
+  }
+
+  t->acursor += l;
+  
+  panedraw(focus);
+  return true;
 }
 
 bool
@@ -97,10 +117,28 @@ handleactionkeyrelease(keycode_t k)
 }
 
 bool
-handlemaintyping(uint8_t *s, size_t n)
+handlemaintyping(uint8_t *s, size_t l)
 {
-  printf("typed %i : %s into main\n", n, s);
-  return false;
+  struct piece *o, *n;
+  struct tab *t;
+  int i;
+
+  t = focus->norm.focus;
+
+  o = findpiece(t->main, t->mcursor, &i);
+  if (o == NULL) {
+    return false;
+  }
+
+  n = pieceinsert(o, i, s, l);
+  if (n == NULL) {
+    return false;
+  }
+
+  t->mcursor += l;
+  
+  panedraw(focus);
+  return true;
 }
 
 bool
