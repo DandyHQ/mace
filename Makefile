@@ -1,15 +1,11 @@
 
 .SUFFIXES: .c .h .o
 
-CFLAGS := -I/usr/X11R6/include -I/usr/local/include \
-	-I/usr/X11R6/include/freetype2 \
+CFLAGS := `pkg-config --cflags x11 freetype2` -I/usr/local/include \
         -fPIC -Wall -Wpointer-sign
 
-LDFLAGS := -L/usr/X11R6/lib -L/usr/local/lib \
-	-fPIC
-
-LIBS := -lX11 -lfreetype -lz -lutf8proc
-
+LDFLAGS := `pkg-config --libs x11 freetype2` -L/usr/local/lib \
+	-fPIC -lutf8proc
 
 SRC := \
 	main.c      \
@@ -29,8 +25,7 @@ OBJECTS := $(SRC:%.c=%.o)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 mace: $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) \
-		$(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS)
 
 CLEAN := $(OBJECTS) mace mace.core
 clean:
