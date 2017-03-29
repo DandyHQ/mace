@@ -1,11 +1,12 @@
 
-.SUFFIXES: .c .h .o
 
-CFLAGS := `pkg-config --cflags x11 freetype2` -I/usr/local/include \
-        -fPIC -Wall -Wpointer-sign
+CFLAGS := -fPIC -std=c11 -Wall -Wpointer-sign \
+	`pkg-config --cflags x11 freetype2` \
+	-I/usr/local/include
 
-LDFLAGS := `pkg-config --libs x11 freetype2` -L/usr/local/lib \
-	-fPIC -lutf8proc
+LDFLAGS := -fPIC \
+	`pkg-config --libs x11 freetype2` \
+	-L/usr/local/lib -lutf8proc
 
 SRC := \
 	main.c      \

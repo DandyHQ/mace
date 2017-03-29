@@ -260,8 +260,6 @@ struct piece *
 pieceinsert(struct piece *old, size_t pos,
 	    uint8_t *s, size_t l);
 
-void
-piecelistprint(struct piece *p);
 
 /* Variables */
 

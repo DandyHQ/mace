@@ -112,15 +112,11 @@ pieceinsert(struct piece *old, size_t pos,
   ll = old->prev;
   rr = old->next;
   
-  printf("insert '%s' into '%s' at pos %i\n", s, old->s, pos);
-  
   n = piecenewcopy(s, len);
   if (n == NULL) {
     return false;
   }
 
-  printf("copied piece '%s'\n", n->s);
-  
   if (pos == 0) {
     n->next = old;
     old->prev = n;
@@ -137,11 +133,6 @@ pieceinsert(struct piece *old, size_t pos,
       return false;
     }
 
-    printf("split        %i : '%s'\n", old->pl, old->s);
-    printf("into left    %i : '%s'\n", l->pl, l->s);
-    printf("into middle  %i : '%s'\n", n->pl, n->s);
-    printf("into right   %i : '%s'\n", r->pl, r->s);
-    
     l->next = n;
     n->prev = l;
     n->next = r;
@@ -149,7 +140,6 @@ pieceinsert(struct piece *old, size_t pos,
   }
 
   if (ll != NULL) {
-    printf("update left\n");
     ll->next = l;
   }
   
@@ -168,15 +158,12 @@ findpiece(struct piece *p, int pos, int *i)
 {
   int pi;
 
-  printf("find pos %i in string of pieces\n", pos);
-  
   pi = 0;
   while (p != NULL) {
     if (pi + p->pl == pos) {
       *i = 0;
       return p->next;
     } else if (pi + p->pl > pos) {
-      printf("will be inside '%s' which starts at %i and has lenght %i at index %i\n", p->s, pi, p->pl, pos - pi);
       *i = pos - pi;
       return p;
     } else {
@@ -218,14 +205,12 @@ findpos(struct piece *p,
 
       props = utf8proc_get_property(code);
       if (props->boundclass == UTF8PROC_BOUNDCLASS_LF) {
-	printf("line feed?\n");
 	xx = 0;
 	yy += lineheight;
 	continue;
       }
 
       if (props->boundclass == UTF8PROC_BOUNDCLASS_CR) {
-	printf("carrage return?\n");
  	xx = 0;
 	yy += lineheight;
 	continue;
@@ -266,13 +251,4 @@ findpos(struct piece *p,
 
   *pos = yy;
   return NULL;
-}
-
-void
-piecelistprint(struct piece *p)
-{
-  printf("%s", p->s);
-  if (p->next != NULL) {
-    piecelistprint(p->next);
-  }
 }

@@ -1,8 +1,6 @@
-project('mace', 'c')
+project('mace', 'c', default_options : ['c_std=c11'])
 
 cc = meson.get_compiler('c')
-
-inc = include_directories('/usr/local/include')
 
 x11        = dependency('x11')
 freetype   = dependency('freetype2')
@@ -16,13 +14,15 @@ executable('mace',
 		  'mouse.c',
 		  'tab.c',
 		  'pane.c',
+		  'panedraw.c',
 		  'focus.c',
 		  'piece.c',
 		  'xmain.c'
 		],
 
-	include_directories: inc,
-
 	dependencies:
-		[ x11, freetype, utf8proc ]
+		[ x11,
+		  freetype,
+		  utf8proc
+		]
 	)
