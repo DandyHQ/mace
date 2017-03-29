@@ -132,6 +132,14 @@ drawmainoutline(struct pane *p)
 	   &fg);
 }
 
+static void
+drawcursor(int x, int y)
+{
+  drawrect(buf, width, height,
+	   x, y + 3,
+	   x + 1, y + lineheight - 4,
+	   &fg);
+}
 
 void
 panedrawaction(struct pane *p)
@@ -191,12 +199,7 @@ panedrawaction(struct pane *p)
 		&fg);
 
       if (pos == t->acursor) {
-	drawline(buf, width, height,
-		 p->x + PADDING + xx,
-		 p->y + lineheight + yy,
-		 p->x + PADDING + xx,
-		 p->y + lineheight + yy + lineheight - 1,
-		 &fg);
+	drawcursor(p->x + PADDING + xx, p->y + lineheight + yy);
       }
 
       xx += ww;
@@ -204,12 +207,7 @@ panedrawaction(struct pane *p)
   }
 
   if (pos == t->acursor) {
-    drawline(buf, width, height,
-	     p->x + PADDING + xx,
-	     p->y + lineheight + yy,
-	     p->x + PADDING + xx,
-	     p->y + lineheight + yy + lineheight - 1,
-	     &fg);
+    drawcursor(p->x + PADDING + xx, p->y + lineheight + yy);
   }
 
   t->actionbarheight = yy + lineheight;
@@ -277,12 +275,7 @@ panedrawmain(struct pane *p)
 		&fg);
 
       if (pos == t->mcursor) {
-	drawline(buf, width, height,
-		 p->x + PADDING + xx,
-		 y + yy - t->voff,
-		 p->x + PADDING + xx,
-		 y + yy - t->voff + lineheight,
-		 &fg);
+	drawcursor(p->x + PADDING + xx, y + yy);
       }
 
       xx += ww;
@@ -290,10 +283,7 @@ panedrawmain(struct pane *p)
   }
 
   if (pos == t->mcursor) {
-    drawline(buf, width, height,
-	     p->x + PADDING + xx, y + yy - t->voff,
-	     p->x + PADDING + xx, y + yy - t->voff + lineheight,
-	     &fg);
+    drawcursor(p->x + PADDING + xx, y + yy);
   }
 }
 
