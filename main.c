@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <X11/keysymdef.h>
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
@@ -23,11 +22,12 @@ int baseline;
 
 int tabwidth = 80;
 
+uint8_t *buf = NULL;
 unsigned int width = 0;
 unsigned int height = 0;
-uint8_t *buf = NULL;
 
 struct pane *root = NULL;
+
 struct pane *focus = NULL;
 focus_t focustype = FOCUS_main;
 
@@ -35,7 +35,7 @@ void
 init(void)
 {
   struct tab *t;
-  
+
   fontinit();
 
   t = tabnew((uint8_t *) "Mace");
@@ -47,18 +47,6 @@ init(void)
   if (root == NULL) {
     err(1, "Failed to allocate root pane!\n");
   }
-}
 
-void
-resize(uint8_t *nbuf, int w, int h)
-{
-  printf("resize to %ix%i\n", (int) w, (int) h);
-
-  buf = nbuf;
-  width = w;
-  height = h;
-
-  resizepane(root, 0, 0, w, h);
-  
-  panedraw(root);
+  luainit();
 }

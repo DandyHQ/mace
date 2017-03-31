@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <X11/keysymdef.h>
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
@@ -18,6 +17,26 @@ panedrawtablist(struct pane *p)
 
   xo = p->norm.loff;
 
+  drawrect(buf, width, height,
+	   p->x, p->y,
+	   p->x + p->width, p->y + lineheight - 1,
+	   &bg);
+
+  drawline(buf, width, height,
+	   p->x, p->y,
+	   p->x + p->width, p->y,
+	   &fg);
+
+  drawline(buf, width, height,
+	   p->x + p->width, p->y,
+	   p->x + p->width, p->y + lineheight - 1,
+	   &fg);
+
+  drawline(buf, width, height,
+	   p->x, p->y,
+	   p->x, p->y + lineheight - 1,
+	   &fg);
+
   for (t = p->norm.tabs; t != NULL && xo < p->width; t = t->next) {
     if (xo + tabwidth > 0) {
       if (xo < 0) {
@@ -32,16 +51,22 @@ panedrawtablist(struct pane *p)
 	w = p->width - xo;
       }
 
-      drawprerender(buf, width, height,
-		    p->x + xo + x, p->y,
-		    t->buf, tabwidth, lineheight,
-		    x, 0,
-		    w, lineheight);
+      drawstring(buf, width, height,
+		 p->x + xo + PADDING, p->y,
+		 0, 0,
+		 w - PADDING * 2, lineheight,
+		 t->name, true,
+		 &fg);
+
+      drawline(buf, width, height,
+	       p->x + xo + tabwidth, p->y,
+	       p->x + xo + tabwidth, p->y + lineheight - 1,
+	       &fg);
 
       if (p->norm.focus == t) {
 	drawline(buf, width, height,
-		 p->x + xo + x, p->y + lineheight - 1,
-		 p->x + xo + w, p->y + lineheight - 1,
+		 p->x + xo + x + 1, p->y + lineheight - 1,
+		 p->x + xo + w - 1, p->y + lineheight - 1,
 		 &bg);
       } else {
 	drawline(buf, width, height,
@@ -55,31 +80,11 @@ panedrawtablist(struct pane *p)
   }
 
   if (xo > 0 && xo < p->width) {
-    drawrect(buf, width, height,
-	     p->x + xo, p->y,
-	     p->x + p->width, p->y + lineheight - 1,
-	     &bg);
-    
     drawline(buf, width, height,
-	     p->x + xo - 1, p->y,
-	     p->x + p->width, p->y,
-	     &fg);
-
-    drawline(buf, width, height,
-	     p->x + xo - 1, p->y + lineheight - 1,
+	     p->x + xo, p->y + lineheight - 1,
 	     p->x + p->width, p->y + lineheight - 1,
 	     &fg);
   }
-
-  drawline(buf, width, height,
-	   p->x + p->width, p->y,
-	   p->x + p->width, p->y + lineheight,
-	   &fg);
- 
-  drawline(buf, width, height,
-	   p->x, p->y,
-	   p->x, p->y + lineheight,
-	   &fg);
 
   return lineheight;
 }
@@ -93,8 +98,8 @@ drawactionoutline(struct pane *p)
   bottom = p->y + lineheight + p->norm.focus->actionbarheight - 1;
 
   drawline(buf, width, height,
-	   p->x + 1, bottom,
-	   p->x + p->width - 1, bottom,
+	   p->x, bottom,
+	   p->x + p->width, bottom,
 	   &fg);
 
   drawline(buf, width, height,
@@ -135,9 +140,9 @@ drawmainoutline(struct pane *p)
 static void
 drawcursor(int x, int y)
 {
-  drawrect(buf, width, height,
-	   x, y + 3,
-	   x + 1, y + lineheight - 4,
+  drawline(buf, width, height,
+	   x, y + 2,
+	   x, y + lineheight - 3,
 	   &fg);
 }
 

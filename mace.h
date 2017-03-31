@@ -51,10 +51,6 @@ struct tab {
   uint8_t name[NAMEMAX];
   struct tab *next;
 
-  /* Pre-rendered rgba buffer of header.
-   * Has size (tabwidth * lineheight * 4) */
-  uint8_t *buf;
-
   unsigned int acursor;
   struct piece *action;
   int actionbarheight;
@@ -90,13 +86,18 @@ void
 init(void);
 
 void
+luainit(void);
+
+/* Fonts */
+
+void
 fontinit(void);
+
+int
+fontload(const uint8_t *name, size_t size);
 
 bool
 loadglyph(int32_t code);
-
-void
-resize(uint8_t *nbuf, int w, int h);
 
 /* User Input */
 
@@ -188,7 +189,7 @@ void
 panefree(struct pane *p);
 
 void
-resizepane(struct pane *p, int x, int y, int w, int h);
+paneresize(struct pane *p, int x, int y, int w, int h);
 
 struct pane *
 findpane(struct pane *p,
@@ -219,10 +220,6 @@ tabnew(uint8_t *name);
 
 void
 tabfree(struct tab *t);
-
-void
-tabprerender(struct tab *t);
-
 
 /* Piece management */
 
@@ -269,7 +266,6 @@ extern uint8_t *buf;
 extern struct colour bg, fg, abg;
 
 extern FT_Face face;
-extern int fontsize;
 
 extern int lineheight;
 extern int baseline;
@@ -278,4 +274,3 @@ extern int tabwidth;
 
 extern struct pane *root, *focus;
 extern focus_t focustype;
-

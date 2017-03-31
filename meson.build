@@ -4,11 +4,12 @@ cc = meson.get_compiler('c')
 
 x11        = dependency('x11')
 freetype   = dependency('freetype2')
+lua        = dependency('lua53')
 utf8proc   = cc.find_library('utf8proc', dirs : '/usr/local/lib')
 
 executable('mace',
-	sources:
-		[ 'main.c',
+	sources: [
+	          'main.c',
 		  'draw.c',
 		  'font.c',
 		  'mouse.c',
@@ -17,12 +18,14 @@ executable('mace',
 		  'panedraw.c',
 		  'focus.c',
 		  'piece.c',
+		  'lua.c',
 		  'xmain.c'
 		],
 
-	dependencies:
-		[ x11,
+	dependencies: [
+	          x11,
 		  freetype,
-		  utf8proc
+		  utf8proc,
+		  lua,
 		]
 	)

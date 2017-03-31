@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <X11/keysymdef.h>
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
@@ -23,19 +22,14 @@ tabnew(uint8_t *name)
     goto error0;
   }
 
-  t->buf = malloc(tabwidth * lineheight * 4);
-  if (t->buf == NULL) {
-    goto error1;
-  }
-
   mb = piecenewtag();
   if (mb == NULL) {
-    goto error5;
+    goto error1;
   }
 
   me = piecenewtag();
   if (me == NULL) {
-    goto error6;
+    goto error2;
   }
 
   mb->next = me;
@@ -45,12 +39,12 @@ tabnew(uint8_t *name)
 
   ab = piecenewtag();
   if (ab == NULL) {
-    goto error2;
+    goto error3;
   }
 
   ae = piecenewtag();
   if (ae == NULL) {
-    goto error3;
+    goto error4;
   }
 
   ab->next = ae;
@@ -60,7 +54,7 @@ tabnew(uint8_t *name)
 	       "%s save cut copy paste search", name);
 
   if (pieceinsert(ae, 0, s, n) == NULL) {
-    goto error4;
+    goto error5;
   }
 
   t->action = ab;
@@ -72,20 +66,16 @@ tabnew(uint8_t *name)
 
   strlcpy((char *) t->name, (char *) name, NAMEMAX);
 
-  tabprerender(t);
- 
   return t;
 
- error6:
-  piecefree(me);
  error5:
-  piecefree(mb);
- error4:
   piecefree(ae);
- error3:
+ error4:
   piecefree(ab);
+ error3:
+  piecefree(me);
  error2:
-  free(buf);
+  piecefree(mb);
  error1:
   free(t);
  error0:
@@ -95,10 +85,10 @@ tabnew(uint8_t *name)
 void
 tabfree(struct tab *t)
 {
-  free(t->buf);
   free(t);
 }
 
+/*
 void
 tabprerender(struct tab *t)
 {
@@ -136,3 +126,4 @@ tabprerender(struct tab *t)
 	     t->name, true, &fg);
 }
 
+*/

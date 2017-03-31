@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <X11/keysymdef.h>
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
@@ -198,7 +197,7 @@ moveselected(struct pane *p, int x, int y)
 
       if (from->norm.tabs == NULL) {
 	paneremove(from);
-	resizepane(root, 0, 0, width, height);
+	paneresize(root, 0, 0, width, height);
 
 	if (p == from) {
 	  p = findpane(root, x, y);
@@ -216,11 +215,10 @@ moveselected(struct pane *p, int x, int y)
     position = updateposition(p, position, x, y);
     drawhint(p, position);
 
-    drawprerender(buf, width, height,
-		  x - xoff, y - yoff,
-		  selected->buf, tabwidth, lineheight,
-		  0, 0,
-		  tabwidth, lineheight);
+    drawrect(buf, width, height,
+	     x - 5, y - 5,
+	     x + 5, y + 5,
+	     &fg);
   }
  
   return true;

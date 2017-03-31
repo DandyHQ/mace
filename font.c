@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <X11/keysymdef.h>
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
@@ -22,24 +21,43 @@ fontinit(void)
     err(e, "Failed to initialize freetype2 library!\n");
   }
 
-  e = FT_New_Face(library,
-		  "/usr/X11R6/lib/X11/fonts/TTF/DejaVuSansMono.ttf",
-		  0, &face);
+  e = fontload("/usr/X11R6/lib/X11/fonts/TTF/DejaVuSansMono.ttf",
+	       15);
   if (e != 0) {
-    err(e, "Failed to load freetype2 face!\n");
+    err(e, "Failed to load font!\n");
+  }
+}
+
+int
+fontload(const uint8_t *name, size_t size)
+{
+  int e;
+
+  e = FT_New_Face(library, name, 0, &face);
+  if (e != 0) {
+    return e;
   }
 
-  fontsize = 15;
-  
-  e = FT_Set_Pixel_Sizes(face, 0, fontsize);
+  e = FT_Set_Pixel_Sizes(face, 0, size);
   if (e != 0) {
-    err(e, "Failed to set character size!\n");
+    return e;
   }
- 
-  /* This is apparently what it should be */
-  baseline = face->size->metrics.height >> 6;
-  /* This seems to work */
-  lineheight = (face->ascender + face->descender) >> 6;
+
+  baseline = (face->size->metrics.height
+	      + face->size->metrics.descender)
+    >> 6;
+
+  lineheight = face->size->metrics.height
+    >> 6;
+
+  printf("baseline = %i, lineheight = %i\n", baseline, lineheight);
+
+  if (buf != NULL) {
+    paneresize(root, 0, 0, width, height);
+    panedraw(root);
+  }
+  
+  return 0;
 }
 
 bool

@@ -1,11 +1,12 @@
 
+LIBS := x11 freetype2 lua53
 
 CFLAGS := -fPIC -std=c11 -Wall -Wpointer-sign \
-	`pkg-config --cflags x11 freetype2` \
+	`pkg-config --cflags $(LIBS)` \
 	-I/usr/local/include
 
 LDFLAGS := -fPIC \
-	`pkg-config --libs x11 freetype2` \
+	`pkg-config --libs $(LIBS)` \
 	-L/usr/local/lib -lutf8proc
 
 SRC := \

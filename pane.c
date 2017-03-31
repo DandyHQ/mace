@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <X11/keysymdef.h>
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
@@ -150,7 +149,7 @@ panesplit(struct pane *h, struct tab *t, pane_t type, bool na)
 }
 
 void
-resizepane(struct pane *p, int x, int y, int w, int h)
+paneresize(struct pane *p, int x, int y, int w, int h)
 {
   int r;
 
@@ -166,11 +165,11 @@ resizepane(struct pane *p, int x, int y, int w, int h)
   case PANE_hsplit:
     r = (int) (p->split.ratio * (float) w);
 
-    resizepane(p->split.a,
+    paneresize(p->split.a,
 	       x, y,
 	       r, h);
 
-    resizepane(p->split.b,
+    paneresize(p->split.b,
 	       x + r, y,
 	       w - r, h);
 
@@ -179,11 +178,11 @@ resizepane(struct pane *p, int x, int y, int w, int h)
   case PANE_vsplit:
     r = (int) (p->split.ratio * (float) h);
 
-    resizepane(p->split.a,
+    paneresize(p->split.a,
 	       x, y,
 	       w, r);
     
-    resizepane(p->split.b,
+    paneresize(p->split.b,
 	       x, y + r,
 	       w, h - r);
     break;

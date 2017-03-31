@@ -1,14 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/XKBlib.h>
-#include <X11/keysymdef.h>
 #include <err.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/XKBlib.h>
+#include <X11/keysymdef.h>
 
 #include "mace.h"
 
@@ -27,7 +28,12 @@ xresize(int w, int h)
     err(1, "Failed to allocate window buffer!\n");
   }
 
-  resize(nbuf, w, h);
+  buf = nbuf;
+  width = w;
+  height = h;
+
+  paneresize(root, 0, 0, w, h);
+  panedraw(root);
 
   if (img != NULL) {
     XDestroyImage(img);
