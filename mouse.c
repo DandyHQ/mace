@@ -114,45 +114,6 @@ updateposition(struct pane *p, pos_t old, int x, int y)
 }
 
 static void
-drawhint(struct pane *p, pos_t pos)
-{
-  struct colour hint = { 200, 50, 30, 128 };
-
-  switch (pos) {
-  case LEFT:
-    drawrect(buf, width, height,
-	     p->x, p->y + lineheight,
-	     p->x + p->width / 2, p->y + p->height,
-	     &hint);
-    break;
-
-  case RIGHT:
-    drawrect(buf, width, height,
-	     p->x + p->width / 2, p->y + lineheight,
-	     p->x + p->width, p->y + p->height,
-	     &hint);
-    break;
-
-  case TOP:
-    drawrect(buf, width, height,
-	     p->x, p->y + lineheight,
-	     p->x + p->width, p->y + p->height / 2,
-	     &hint);
-    break;
-
-  case BOTTOM:
-    drawrect(buf, width, height,
-	     p->x, p->y + p->height / 2,
-	     p->x + p->width, p->y + p->height,
-	     &hint);
-    break;
-
-  case LIST:
-    break;
-  };
-}
-
-static void
 inserttab(struct pane *p, struct tab *t, int x)
 {
   struct tab **tt;
@@ -213,7 +174,6 @@ moveselected(struct pane *p, int x, int y)
 
   if (from == NULL) {
     position = updateposition(p, position, x, y);
-    drawhint(p, position);
 
     drawrect(buf, width, height,
 	     x - 5, y - 5,

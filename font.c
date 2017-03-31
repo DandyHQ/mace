@@ -50,8 +50,6 @@ fontload(const uint8_t *name, size_t size)
   lineheight = face->size->metrics.height
     >> 6;
 
-  printf("baseline = %i, lineheight = %i\n", baseline, lineheight);
-
   if (buf != NULL) {
     paneresize(root, 0, 0, width, height);
     panedraw(root);

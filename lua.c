@@ -26,8 +26,6 @@ lfontload(lua_State *L)
   
   size = lua_tonumber(L, -1);
 
-  printf("should load font %s strlen %i, size %i\n", name, len, size);
-
   r = fontload(name, size);
   
   lua_pushnumber(L, r);

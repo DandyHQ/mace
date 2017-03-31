@@ -3,12 +3,28 @@ A modern Unix text editor
 
 ## Build
 
-You will need libraries and headers for xlib, xft, and freetype2.
-You will also need to edit font.c to give freetype2 a valid font.
+You will need libraries and headers for:
+
+ - xlib
+ - xft
+ - freetype2
+ - utf8proc
+ - lua53
+ 
+You will also need to edit `init.lua` to give fontload a valid font.
+You will possibly have to edit the make files and get library paths working.
+
 
 ```
 make
 ./mace
+```
+
+Or if you want to use meson.
+
+```
+meson build
+ninja -C build
 ```
 
 ## Design
