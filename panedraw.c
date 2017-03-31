@@ -149,7 +149,7 @@ drawcursor(int x, int y)
 void
 panedrawaction(struct pane *p)
 {
-  int32_t code, a, pos;
+  int32_t code, a, aa, pos;
   int i, xx, yy, ww;
   struct piece *tp;
   struct tab *t;
@@ -177,7 +177,20 @@ panedrawaction(struct pane *p)
 	a = 1;
 	continue;
       }
-      
+
+      if (linebreak(code, tp->s + i + a, tp->pl - i - a, &aa)) {
+	a += aa;
+	xx = 0;
+	yy += lineheight;
+
+	drawrect(buf, width, height,
+		 p->x,
+		 p->y + lineheight + yy,
+		 p->x + p->width - 1,
+		 p->y + lineheight + yy + lineheight - 1,
+		 &abg);
+      }
+
       if (!loadglyph(code)) {
 	continue;
       } 
@@ -190,7 +203,7 @@ panedrawaction(struct pane *p)
 
 	drawrect(buf, width, height,
 		 p->x,
-		 p->y + lineheight  + yy,
+		 p->y + lineheight + yy,
 		 p->x + p->width - 1,
 		 p->y + lineheight + yy + lineheight - 1,
 		 &abg);
@@ -224,7 +237,7 @@ void
 panedrawmain(struct pane *p)
 {
   int i, xx, y, yy, ww, ty;
-  int32_t code, a, pos;
+  int32_t code, a, aa, pos;
   struct piece *tp;
   struct tab *t;
 
@@ -245,6 +258,12 @@ panedrawmain(struct pane *p)
       if (a <= 0) {
 	a = 1;
 	continue;
+      }
+
+      if (linebreak(code, tp->s + i + a, tp->pl - i - a, &aa)) {
+	a += aa;
+	xx = 0;
+	yy += lineheight;
       }
 
       if (!loadglyph(code)) {

@@ -22,9 +22,8 @@ lfontload(lua_State *L)
   size_t size, len;
   int r;
 
-  name = lua_tolstring(L, -2, &len);
-  
-  size = lua_tonumber(L, -1);
+  name = (const uint8_t *) luaL_checklstring(L, -2, &len);
+  size = luaL_checknumber(L, -1);
 
   r = fontload(name, size);
   
@@ -32,10 +31,14 @@ lfontload(lua_State *L)
   return 1; 
 }
 
+luaL_Reg funcs[] = {
+  { "loadfont", lfontload },
+};
+
 void
 luainit(void)
 {
-  int r;
+  int r, i;
 
   lua = luaL_newstate();
   if (lua == NULL) {
@@ -44,18 +47,20 @@ luainit(void)
 
   luaL_openlibs(lua);
 
-  lua_pushcfunction(lua, lfontload);
-  lua_setglobal(lua, "fontload");
+  for (i = 0; i < sizeof(funcs) / sizeof(funcs[0]); i++) {
+    lua_pushcfunction(lua, funcs[i].func);
+    lua_setglobal(lua, funcs[i].name);
+  }
   
   r = luaL_loadfile(lua, "init.lua");
   if (r == LUA_ERRFILE) {
     err(1, "Failed to open init.lua\n");
   } else if (r != LUA_OK) {
-    err(1, "Failed to load init.lua %i\n", r);
+    err(1, "Error loading init: %s\n", lua_tostring(lua, -1));
   }
 
   r = lua_pcall(lua, 0, LUA_MULTRET, 0);
   if (r != LUA_OK) {
-    err(1, "Error running init.lua %i\n", r);
+    err(1, "Error running init: %s\n", lua_tostring(lua, -1));
   }
 }

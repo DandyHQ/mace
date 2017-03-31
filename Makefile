@@ -19,6 +19,8 @@ SRC := \
 	panedraw.c  \
 	focus.c     \
 	piece.c     \
+	lua.c       \
+	utf8.c      \
 	xmain.c
 
 OBJECTS := $(SRC:%.c=%.o)

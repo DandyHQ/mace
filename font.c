@@ -21,7 +21,8 @@ fontinit(void)
     err(e, "Failed to initialize freetype2 library!\n");
   }
 
-  e = fontload("/usr/X11R6/lib/X11/fonts/TTF/DejaVuSansMono.ttf",
+  e = fontload((const uint8_t *)
+	       "/usr/X11R6/lib/X11/fonts/TTF/DejaVuSansMono.ttf",
 	       15);
   if (e != 0) {
     err(e, "Failed to load font!\n");
@@ -33,7 +34,7 @@ fontload(const uint8_t *name, size_t size)
 {
   int e;
 
-  e = FT_New_Face(library, name, 0, &face);
+  e = FT_New_Face(library, (const char *) name, 0, &face);
   if (e != 0) {
     return e;
   }

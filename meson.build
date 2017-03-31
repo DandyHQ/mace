@@ -19,6 +19,7 @@ executable('mace',
 		  'focus.c',
 		  'piece.c',
 		  'lua.c',
+		  'utf8.c',
 		  'xmain.c'
 		],
 

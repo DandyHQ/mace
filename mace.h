@@ -1,7 +1,8 @@
 
 #define NAMEMAX 32
-#define PADDING 5
 #define PIECE_min 16
+
+#define PADDING 5
 
 #define max(a, b) (a > b ? a : b)
 
@@ -98,6 +99,12 @@ fontload(const uint8_t *name, size_t size);
 
 bool
 loadglyph(int32_t code);
+
+/* Check if code is a line break and sets *l to the number 
+ * of extra bytes that need to be skipped.
+ */
+bool
+linebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l);
 
 /* User Input */
 

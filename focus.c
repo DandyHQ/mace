@@ -106,7 +106,89 @@ handleactiontyping(uint8_t *s, size_t l)
 bool
 handleactionkeypress(keycode_t k)
 {
-  return false;
+  struct piece *o, *n;
+  struct tab *t;
+  uint8_t s[16];
+  size_t l;
+  int i;
+
+  t = focus->norm.focus;
+
+  o = findpiece(t->action, t->acursor, &i);
+  if (o == NULL) {
+    return false;
+  }
+  
+  switch (k) {
+  default: 
+    return false;
+    
+  case KEY_shift:
+    return false;
+    
+  case KEY_alt:
+    return false;
+    
+  case KEY_super:
+    return false;
+    
+  case KEY_control:
+    return false;
+    
+
+  case KEY_left:
+    return false;
+    
+  case KEY_right:
+    return false;
+    
+  case KEY_up:
+    return false;
+    
+  case KEY_down:
+    return false;
+    
+  case KEY_pageup:
+    return false;
+    
+  case KEY_pagedown:
+    return false;
+    
+  case KEY_home:
+    return false;
+    
+  case KEY_end:
+    return false;
+    
+
+  case KEY_return:
+    l = snprintf((char *) s, sizeof(s), "\n");
+
+    n = pieceinsert(o, i, s, l);
+    if (n == NULL) {
+      return false;
+    }
+
+    t->acursor += l;
+
+    break;
+    
+  case KEY_tab:
+    return false;
+    
+  case KEY_backspace:
+    return false;
+    
+  case KEY_delete:
+    return false;
+    
+
+  case KEY_escape:
+    return false;
+  }
+
+  panedraw(focus);
+  return true;
 }
 
 bool
