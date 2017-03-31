@@ -234,6 +234,7 @@ panedrawmain(struct pane *p)
   yy = 0;
   xx = 0;
   pos = 0;
+
   y = p->y + lineheight + t->actionbarheight;
 
   for (tp = t->main; tp != NULL; tp = tp->next) {
@@ -257,7 +258,7 @@ panedrawmain(struct pane *p)
 	yy += lineheight;
       }
 
-      if (y + yy - t->voff >= p->height) {
+      if (y + yy - t->voff >= p->y + p->height) {
 	return;
       }
       
