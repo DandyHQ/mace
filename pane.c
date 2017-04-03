@@ -151,7 +151,6 @@ panesplit(struct pane *h, struct tab *t, pane_t type, bool na)
 void
 paneresize(struct pane *p, int x, int y, int w, int h)
 {
-  struct tab *t;
   int r;
 
   p->x = x;
@@ -161,11 +160,6 @@ paneresize(struct pane *p, int x, int y, int w, int h)
 
   switch (p->type) {
   case PANE_norm:
-    for (t = p->norm.tabs; t != NULL; t = t->next) {
-      t->action.width = w;
-      t->main.width = w;
-    }
-    
     break;
 
   case PANE_hsplit:
@@ -237,14 +231,28 @@ paneremove(struct pane *p)
     s = parent->split.a;
   }
 
-  parent->norm.tabs = s->norm.tabs;
-  parent->norm.focus = s->norm.focus;
-  parent->norm.loff = s->norm.loff;
   parent->type = s->type;
+  switch (parent->type) {
+  case PANE_norm:
+    parent->norm.tabs = s->norm.tabs;
+    parent->norm.focus = s->norm.focus;
+    parent->norm.loff = s->norm.loff;
   
-  s->norm.tabs = NULL;
-  s->norm.focus = NULL;
+    s->norm.tabs = NULL;
+    s->norm.focus = NULL;
+    break;
+
+  case PANE_vsplit:
+  case PANE_hsplit:
+    parent->split.ratio = s->split.ratio;
+    parent->split.a = s->split.a;
+    parent->split.b = s->split.b;
+    break;
+  }
 
   panefree(s);
   panefree(p);
+
+  paneresize(parent, parent->x, parent->y,
+	     parent->width, parent->height);
 }

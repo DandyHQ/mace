@@ -148,6 +148,7 @@ textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
     drawcursor(x + xx, y + yy, ww, focus);
   }
 
+  t->width = w;
   t->height = yy + lineheight;
 }
 
