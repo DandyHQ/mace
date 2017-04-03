@@ -299,14 +299,20 @@ handlescroll(int x, int y, int dx, int dy)
   }
 
   if (y < p->y + lineheight) {
-    panetablistscroll(p, dx, dy);
-    panedrawtablist(p);
+    if (handlepanetablistscroll(p, x, y, dx, dy)) {
+      panedrawtablist(p);
+      return true;
+    } else {
+      return false;
+    }
   } else {
-    panescroll(p, dx, dy);
-    panedraw(p);
+    if (handlepanescroll(p, x, y, dx, dy)) {
+      panedraw(p);
+      return true;
+    } else {
+      return false;
+    }
   }
-    
-  return true;
 }
 
 bool

@@ -19,24 +19,14 @@ panedrawtablist(struct pane *p)
 
   drawrect(buf, width, height,
 	   p->x, p->y,
-	   p->x + p->width, p->y + lineheight - 1,
+	   p->x + p->width - 2, p->y + lineheight - 1,
 	   &bg);
 
   drawline(buf, width, height,
-	   p->x, p->y,
-	   p->x + p->width, p->y,
+	   p->x + p->width - 1, p->y,
+	   p->x + p->width - 1, p->y + lineheight - 1,
 	   &fg);
-
-  drawline(buf, width, height,
-	   p->x + p->width, p->y,
-	   p->x + p->width, p->y + lineheight - 1,
-	   &fg);
-
-  drawline(buf, width, height,
-	   p->x, p->y,
-	   p->x, p->y + lineheight - 1,
-	   &fg);
-
+ 
   for (t = p->norm.tabs; t != NULL && xo < p->width; t = t->next) {
     if (xo + tabwidth > 0) {
       if (xo < 0) {
@@ -52,15 +42,20 @@ panedrawtablist(struct pane *p)
       }
 
       drawstring(buf, width, height,
-		 p->x + xo + PADDING, p->y,
+		 p->x + xo, p->y,
 		 0, 0,
-		 w - PADDING * 2, lineheight,
+		 w, lineheight,
 		 t->name, true,
 		 &fg);
 
       drawline(buf, width, height,
 	       p->x + xo + tabwidth, p->y,
 	       p->x + xo + tabwidth, p->y + lineheight - 1,
+	       &fg);
+
+      drawline(buf, width, height,
+	       p->x + xo + x, p->y,
+	       p->x + xo + w, p->y,
 	       &fg);
 
       if (p->norm.focus == t) {
@@ -89,227 +84,57 @@ panedrawtablist(struct pane *p)
   return lineheight;
 }
 
-static void
-drawactionoutline(struct pane *p)
-{
-  int top, bottom;
-
-  top = p->y + lineheight;
-  bottom = p->y + lineheight + p->norm.focus->actionbarheight - 1;
-
-  drawline(buf, width, height,
-	   p->x, bottom,
-	   p->x + p->width, bottom,
-	   &fg);
-
-  drawline(buf, width, height,
-	   p->x + p->width, top,
-	   p->x + p->width, bottom,
-	   &fg);
- 
-  drawline(buf, width, height,
-	   p->x, top,
-	   p->x, bottom,
-	   &fg);
-}
-
-static void
-drawmainoutline(struct pane *p)
-{
-  int top, bottom;
-
-  top = p->y + lineheight + p->norm.focus->actionbarheight;
-  bottom = p->y + p->height - 1;
-  
-  drawrect(buf, width, height,
-	   p->x, top,
-	   p->x + p->width - 1, bottom,
-	   &bg);
-
-  drawline(buf, width, height,
-	   p->x + p->width, top,
-	   p->x + p->width, bottom,
-	   &fg);
- 
-  drawline(buf, width, height,
-	   p->x, top,
-	   p->x, bottom,
-	   &fg);
-}
-
-static void
-drawcursor(int x, int y)
-{
-  drawline(buf, width, height,
-	   x, y + 2,
-	   x, y + lineheight - 3,
-	   &fg);
-}
-
 void
 panedrawaction(struct pane *p)
 {
-  int32_t code, a, aa, pos;
-  int i, xx, yy, ww;
-  struct piece *tp;
   struct tab *t;
 
   t = p->norm.focus;
-  yy = 0;
-  xx = 0;
-  pos = 0;
-  
-  drawrect(buf, width, height,
+ 
+  textboxdraw(&t->action, buf, width, height,
+	      p->x, p->y + lineheight,
+	      p->width - 1, p->height - lineheight,
+	      p == focus && focustype == FOCUS_action);
+
+  drawline(buf, width, height,
 	   p->x,
-	   p->y + lineheight + yy,
+	   p->y + lineheight + t->action.height - 1,
+	   p->x + p->width,
+	   p->y + lineheight + t->action.height - 1,
+	   &fg);
+
+  drawline(buf, width, height,
 	   p->x + p->width - 1,
-	   p->y + lineheight + yy + lineheight - 1,
-	   &abg);
-
-  t->actionbarheight = 0;
-
-  for (tp = t->action; tp != NULL; tp = tp->next) {
-    if (tp->s == NULL) continue;
-
-    for (i = 0; i < tp->pl; pos += a, i += a) {
-      a = utf8proc_iterate(tp->s + i, tp->pl - i, &code);
-      if (a <= 0) {
-	a = 1;
-	continue;
-      }
-
-      if (linebreak(code, tp->s + i + a, tp->pl - i - a, &aa)) {
-	a += aa;
-	xx = 0;
-	yy += lineheight;
-
-	drawrect(buf, width, height,
-		 p->x,
-		 p->y + lineheight + yy,
-		 p->x + p->width - 1,
-		 p->y + lineheight + yy + lineheight - 1,
-		 &abg);
-      }
-
-      if (!loadglyph(code)) {
-	continue;
-      } 
-
-      ww = face->glyph->advance.x >> 6;
-
-      if (PADDING + xx + ww >= p->width - PADDING) {
-	xx = 0;
-	yy += lineheight;
-
-	drawrect(buf, width, height,
-		 p->x,
-		 p->y + lineheight + yy,
-		 p->x + p->width - 1,
-		 p->y + lineheight + yy + lineheight - 1,
-		 &abg);
-      }
-      
-      drawglyph(buf, width, height,
-		p->x + PADDING + xx + face->glyph->bitmap_left,
-		p->y + lineheight + yy + baseline - face->glyph->bitmap_top,
-		0, 0,
-		face->glyph->bitmap.width, face->glyph->bitmap.rows,
-		&fg);
-
-      if (pos == t->acursor) {
-	drawcursor(p->x + PADDING + xx, p->y + lineheight + yy);
-      }
-
-      xx += ww;
-    }
-  }
-
-  if (pos == t->acursor) {
-    drawcursor(p->x + PADDING + xx, p->y + lineheight + yy);
-  }
-
-  t->actionbarheight = yy + lineheight;
-
-  drawactionoutline(p);
-}
+	   p->y + lineheight,
+	   p->x + p->width - 1,
+	   p->y + lineheight + t->action.height - 1,
+	   &fg);
+ }
 
 void
 panedrawmain(struct pane *p)
 {
-  int i, xx, y, yy, ww, ty;
-  int32_t code, a, aa, pos;
-  struct piece *tp;
   struct tab *t;
-
-  drawmainoutline(p);
-
+  int y;
+  
   t = p->norm.focus;
-  yy = 0;
-  xx = 0;
-  pos = 0;
 
-  y = p->y + lineheight + t->actionbarheight;
+  y = lineheight + t->action.height;
 
-  for (tp = t->main; tp != NULL; tp = tp->next) {
-    if (tp->s == NULL) continue;
+  drawline(buf, width, height,
+	   p->x + p->width - 1, p->y + y,
+	   p->x + p->width - 1, p->y + p->height - 1,
+	   &fg);
+  
+  textboxdraw(&t->main, buf, width, height,
+	      p->x, p->y + y,
+	      p->width - 1, p->height - y,
+	      p == focus && focustype == FOCUS_main);
 
-    for (i = 0; i < tp->pl; pos += a, i += a) {
-      a = utf8proc_iterate(tp->s + i, tp->pl - i, &code);
-      if (a <= 0) {
-	a = 1;
-	continue;
-      }
-
-      if (linebreak(code, tp->s + i + a, tp->pl - i - a, &aa)) {
-	a += aa;
-	xx = 0;
-	yy += lineheight;
-      }
-
-      if (!loadglyph(code)) {
-	continue;
-      } 
-
-      ww = face->glyph->advance.x >> 6;
-
-      if (PADDING + xx + ww >= p->width - PADDING) {
-	xx = 0;
-	yy += lineheight;
-      }
-
-      if (y + yy - t->voff >= p->y + p->height) {
-	return;
-      }
-      
-      if (yy + lineheight < t->voff) {
-	xx += ww;
-	continue;
-      } else if (yy < t->voff) {
-	ty = t->voff - yy;
-	yy = t->voff;
-      } else {
-	ty = 0;
-      }
-
-      drawglyph(buf, width, height,
-		p->x + PADDING + xx + face->glyph->bitmap_left,
-		y + yy - t->voff + baseline - face->glyph->bitmap_top,
-		0, ty,
-		face->glyph->bitmap.width,
-		face->glyph->bitmap.rows - ty,
-		&fg);
-
-      if (pos == t->mcursor) {
-	drawcursor(p->x + PADDING + xx, y + yy);
-      }
-
-      xx += ww;
-    }
-  }
-
-  if (pos == t->mcursor) {
-    drawcursor(p->x + PADDING + xx, y + yy);
-  }
+  drawrect(buf, width, height,
+	   p->x, p->y + y + t->main.height,
+	   p->x + p->width - 2, p->y + p->height - 1,
+	   &bg);
 }
 
 void

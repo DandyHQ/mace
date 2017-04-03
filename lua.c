@@ -32,7 +32,7 @@ lfontload(lua_State *L)
 }
 
 luaL_Reg funcs[] = {
-  { "loadfont", lfontload },
+  { "setfont", lfontload },
 };
 
 void

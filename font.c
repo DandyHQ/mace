@@ -21,12 +21,7 @@ fontinit(void)
     err(e, "Failed to initialize freetype2 library!\n");
   }
 
-  e = fontload((const uint8_t *)
-	       "/usr/X11R6/lib/X11/fonts/TTF/DejaVuSansMono.ttf",
-	       15);
-  if (e != 0) {
-    err(e, "Failed to load font!\n");
-  }
+  /* TODO: Load a default font. */
 }
 
 int
@@ -44,12 +39,10 @@ fontload(const uint8_t *name, size_t size)
     return e;
   }
 
-  baseline = (face->size->metrics.height
-	      + face->size->metrics.descender)
-    >> 6;
+  baseline = 1 + ((face->size->metrics.height
+		   + face->size->metrics.descender) >> 6);
 
-  lineheight = face->size->metrics.height
-    >> 6;
+  lineheight = 2 + (face->size->metrics.height >> 6);
 
   if (buf != NULL) {
     paneresize(root, 0, 0, width, height);

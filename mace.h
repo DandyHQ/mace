@@ -2,8 +2,6 @@
 #define NAMEMAX 32
 #define PIECE_min 16
 
-#define PADDING 5
-
 #define max(a, b) (a > b ? a : b)
 
 /* Most keys are just text and a given to functions as a utf8 encoded
@@ -48,17 +46,21 @@ struct piece {
   uint8_t *s;
 };
 
+struct textbox {
+  unsigned int cursor;
+  struct piece *pieces;
+
+  struct colour bg;
+
+  int xscroll, yscroll;
+  int width, height;
+};
+
 struct tab {
   uint8_t name[NAMEMAX];
   struct tab *next;
 
-  unsigned int acursor;
-  struct piece *action;
-  int actionbarheight;
-  
-  int voff;
-  unsigned int mcursor;
-  struct piece *main;
+  struct textbox action, main;
 };
 
 typedef enum { PANE_norm, PANE_vsplit, PANE_hsplit } pane_t;
@@ -140,6 +142,12 @@ handlepanerelease(struct pane *p, int x, int y,
 bool
 handlepanemotion(struct pane *p, int x, int y);
 
+bool
+handlepanetablistscroll(struct pane *p, int x, int y, int dx, int dy);
+
+bool
+handlepanescroll(struct pane *p, int x, int y, int dx, int dy);
+
 
 /* Drawing */
 
@@ -212,14 +220,6 @@ paneremovetab(struct pane *p, struct tab *t);
 void
 paneremove(struct pane *p);
 
-void
-panetablistscroll(struct pane *p, int dx, int dy);
-
-void
-panescroll(struct pane *p, int dx, int dy);
-
-
-
 /* Tab Management */
 
 struct tab *
@@ -264,6 +264,41 @@ struct piece *
 pieceinsert(struct piece *old, size_t pos,
 	    uint8_t *s, size_t l);
 
+
+/* Text Box */
+
+bool
+textboxinit(struct textbox *t, struct colour *bg);
+
+void
+textboxfree(struct textbox *t);
+
+void
+textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
+	    int x, int y, int w, int h, bool focus);
+
+bool
+textboxscroll(struct textbox *t, int dx, int dy);
+
+bool
+textboxbuttonpress(struct textbox *t, int x, int y,
+		   unsigned int button);
+
+bool
+textboxbuttonrelease(struct textbox *t, int x, int y,
+		     unsigned int button);
+
+bool
+textboxmotion(struct textbox *t, int x, int y);
+
+bool
+textboxtyping(struct textbox *t, uint8_t *s, size_t l);
+
+bool
+textboxkeypress(struct textbox *t, keycode_t k);
+
+bool
+textboxkeyrelease(struct textbox *t, keycode_t k);
 
 /* Variables */
 

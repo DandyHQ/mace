@@ -151,6 +151,7 @@ panesplit(struct pane *h, struct tab *t, pane_t type, bool na)
 void
 paneresize(struct pane *p, int x, int y, int w, int h)
 {
+  struct tab *t;
   int r;
 
   p->x = x;
@@ -160,6 +161,11 @@ paneresize(struct pane *p, int x, int y, int w, int h)
 
   switch (p->type) {
   case PANE_norm:
+    for (t = p->norm.tabs; t != NULL; t = t->next) {
+      t->action.width = w;
+      t->main.width = w;
+    }
+    
     break;
 
   case PANE_hsplit:
@@ -242,29 +248,3 @@ paneremove(struct pane *p)
   panefree(s);
   panefree(p);
 }
-
-void
-panetablistscroll(struct pane *p, int dx, int dy)
-{
-  struct tab *t;
-  int w;
-
-  w = 0;
-  for (t = p->norm.tabs; t != NULL; t = t->next)
-    w += tabwidth;
-
-  if (p->norm.loff + dy > 0) {
-    p->norm.loff = 0;
-  } else if (p->norm.loff + dy < -w) {
-    p->norm.loff = -w;
-  } else {
-    p->norm.loff += dy;
-  }
-}
-
-void
-panescroll(struct pane *p, int dx, int dy)
-{
-
-}
-

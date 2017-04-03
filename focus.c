@@ -9,60 +9,66 @@
 
 #include "mace.h"
 
-void
-updatefocus(struct pane *p, int x, int y)
+bool
+handlepanetablistscroll(struct pane *p, int x, int y, int dx, int dy)
 {
-  struct piece *tp;
-  struct tab *f;
-  int pos;
+  struct tab *t;
+  int w;
 
-  focus = p;
-  
-  f = p->norm.focus;
+  w = 0;
+  for (t = p->norm.tabs; t != NULL; t = t->next)
+    w += tabwidth;
 
-  if (y < p->y + lineheight + f->actionbarheight) {
-    focustype = FOCUS_action;
-
-    tp = findpos(f->action,
-		 x - p->x - PADDING,
-		 y - p->y - lineheight,
-		 p->width - PADDING * 2,
-		 &pos);
-
-    if (tp != NULL) {
-      f->acursor = pos;
-    } else {
-      printf("Something has gone wronge\n");
-    }
+  if (p->norm.loff + dy > 0) {
+    p->norm.loff = 0;
+  } else if (p->norm.loff + dy < -w) {
+    p->norm.loff = -w;
   } else {
-    focustype = FOCUS_main;
-
-    tp = findpos(f->main,
-		x - p->x - PADDING,
-		y - p->y - lineheight - f->actionbarheight - f->voff,
-		p->width - PADDING * 2,
-		&pos);
-
-    if (tp == NULL) {
-      pos = 0;
-      for (tp = f->main; tp->next != NULL; tp = tp->next) {
-	pos += tp->pl;
-      }
-    }
-
-    f->mcursor = pos;
+    p->norm.loff += dy;
   }
 
-  panedraw(p);
+  return true;
+}
+
+bool
+handlepanescroll(struct pane *p, int x, int y, int dx, int dy)
+{
+  return false;
 }
 
 bool
 handlepanepress(struct pane *p, int x, int y,
 		unsigned int button)
 {
-  updatefocus(p, x, y);
+  struct tab *f;
 
-  return true;
+  focus = p;
+  
+  f = p->norm.focus;
+
+  if (y < p->y + lineheight + f->action.height) {
+    focustype = FOCUS_action;
+
+    if (textboxbuttonpress(&f->action,
+			   x - p->x,
+			   y - p->y - lineheight,
+			   button)) {
+      panedraw(p);
+      return true;
+    }
+  } else {
+    focustype = FOCUS_main;
+
+    if (textboxbuttonpress(&f->main,
+			   x - p->x,
+			   y - p->y - lineheight - f->action.height,
+			   button)) {
+      panedraw(p);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool
@@ -79,190 +85,82 @@ handlepanemotion(struct pane *p, int x, int y)
 }
 
 bool
-handleactiontyping(uint8_t *s, size_t l)
-{
-  struct piece *o, *n;
-  struct tab *t;
-  int i;
-
-  t = focus->norm.focus;
-
-  o = findpiece(t->action, t->acursor, &i);
-  if (o == NULL) {
-    return false;
-  }
-
-  n = pieceinsert(o, i, s, l);
-  if (n == NULL) {
-    return false;
-  }
-
-  t->acursor += l;
-  
-  panedraw(focus);
-  return true;
-}
-
-bool
-handleactionkeypress(keycode_t k)
-{
-  struct piece *o, *n;
-  struct tab *t;
-  uint8_t s[16];
-  size_t l;
-  int i;
-
-  t = focus->norm.focus;
-
-  o = findpiece(t->action, t->acursor, &i);
-  if (o == NULL) {
-    return false;
-  }
-  
-  switch (k) {
-  default: 
-    return false;
-    
-  case KEY_shift:
-    return false;
-    
-  case KEY_alt:
-    return false;
-    
-  case KEY_super:
-    return false;
-    
-  case KEY_control:
-    return false;
-    
-
-  case KEY_left:
-    return false;
-    
-  case KEY_right:
-    return false;
-    
-  case KEY_up:
-    return false;
-    
-  case KEY_down:
-    return false;
-    
-  case KEY_pageup:
-    return false;
-    
-  case KEY_pagedown:
-    return false;
-    
-  case KEY_home:
-    return false;
-    
-  case KEY_end:
-    return false;
-    
-
-  case KEY_return:
-    l = snprintf((char *) s, sizeof(s), "\n");
-
-    n = pieceinsert(o, i, s, l);
-    if (n == NULL) {
-      return false;
-    }
-
-    t->acursor += l;
-
-    break;
-    
-  case KEY_tab:
-    return false;
-    
-  case KEY_backspace:
-    return false;
-    
-  case KEY_delete:
-    return false;
-    
-
-  case KEY_escape:
-    return false;
-  }
-
-  panedraw(focus);
-  return true;
-}
-
-bool
-handleactionkeyrelease(keycode_t k)
-{
-  return false;
-}
-
-bool
-handlemaintyping(uint8_t *s, size_t l)
-{
-  struct piece *o, *n;
-  struct tab *t;
-  int i;
-
-  t = focus->norm.focus;
-
-  o = findpiece(t->main, t->mcursor, &i);
-  if (o == NULL) {
-    return false;
-  }
-
-  n = pieceinsert(o, i, s, l);
-  if (n == NULL) {
-    return false;
-  }
-
-  t->mcursor += l;
-  
-  panedraw(focus);
-  return true;
-}
-
-bool
-handlemainkeypress(keycode_t k)
-{
-  return false;
-}
-
-bool
-handlemainkeyrelease(keycode_t k)
-{
-  return false;
-}
-
-bool (*typinghandlers[NFOCUS_T])(uint8_t *, size_t) = {
-  [FOCUS_action]    = handleactiontyping,
-  [FOCUS_main]      = handlemaintyping,
-};
-
-bool (*keypresshandlers[NFOCUS_T])(keycode_t) = {
-  [FOCUS_action]    = handleactionkeypress,
-  [FOCUS_main]      = handlemainkeypress,
-};
-
-bool (*keyreleasehandlers[NFOCUS_T])(keycode_t) = {
-  [FOCUS_action]    = handleactionkeyrelease,
-  [FOCUS_main]      = handlemainkeyrelease,
-};
-
-bool
 handletyping(uint8_t *s, size_t n)
 {
-  return typinghandlers[focustype](s, n);
+  struct textbox *tb;
+  struct tab *f;
+
+  f = focus->norm.focus;
+
+  switch (focustype) {
+  case FOCUS_action:
+    tb = &f->action;
+    break;
+  case FOCUS_main:
+    tb = &f->main;
+    break;
+  default:
+    return false;
+  }
+  
+  if (textboxtyping(tb, s, n)) {
+    panedraw(focus);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 bool
 handlekeypress(keycode_t k)
 {
-  return keypresshandlers[focustype](k);
+  struct textbox *tb;
+  struct tab *f;
+
+  f = focus->norm.focus;
+
+  switch (focustype) {
+  case FOCUS_action:
+    tb = &f->action;
+    break;
+  case FOCUS_main:
+    tb = &f->main;
+    break;
+  default:
+    return false;
+  }
+  
+  if (textboxkeypress(tb, k)) {
+    panedraw(focus);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 bool
 handlekeyrelease(keycode_t k)
 {
-  return keyreleasehandlers[focustype](k);
+  struct textbox *tb;
+  struct tab *f;
+
+  f = focus->norm.focus;
+
+  switch (focustype) {
+  case FOCUS_action:
+    tb = &f->action;
+    break;
+  case FOCUS_main:
+    tb = &f->main;
+    break;
+  default:
+    return false;
+  }
+  
+  if (textboxkeyrelease(tb, k)) {
+    panedraw(focus);
+    return true;
+  } else {
+    return false;
+  }
 }
