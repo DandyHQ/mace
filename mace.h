@@ -60,7 +60,7 @@ struct textbox {
 
   struct colour bg;
 
-  int xscroll, yscroll;
+  int yscroll;
   int width, height;
 };
 
@@ -108,8 +108,8 @@ fontload(const uint8_t *name, size_t size);
 bool
 loadglyph(int32_t code);
 
-/* Check if code is a line break and sets *l to the number 
-   of extra bytes that need to be skipped.
+/* Check if code is a line break. *l is the number of bytes in the 
+   current code, it may be increased depending on what code is.
 */
 bool
 linebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l);
@@ -332,6 +332,9 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 
 bool
 textboxmotion(struct textbox *t, int x, int y);
+
+bool
+textboxscroll(struct textbox *t, int dx, int dy);
 
 bool
 textboxtyping(struct textbox *t, uint8_t *s, size_t l);

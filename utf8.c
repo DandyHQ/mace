@@ -19,38 +19,31 @@ linebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l)
     return false;
 
   case 0x000A: /* Line Feed */
-    *l = 0;
     return true;
 
   case 0x000B: /* Vertical Tab */
-    *l = 0;
     return true;
 
   case 0x000C: /* Form Feed */
-    *l = 0;
     return true;
 
   case 0x000D: /* Carriage Return */
-    a = utf8proc_iterate(s, max, &code);
+    a = utf8proc_iterate(s + *l, max - *l, &code);
     if (a > 0 && code == 0x000A) {
       /* Carriage Return Followed by Line Feed. */
-      *l = a;
+      *l += a;
       return true;
     } else {
-      *l = 0;
       return true;
     }
 
   case 0x0085: /* Next Line */
-    *l = 0;
     return true;
 
   case 0x2028: /* Line Separator */
-    *l = 0;
     return true;
 
   case 0x2029: /* Paragraph Separator */
-    *l = 0;
     return true;
   }
 }

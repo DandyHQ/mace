@@ -256,3 +256,137 @@ paneremove(struct pane *p)
   paneresize(parent, parent->x, parent->y,
 	     parent->width, parent->height);
 }
+
+bool
+handlepanetablistscroll(struct pane *p, int x, int y, int dx, int dy)
+{
+  struct tab *t;
+  int w;
+
+  w = 0;
+  for (t = p->norm.tabs; t != NULL; t = t->next)
+    w += tabwidth;
+
+  if (p->norm.loff + dy > 0) {
+    p->norm.loff = 0;
+  } else if (p->norm.loff + dy < -w) {
+    p->norm.loff = -w;
+  } else {
+    p->norm.loff += dy;
+  }
+
+  return true;
+}
+
+bool
+handlepanescroll(struct pane *p, int x, int y, int dx, int dy)
+{
+  struct tab *f;
+
+  f = p->norm.focus;
+
+  if (y < p->y + lineheight + f->action.height) {
+    if (textboxscroll(&f->action, dx, dy)) {
+      panedraw(p);
+      return true;
+    }
+  } else {
+    if (textboxscroll(&f->main, dx, dy)) {
+      panedraw(p);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool
+handlepanepress(struct pane *p, int x, int y,
+		unsigned int button)
+{
+  struct tab *f;
+
+  focus = p;
+  
+  f = p->norm.focus;
+
+  if (y < p->y + lineheight + f->action.height) {
+    focustype = FOCUS_action;
+
+    if (textboxbuttonpress(&f->action,
+			   x - p->x,
+			   y - p->y - lineheight,
+			   button)) {
+      panedraw(p);
+      return true;
+    }
+  } else {
+    focustype = FOCUS_main;
+
+    if (textboxbuttonpress(&f->main,
+			   x - p->x,
+			   y - p->y - lineheight - f->action.height,
+			   button)) {
+      panedraw(p);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool
+handlepanerelease(struct pane *p, int x, int y,
+		  unsigned int button)
+{
+  struct tab *f;
+
+  f = p->norm.focus;
+
+  if (y < p->y + lineheight + f->action.height) {
+    if (textboxbuttonrelease(&f->action,
+			     x - p->x,
+			     y - p->y - lineheight,
+			     button)) {
+      panedraw(p);
+      return true;
+    }
+  } else {
+    if (textboxbuttonrelease(&f->main,
+			     x - p->x,
+			     y - p->y - lineheight - f->action.height,
+			     button)) {
+      panedraw(p);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool
+handlepanemotion(struct pane *p, int x, int y)
+{
+  struct tab *f;
+
+  f = p->norm.focus;
+
+  if (y < p->y + lineheight + f->action.height) {
+    if (textboxmotion(&f->action,
+		      x - p->x,
+		      y - p->y - lineheight)) {
+      panedraw(p);
+      return true;
+    }
+  } else {
+    if (textboxmotion(&f->main,
+		      x - p->x,
+		      y - p->y - lineheight - f->action.height)) {
+      panedraw(p);
+      return true;
+    }
+  }
+
+  return false;
+}
+

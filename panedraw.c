@@ -142,8 +142,14 @@ panedrawmain(struct pane *p)
 void
 panedraw(struct pane *p)
 {
+  struct colour abg = { 255, 0, 0, 255 };
   switch (p->type) {
   case PANE_norm:
+    drawrect(buf, width, height,
+	     p->x, p->y,
+	     p->x + p->width - 1, p->y + p->height - 1,
+	     &abg);
+    
     panedrawtablist(p);
     panedrawaction(p);
     panedrawmain(p);
