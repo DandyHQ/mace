@@ -29,7 +29,7 @@ typedef enum {
   KEY_backspace,
   KEY_delete,
 
-  KEY_escape,
+  KEY_escape
 } keycode_t;
 
 typedef enum { FOCUS_action, FOCUS_main, NFOCUS_T } focus_t;
@@ -46,8 +46,16 @@ struct piece {
   uint8_t *s;
 };
 
+struct selection {
+  unsigned int start, end;
+  bool increasing;
+  struct selection *next;
+};
+
 struct textbox {
   unsigned int cursor;
+  struct selection *selections, *cselection;
+
   struct piece *pieces;
 
   struct colour bg;
@@ -148,6 +156,8 @@ handlepanescroll(struct pane *p, int x, int y, int dx, int dy);
 
 
 /* Drawing */
+
+/* If bounds are invalid then they should be fixed by the function. */
 
 /* Only works with vertical or horizontal lines.
    Draw a line in a buffer dest of size bw * bh,
@@ -280,15 +290,6 @@ piecenewtag(void);
 void
 piecefree(struct piece *p);
 
-/* Either returns the piece that was clicked on and sets *pos to 
-   be the index in the line's string. Or returns NULL and sets *pos
-   to the distance from y checked.
-*/
-struct piece *
-findpos(struct piece *pieces,
-	int x, int y, int linewidth,
-	int *pos);
-
 /* Finds pos in list of pieces. Sets *i to index in piece returned. */
 struct piece *
 findpiece(struct piece *p, int pos, int *i);
@@ -340,6 +341,15 @@ textboxkeypress(struct textbox *t, keycode_t k);
 
 bool
 textboxkeyrelease(struct textbox *t, keycode_t k);
+
+struct selection *
+selectionnew(unsigned int start, unsigned int end);
+
+void
+selectionfree(struct selection *s);
+
+void
+selectionupdate(struct selection *s, unsigned int end);
 
 /* Variables */
 

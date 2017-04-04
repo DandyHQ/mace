@@ -9,6 +9,8 @@
 
 #include "mace.h"
 
+/* TODO: Make pretty */
+
 int
 panedrawtablist(struct pane *p)
 {

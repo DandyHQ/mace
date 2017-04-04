@@ -9,7 +9,7 @@ utf8proc   = cc.find_library('utf8proc', dirs : '/usr/local/lib')
 
 executable('mace',
 	sources: [
-	          'main.c',
+		  'main.c',
 		  'draw.c',
 		  'font.c',
 		  'mouse.c',
@@ -17,6 +17,7 @@ executable('mace',
 		  'pane.c',
 		  'panedraw.c',
 		  'textbox.c',
+		  'selection.c',
 		  'focus.c',
 		  'piece.c',
 		  'lua.c',

@@ -75,12 +75,54 @@ bool
 handlepanerelease(struct pane *p, int x, int y,
 		  unsigned int button)
 {
+  struct tab *f;
+
+  f = p->norm.focus;
+
+  if (y < p->y + lineheight + f->action.height) {
+    if (textboxbuttonrelease(&f->action,
+			     x - p->x,
+			     y - p->y - lineheight,
+			     button)) {
+      panedraw(p);
+      return true;
+    }
+  } else {
+    if (textboxbuttonrelease(&f->main,
+			     x - p->x,
+			     y - p->y - lineheight - f->action.height,
+			     button)) {
+      panedraw(p);
+      return true;
+    }
+  }
+
   return false;
 }
 
 bool
 handlepanemotion(struct pane *p, int x, int y)
 {
+  struct tab *f;
+
+  f = p->norm.focus;
+
+  if (y < p->y + lineheight + f->action.height) {
+    if (textboxmotion(&f->action,
+		      x - p->x,
+		      y - p->y - lineheight)) {
+      panedraw(p);
+      return true;
+    }
+  } else {
+    if (textboxmotion(&f->main,
+		      x - p->x,
+		      y - p->y - lineheight - f->action.height)) {
+      panedraw(p);
+      return true;
+    }
+  }
+
   return false;
 }
 
