@@ -38,6 +38,7 @@ textboxinit(struct textbox *t, struct colour *bg, bool noscroll)
 
   t->width = 0;
   t->height = 0;
+  t->textheight = 0;
 
   t->selections = t->cselection = NULL;
   
@@ -217,6 +218,8 @@ textboxscroll(struct textbox *t, int dx, int dy)
 
   if (t->yscroll < 0) {
     t->yscroll = 0;
+  } else if (t->yscroll > t->textheight - lineheight) {
+    t->yscroll = t->textheight - lineheight;
   }
 
   return true;

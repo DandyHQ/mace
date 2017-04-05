@@ -65,7 +65,7 @@ struct textbox {
   bool noscroll;
   int yscroll;
 
-  int width, height, maxheight;
+  int width, height, textheight;
 };
 
 struct tab {

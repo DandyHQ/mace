@@ -263,6 +263,13 @@ textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
 		   w, h, &ly, &lh);
 	
   t->width = w;
-  t->height = yy - t->yscroll;
+
+  t->textheight = yy;
+
+  if (t->textheight - t->yscroll < h - 1) {
+    t->height = t->textheight - t->yscroll;
+  } else {
+    t->height = h - 1;
+  }
 }
 
