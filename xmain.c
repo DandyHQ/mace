@@ -155,11 +155,11 @@ xhandlebuttonpress(XButtonEvent *e)
     break;
 
   case 4:
-    redraw = handlescroll(e->x, e->y, 0, -5);
+    redraw = handlescroll(e->x, e->y, 0, -lineheight / 2);
     break;
     
   case 5:
-    redraw = handlescroll(e->x, e->y, 0, 5);
+    redraw = handlescroll(e->x, e->y, 0, lineheight / 2);
     break;
 
   default:

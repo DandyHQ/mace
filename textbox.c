@@ -9,10 +9,8 @@
 
 #include "mace.h"
 
-#define PADDING 5
-
 bool
-textboxinit(struct textbox *t, struct colour *bg)
+textboxinit(struct textbox *t, struct colour *bg, bool noscroll)
 {
   struct piece *b, *e;
 
@@ -35,6 +33,7 @@ textboxinit(struct textbox *t, struct colour *bg)
   t->pieces = b;
   t->cursor = 0;
 
+  t->noscroll = noscroll;
   t->yscroll = 0;
 
   t->width = 0;
@@ -57,240 +56,6 @@ textboxfree(struct textbox *t)
     piecefree(p);
 }
 
-static void
-textboxdrawglyph(struct textbox *t, uint8_t *dest, int dw, int dh,
-		 int x, int y, int ww, int ly, int lh,
-		 struct colour *fg, struct colour *bg,
-		 struct colour *border)
-{
-  int by, bh;
-
-  if (baseline - face->glyph->bitmap_top < ly) {
-    by = ly - (baseline - face->glyph->bitmap_top);
-  } else {
-    by = 0;
-  }
-
-  bh = face->glyph->bitmap.rows - by;
-  if (baseline - face->glyph->bitmap_top + by - ly + bh >= lh - 1) {
-    bh = lh - 1 - (baseline - face->glyph->bitmap_top + by - ly);
-  }
-
-  drawrect(dest, dw, dh,
-	   x, y + ly,
-	   x + ww, y + ly + lh,
-	   bg);
-  
-  drawglyph(dest, dw, dh,
-	    x + face->glyph->bitmap_left,
-	    y + baseline - face->glyph->bitmap_top + by,
-	    0, by,
-	    face->glyph->bitmap.width, bh,
-	    fg);
-
-  if (border != NULL) {
-   drawline(dest, dw, dh,
-	   x, y + ly,
-	   x + ww, y + ly,
-	   border);
-
-   drawline(dest, dw, dh,
-	   x, y + ly + lh,
-	   x + ww, y + ly + lh,
-	   border);
-
-   drawline(dest, dw, dh,
-	   x, y + ly,
-	   x, y + ly + lh,
-	   border);
-
-   drawline(dest, dw, dh,
-	   x + ww, y + ly,
-	   x + ww, y + ly + lh,
-	   border);
-  }
-}
-
-static void
-fixlinebounds(struct textbox *t, 
-	      int *xx, int *yy,
-	      int w, int h,
-	      int *ly, int *lh)
-{
-  if (*yy - t->yscroll < 0) {
-    *ly = t->yscroll - *yy;
-    *lh = lineheight - *ly;
-  } else if (*yy - t->yscroll + lineheight >= h) {
-    *ly = 0;
-    *lh = h - (*yy - t->yscroll);
-  } else {
-    *ly = 0;
-    *lh = lineheight;
-  }
-}
-
-static void
-endofline(struct textbox *t, uint8_t *dest, int dw, int dh,
-	  int x, int y, int *xx, int *yy,
-	  int w, int h,
-	  int *ly, int *lh)
-{
-  if (*yy - t->yscroll + lineheight + *ly >= 0) {
-    drawrect(dest, dw, dh,
-	     x + *xx, y + *yy - t->yscroll + *ly,
-	     x + w - 1, y + *yy - t->yscroll + *ly + *lh - 1,
-	     &t->bg);
-  }
-  
-  *xx = PADDING;
-  *yy += lineheight;
-
-  fixlinebounds(t, xx, yy, w, h, ly, lh);
-
-  if (*yy - t->yscroll + lineheight + *ly >= 0) {
-    drawrect(dest, dw, dh,
-	     x, y + *yy - t->yscroll + *ly,
-	     x + *xx, y + *yy - t->yscroll + *ly + *lh - 1,
-	     &t->bg);
-  }
-}
-
-static bool
-inselection(struct textbox *t, unsigned int pos)
-{
-  struct selection *s;
-
-  for (s = t->selections; s != NULL; s = s->next) {
-    if (s->start <= pos && pos <= s->end) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-void
-textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
-	    int x, int y, int w, int h, bool focus)
-{
-  struct colour *cfg, *cbg, *cborder;
-  int i, xx, yy, ww, ly, lh;
-  int32_t code, a, pos;
-  struct piece *p;
-
-  yy = 0;
-  xx = PADDING;
-  pos = 0;
-  ly = 0;
-  lh = lineheight;
-
-  fixlinebounds(t, &xx, &yy, w, h, &ly, &lh);
-
-  if (yy - t->yscroll + lineheight + ly >= 0) {
-    drawrect(dest, dw, dh,
-	     x, y + yy - t->yscroll + ly,
-	     x + xx, y + yy - t->yscroll + ly + lh - 1,
-	     &t->bg);
-  }
-
-  for (p = t->pieces;
-       p != NULL && yy - t->yscroll < h - 1;
-       p = p->next) {
-
-    for (i = 0; i < p->pl; pos += a, i += a) {
-      a = utf8proc_iterate(p->s + i, p->pl - i, &code);
-      if (a <= 0) {
-	a = 1;
-	continue;
-      }
-
-      if (linebreak(code, p->s + i, p->pl - i, &a)) {
-	/* Line Break. */
-	if (pos == t->cursor) {
-	  printf("draw cursor on linebreak\n");
-	  if (loadglyph((int32_t) ' ')) {
-	    ww = face->glyph->advance.x >> 6;
-	    xx += ww;
-	  }
-	}
-
-	endofline(t, dest, dw, dh,
-		  x, y, &xx, &yy, w, h,
-		  &ly, &lh);
-
-	if (yy >= h - 1) {
-	  break;
-	} else {
-	  continue;
-	}
-      }
-
-      if (!loadglyph(code)) {
-	continue;
-      } 
-
-      ww = face->glyph->advance.x >> 6;
-
-      if (xx + ww >= w - PADDING) {
-	/* Wrap line */
-	endofline(t, dest, dw, dh,
-		  x, y, &xx, &yy, w, h,
-		  &ly, &lh);
-
-	if (yy >= h - 1) {
-	  break;
-	}
-      }
-
-      if (yy - t->yscroll + lineheight >= 0) {
-	if (pos == t->cursor) {
-	  if (focus) {
-	    cfg = &t->bg;
-	    cbg = &fg;
-	    cborder = NULL;
-	  } else {
-	    cfg = &fg;
-	    cbg = &t->bg;
-	    cborder = &fg;
-	  }
-	} else if (inselection(t, pos)) {
-	  cfg = &t->bg;
-	  cbg = &fg;
-	  cborder = NULL;
-	} else {
-	  cfg = &fg;
-	  cbg = &t->bg;
-	  cborder = NULL;
-	}
-
-	textboxdrawglyph(t, dest, dw, dh,
-			 x + xx, y + yy - t->yscroll,
-			 ww, ly, lh - 1,
-			 cfg, cbg, cborder);
-      }
-      
-      xx += ww;
-    }
-  }
-
-  if (pos == t->cursor && yy < h - 1) {
-    if (loadglyph((int32_t) ' ')) {
-      ww = face->glyph->advance.x >> 6;
-      xx += ww;
-    }
-  }
-
-  if (yy - t->yscroll + lineheight + ly >= 0) {
-    drawrect(dest, dw, dh,
-	     x + xx, y + yy - t->yscroll + ly,
-	     x + w - 1, y + yy - t->yscroll + ly + lh - 1,
-	     &t->bg);
-  }
-
-  t->width = w;
-  t->height = yy - t->yscroll + lineheight;
-}
-
 /* Returns the piece that was clicked on and sets *pos to the position
    in the list of pieces.
 */
@@ -304,7 +69,7 @@ findpos(struct textbox *t,
   int32_t code, a;
   struct piece *p;
 
-  xx = PADDING;
+  xx = TEXTBOX_PADDING;
   yy = 0;
 
   *pos = 0;
@@ -320,12 +85,12 @@ findpos(struct textbox *t,
 	continue;
       }
 
+      /* Line Break. */
       if (linebreak(code, p->s + i, p->pl - i, &a)) {
-	/* Line Break. */
 	if (y < yy - t->yscroll + lineheight - 1) {
 	  return p;
 	} else {
-	  xx = PADDING;
+	  xx = TEXTBOX_PADDING;
 	  yy += lineheight;
 	}
       }
@@ -336,12 +101,12 @@ findpos(struct textbox *t,
 
       ww = face->glyph->advance.x >> 6;
 
-      if (xx + ww >= t->width - PADDING) {
-	/* Wrap Line. */
+      /* Wrap Line. */
+      if (xx + ww >= t->width - TEXTBOX_PADDING) {
 	if (y < yy - t->yscroll + lineheight - 1) {
 	  return p;
 	} else {
-	  xx = PADDING;
+	  xx = TEXTBOX_PADDING;
 	  yy += lineheight;
 	}
       }
@@ -349,13 +114,12 @@ findpos(struct textbox *t,
       xx += ww;
       
       if (y < yy - t->yscroll + lineheight - 1 && x < xx) {
-	/* Found character. */
+	/* Found position. */
 	return p;
       }
     }
   
-    if ((p->next == NULL || p->next->s == NULL)
-	&& y < yy - t->yscroll + lineheight - 1) {
+    if (p->next == NULL || p->next->s == NULL) {
       return p;
     }
   }
@@ -445,9 +209,15 @@ textboxmotion(struct textbox *t, int x, int y)
 bool
 textboxscroll(struct textbox *t, int dx, int dy)
 {
-  /* TODO: add some checks. */
-  
+  if (t->noscroll) {
+    return false;
+  }
+
   t->yscroll += dy;
+
+  if (t->yscroll < 0) {
+    t->yscroll = 0;
+  }
 
   return true;
 }

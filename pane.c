@@ -343,7 +343,7 @@ handlepanerelease(struct pane *p, int x, int y,
 
   f = p->norm.focus;
 
-  if (y < p->y + lineheight + f->action.height) {
+  if (focustype == FOCUS_action) {
     if (textboxbuttonrelease(&f->action,
 			     x - p->x,
 			     y - p->y - lineheight,

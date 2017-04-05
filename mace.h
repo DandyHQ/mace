@@ -52,6 +52,8 @@ struct selection {
   struct selection *next;
 };
 
+#define TEXTBOX_PADDING 5
+
 struct textbox {
   unsigned int cursor;
   struct selection *selections, *cselection;
@@ -60,8 +62,10 @@ struct textbox {
 
   struct colour bg;
 
+  bool noscroll;
   int yscroll;
-  int width, height;
+
+  int width, height, maxheight;
 };
 
 struct tab {
@@ -310,7 +314,7 @@ pieceinsert(struct piece *old, size_t pos,
 
 
 bool
-textboxinit(struct textbox *t, struct colour *bg);
+textboxinit(struct textbox *t, struct colour *bg, bool noscroll);
 
 void
 textboxfree(struct textbox *t);

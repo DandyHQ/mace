@@ -266,15 +266,15 @@ handlebuttonrelease(int x, int y, int button)
 
   switch (button) {
   case 1:
-    p = findpane(root, x, y);
-    if (p == NULL) {
-      return false;
-    }
-
     if (selected != NULL) {
-      return placeselected(p, x, y);
-    } else if (y >= p->y + lineheight) {
-      return handlepanerelease(p, x, y, button);
+      p = findpane(root, x, y);
+      if (p == NULL) {
+	return false;
+      }
+
+     return placeselected(p, x, y);
+    } else if (y >= focus->y + lineheight) {
+      return handlepanerelease(focus, x, y, button);
     } else {
       return false;
     }
