@@ -21,12 +21,12 @@ tabnew(uint8_t *name)
     return NULL;
   }
 
-  if (!textboxinit(&t->action, &abg, true)) {
+  if (!textboxinit(&t->action, t, &abg, true)) {
     free(t);
     return NULL;
   }
 
-  if (!textboxinit(&t->main, &bg, false)) {
+  if (!textboxinit(&t->main, t, &bg, false)) {
     textboxfree(&t->action);
     free(t);
     return NULL;

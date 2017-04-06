@@ -10,7 +10,8 @@
 #include "mace.h"
 
 bool
-textboxinit(struct textbox *t, struct colour *bg, bool noscroll)
+textboxinit(struct textbox *t, struct tab *tab,
+	    struct colour *bg, bool noscroll)
 {
   struct piece *b, *e;
 
@@ -32,6 +33,8 @@ textboxinit(struct textbox *t, struct colour *bg, bool noscroll)
 
   t->pieces = b;
   t->cursor = 0;
+
+  t->tab = tab;
 
   t->noscroll = noscroll;
   t->yscroll = 0;
@@ -87,7 +90,7 @@ findpos(struct textbox *t,
       }
 
       /* Line Break. */
-      if (linebreak(code, p->s + i, p->pl - i, &a)) {
+      if (islinebreak(code, p->s + i, p->pl - i, &a)) {
 	if (y < yy - t->yscroll + lineheight - 1) {
 	  return p;
 	} else {
@@ -133,19 +136,18 @@ textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
   struct selection *s, *sn;
+  int pos, start, end;
   struct piece *tp;
-  int pos;
+  uint8_t *cmd;
+  bool r;
+
+  tp = findpos(t, x, y, &pos);
+  if (tp == NULL) {
+    return false;
+  }
 
   switch (button) {
   case 1:
-    tp = findpos(t, x, y, &pos);
-    if (tp == NULL) {
-      pos = 0;
-      for (tp = t->pieces; tp->next != NULL; tp = tp->next) {
-	pos += tp->pl;
-      }
-    }
-
     t->cursor = pos;
 
     s = t->selections;
@@ -155,15 +157,35 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       s = sn;
     }
 
-    s = selectionnew(pos, pos);
-    if (s == NULL) {
-      return true;
-    }
-
+    s = selectionnew(&t->bg, &fg, pos, pos);
+    /* Doesn't matter if s == NULL */
+    
     t->cselection = t->selections = s;
 
     return true;
 
+  case 3:
+    s = inselections(t->selections, pos);
+    if (s == NULL) {
+      if (!piecefindword(t->pieces, pos, &start, &end)) {
+	return false;
+      }
+
+      s = selectionnew(&t->bg, &fg, start, end);
+      if (s == NULL) {
+	return false;
+      }
+    }
+
+    cmd = selectiontostring(s, t->pieces);
+    if (cmd != NULL) {
+      r = docommand(cmd);
+      free(cmd);
+      return r;
+    } else {
+      return false;
+    }
+    
   default:
     return false;
   }
@@ -175,7 +197,14 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 {
   switch (button) {
   case 1:
-    t->cselection = NULL;
+    if (t->cselection != NULL) {
+      if (t->cselection->start == t->cselection->end) {
+	/* TODO: How to differentiate clicks from selections? */
+	printf("this is a bad selection. should get rid of it?\n");
+      }
+
+      t->cselection = NULL;
+    }
     return true;
 
   default:
@@ -207,6 +236,10 @@ textboxmotion(struct textbox *t, int x, int y)
   return true;
 }
 
+/* TODO: scroll text if cursor stops being visible.
+   Also update cursor when scrolling so it is always visible.
+*/
+
 bool
 textboxscroll(struct textbox *t, int dx, int dy)
 {
@@ -231,7 +264,7 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
   struct piece *o, *n;
   int i;
 
-  o = findpiece(t->pieces, t->cursor, &i);
+  o = piecefind(t->pieces, t->cursor, &i);
   if (o == NULL) {
     return false;
   }
@@ -254,7 +287,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
   size_t l;
   int i;
 
-  o = findpiece(t->pieces, t->cursor, &i);
+  o = piecefind(t->pieces, t->cursor, &i);
   if (o == NULL) {
     return false;
   }
@@ -316,11 +349,9 @@ textboxkeypress(struct textbox *t, keycode_t k)
     return false;
     
   case KEY_backspace:
-    printf("should backspace\n");
     return false;
     
   case KEY_delete:
-    printf("should delete\n");
     return false;
     
 

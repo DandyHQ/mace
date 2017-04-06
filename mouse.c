@@ -150,10 +150,14 @@ moveselected(struct pane *p, int x, int y)
     if (from->x < x && x < from->x + from->width
 	&& from->y < y && y < from->y + lineheight) {
 
+      /* Rearrange tabs */
+      
       paneremovetab(from, selected);
       inserttab(from, selected, x);
 
     } else {
+      /* Remove tab */
+
       paneremovetab(from, selected);
 
       if (from->norm.tabs == NULL) {
@@ -252,10 +256,10 @@ handlebuttonpress(int x, int y, int button)
     return false;
   }
 
-  if (y < p->y + lineheight) {
-    return handletablistpress(p, x, y, button);
-  } else {
+  if (y > p->y + lineheight) {
     return handlepanepress(p, x, y, button);
+  } else {
+    return handletablistpress(p, x, y, button);
   }
 }
 
@@ -272,8 +276,8 @@ handlebuttonrelease(int x, int y, int button)
 	return false;
       }
 
-     return placeselected(p, x, y);
-    } else if (y >= focus->y + lineheight) {
+      return placeselected(p, x, y);
+    } else if (y > focus->y + lineheight) {
       return handlepanerelease(focus, x, y, button);
     } else {
       return false;
@@ -285,33 +289,6 @@ handlebuttonrelease(int x, int y, int button)
 
   default:
     return false;
-  }
-}
-
-bool
-handlescroll(int x, int y, int dx, int dy)
-{
-  struct pane *p;
-
-  p = findpane(root, x, y);
-  if (p == NULL) {
-    return false;
-  }
-
-  if (y < p->y + lineheight) {
-    if (handlepanetablistscroll(p, x, y, dx, dy)) {
-      panedrawtablist(p);
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    if (handlepanescroll(p, x, y, dx, dy)) {
-      panedraw(p);
-      return true;
-    } else {
-      return false;
-    }
   }
 }
 
@@ -332,5 +309,36 @@ handlemotion(int x, int y)
   } else {
     return false;
   } 
+}
+
+bool
+handlescroll(int x, int y, int dx, int dy)
+{
+  struct pane *p;
+
+  if (selected != NULL) {
+    return false;
+  }
+  
+  p = findpane(root, x, y);
+  if (p == NULL) {
+    return false;
+  }
+
+  if (y > p->y + lineheight) {
+    if (handlepanescroll(p, x, y, dx, dy)) {
+      panedraw(p);
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    if (handlepanetablistscroll(p, x, y, dx, dy)) {
+      panedrawtablist(p);
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
 

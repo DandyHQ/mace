@@ -52,11 +52,12 @@ drawnormal(struct textbox *t, uint8_t *dest, int dw, int dh,
 
 static void
 drawselected(struct textbox *t, uint8_t *dest, int dw, int dh,
-	     int x, int y, int ww, int ly, int lh)
+	     int x, int y, int ww, int ly, int lh,
+	     struct selection *s)
 {
   textboxdrawglyph(t, dest, dw, dh,
 		   x, y, ww, ly, lh,
-		   &t->bg, &fg);
+		   &s->fg, &s->bg);
 }
 
 static void
@@ -122,14 +123,24 @@ static void
 endofline(struct textbox *t, uint8_t *dest, int dw, int dh,
 	  int x, int y, int *xx, int *yy,
 	  int w, int h,
-	  int *ly, int *lh)
+	  int *ly, int *lh,
+	  struct colour *bg)
 {
   if (*yy - t->yscroll + lineheight + *ly >= 0) {
     drawrect(dest, dw, dh,
-	     x + *xx, y + *yy - t->yscroll + *ly,
-	     x + w - 1, y + *yy - t->yscroll + *ly + *lh - 1,
+	     x + *xx,
+	     y + *yy - t->yscroll + *ly,
+	     x + w - TEXTBOX_PADDING - 1,
+	     y + *yy - t->yscroll + *ly + *lh - 1,
+	     bg);
+
+    drawrect(dest, dw, dh,
+	     x + w - TEXTBOX_PADDING,
+	     y + *yy - t->yscroll + *ly,
+	     x + w - 1,
+	     y + *yy - t->yscroll + *ly + *lh - 1,
 	     &t->bg);
-  }
+   }
   
   *xx = TEXTBOX_PADDING;
   *yy += lineheight;
@@ -151,6 +162,8 @@ textboxlinebreak(struct textbox *t, unsigned int pos,
 		 int w, int h,
 		 int *ly, int *lh)
 {
+  struct selection *s;
+  struct colour *cbg;
   int ww;
   
   if (pos == t->cursor) {
@@ -166,23 +179,17 @@ textboxlinebreak(struct textbox *t, unsigned int pos,
     }
   }
 
-  endofline(t, dest, dw, dh,
-	    x, y, xx, yy, w, h,
-	    ly, lh);
-}
-
-static bool
-inselection(struct textbox *t, unsigned int pos)
-{
-  struct selection *s;
-
-  for (s = t->selections; s != NULL; s = s->next) {
-    if (s->start <= pos && pos <= s->end) {
-      return true;
-    }
+  s = inselections(t->selections, pos);
+  if (s != NULL) {
+    cbg = &s->bg;
+  } else {
+    cbg = &t->bg;
   }
 
-  return false;
+  endofline(t, dest, dw, dh,
+	    x, y, xx, yy, w, h,
+	    ly, lh,
+	    cbg);
 }
 
 void
@@ -191,6 +198,7 @@ textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
 {
   int i, xx, yy, ww, ly, lh;
   int32_t code, a, pos;
+  struct selection *s;
   struct piece *p;
 
   yy = 0;
@@ -216,7 +224,7 @@ textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
 	continue;
       }
 
-      if (linebreak(code, p->s + i, p->pl - i, &a)) {
+      if (islinebreak(code, p->s + i, p->pl - i, &a)) {
 	textboxlinebreak(t, pos, dest, dw, dh,
 			 x, y, &xx, &yy,
 			 w, h, &ly, &lh);
@@ -229,10 +237,12 @@ textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
 
       ww = face->glyph->advance.x >> 6;
 
-      if (xx + ww >= w - TEXTBOX_PADDING) {/* Wrap line */
+      /* Wrap line */
+      if (xx + ww >= w - TEXTBOX_PADDING) {
 	endofline(t, dest, dw, dh,
 		  x, y, &xx, &yy, w, h,
-		  &ly, &lh);
+		  &ly, &lh,
+		  &t->bg);
       }
 
       if (yy - t->yscroll + lineheight >= 0
@@ -241,12 +251,14 @@ textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
 	if (pos == t->cursor) {
 	  drawcursor(t, dest, dw, dh,
 		     x + xx, y + yy - t->yscroll,
-		     ww, ly, lh - 1, focus);
+		     ww, ly, lh - 1,
+		     focus);
 
-	} else if (inselection(t, pos)) {
+	} else if ((s = inselections(t->selections, pos)) != NULL) {
 	  drawselected(t, dest, dw, dh,
 		       x + xx, y + yy - t->yscroll,
-		       ww, ly, lh - 1);
+		       ww, ly, lh - 1,
+		       s);
 	} else {
 	  drawnormal(t, dest, dw, dh,
 		     x + xx, y + yy - t->yscroll,

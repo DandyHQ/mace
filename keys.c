@@ -9,26 +9,31 @@
 
 #include "mace.h"
 
-bool
-handletyping(uint8_t *s, size_t n)
+static struct textbox *
+focustextbox(void)
 {
-  struct textbox *tb;
   struct tab *f;
 
   f = focus->norm.focus;
 
   switch (focustype) {
   case FOCUS_action:
-    tb = &f->action;
-    break;
+    return &f->action;
   case FOCUS_main:
-    tb = &f->main;
-    break;
+    return &f->main;
   default:
-    return false;
+    return NULL;
   }
+}
+
+bool
+handletyping(uint8_t *s, size_t n)
+{
+  struct textbox *tb;
+
+  tb = focustextbox();
   
-  if (textboxtyping(tb, s, n)) {
+  if (tb != NULL && textboxtyping(tb, s, n)) {
     panedraw(focus);
     return true;
   } else {
@@ -40,22 +45,10 @@ bool
 handlekeypress(keycode_t k)
 {
   struct textbox *tb;
-  struct tab *f;
 
-  f = focus->norm.focus;
+  tb = focustextbox();
 
-  switch (focustype) {
-  case FOCUS_action:
-    tb = &f->action;
-    break;
-  case FOCUS_main:
-    tb = &f->main;
-    break;
-  default:
-    return false;
-  }
-  
-  if (textboxkeypress(tb, k)) {
+  if (tb != NULL && textboxkeypress(tb, k)) {
     panedraw(focus);
     return true;
   } else {
@@ -67,22 +60,10 @@ bool
 handlekeyrelease(keycode_t k)
 {
   struct textbox *tb;
-  struct tab *f;
 
-  f = focus->norm.focus;
-
-  switch (focustype) {
-  case FOCUS_action:
-    tb = &f->action;
-    break;
-  case FOCUS_main:
-    tb = &f->main;
-    break;
-  default:
-    return false;
-  }
+  tb = focustextbox();
   
-  if (textboxkeyrelease(tb, k)) {
+  if (tb != NULL && textboxkeyrelease(tb, k)) {
     panedraw(focus);
     return true;
   } else {

@@ -153,7 +153,7 @@ pieceinsert(struct piece *old, size_t pos,
 }
 
 struct piece *
-findpiece(struct piece *p, int pos, int *i)
+piecefind(struct piece *p, int pos, int *i)
 {
   int pi;
 
@@ -172,4 +172,60 @@ findpiece(struct piece *p, int pos, int *i)
   }
 
   return NULL;
+}
+
+bool
+piecefindword(struct piece *p, int pos,
+	      int *start, int *end)
+{
+  int32_t code, a, preva;
+  int i, cpos;
+  bool found;
+
+  cpos = 0;
+  found = false;
+  *start = 0;
+  preva = 0;
+
+  while (p != NULL) {
+    for (i = 0; i < p->pl; preva = a, cpos += a, i += a) {
+      a = utf8proc_iterate(p->s + i, p->pl - i, &code);
+      if (a <= 0) {
+	a = 1;
+	continue;
+      }
+
+      if (cpos == pos) {
+	found = true;
+      }
+ 
+      /* Line Break. */
+      if (iswordbreak(code)
+	  || islinebreak(code, p->s + i, p->pl - i, &a)) {
+
+	if (found) {
+	  if (cpos == pos) {
+	    return false;
+	  } else {
+	    *end = cpos - preva;
+	    return true;
+	  }
+	} else {
+	  *start = cpos + a;
+	}
+      }
+    }
+
+    p = p->next;
+    if (p == NULL || p->s == NULL) {
+      break;
+    }
+  }
+
+  if (found) {
+    *end = cpos - preva;
+    return true;
+  } else {
+    return false;
+  }
 }

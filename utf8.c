@@ -10,7 +10,7 @@
 #include "mace.h"
 
 bool
-linebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l)
+islinebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l)
 {
   size_t a;
   
@@ -45,5 +45,20 @@ linebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l)
 
   case 0x2029: /* Paragraph Separator */
     return true;
+  }
+}
+
+bool
+iswordbreak(int32_t code)
+{
+  switch (code) {
+  default:
+    return false;
+
+  case '\n':
+  case ' ':
+    return true;
+
+    /* TODO: other word breaks. */
   }
 }

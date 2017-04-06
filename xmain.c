@@ -111,6 +111,8 @@ xhandlekeypress(XKeyEvent *e)
     n = utf8proc_encode_char(sym, s);
     if (n > 0) {
       redraw = handletyping(s, n);
+    } else {
+      redraw = false;
     }
   } else {
     redraw = handlekeypress(c);
@@ -135,6 +137,8 @@ xhandlekeyrelease(XKeyEvent *e)
 
   if (c != KEY_none) {
     redraw = handlekeyrelease(c);
+  } else {
+    redraw = false;
   }
 
   if (redraw) {

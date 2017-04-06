@@ -1,11 +1,13 @@
-project('mace', 'c', default_options : ['c_std=c11'])
+project('mace', 'c')
+
+add_global_arguments('-std=c11', language : 'c')
 
 cc = meson.get_compiler('c')
 
 x11        = dependency('x11')
 freetype   = dependency('freetype2')
-lua        = dependency('lua53')
-utf8proc   = cc.find_library('utf8proc', dirs : '/usr/local/lib')
+lua        = dependency('lua52')
+utf8proc   = dependency('libutf8proc')
 
 executable('mace',
 	sources: [
@@ -23,6 +25,7 @@ executable('mace',
 		  'piece.c',
 		  'lua.c',
 		  'utf8.c',
+		  'command.c',
 		  'xmain.c'
 		],
 

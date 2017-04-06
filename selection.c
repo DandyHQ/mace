@@ -10,7 +10,8 @@
 #include "mace.h"
 
 struct selection *
-selectionnew(unsigned int start, unsigned int end)
+selectionnew(struct colour *fg, struct colour *bg,
+	     unsigned int start, unsigned int end)
 {
   struct selection *s;
 
@@ -23,6 +24,9 @@ selectionnew(unsigned int start, unsigned int end)
   s->end = end;
   s->increasing = true;
 
+  memmove(&s->fg, fg, sizeof(struct colour));
+  memmove(&s->bg, bg, sizeof(struct colour));
+  
   s->next = NULL;
   
   return s;
@@ -51,3 +55,59 @@ selectionupdate(struct selection *s, unsigned int end)
     s->end = end;
   }
 }
+
+struct selection *
+inselections(struct selection *s, unsigned int pos)
+{
+  while (s != NULL) {
+    if (s->start <= pos && pos <= s->end) {
+      return s;
+    } else {
+      s = s->next;
+    }
+  }
+
+  return NULL;
+}
+
+uint8_t *
+selectiontostring(struct selection *s, struct piece *pieces)
+{
+  struct piece *p;
+  int pos, b, l;
+  uint8_t *buf;
+
+  buf = malloc(sizeof(uint8_t) * (s->end - s->start + 1));
+  if (buf == NULL) {
+    return NULL;
+  }
+  
+  pos = 0;
+  for (p = pieces; p != NULL; p = p->next) {
+    if (pos > s->end) {
+      break;
+    } else if (pos + p->pl < s->start) {
+      pos += p->pl;
+      continue;
+    }
+
+    if (pos < s->start) {
+      b = s->start - pos;
+    } else {
+      b = 0;
+    }
+
+    if (pos + p->pl > s->end + 1) {
+      l = s->end + 1 - pos - b;
+    } else {
+      l = p->pl - b;
+    }
+
+    memmove(buf + (pos + b - s->start), p->s + b, l);
+    pos += b + l;
+  }
+
+  buf[pos - s->start] = 0;
+  return buf;
+}
+

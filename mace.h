@@ -49,12 +49,17 @@ struct piece {
 struct selection {
   unsigned int start, end;
   bool increasing;
+
+  struct colour fg, bg;
+
   struct selection *next;
 };
 
 #define TEXTBOX_PADDING 5
 
 struct textbox {
+  struct tab *tab;
+  
   unsigned int cursor;
   struct selection *selections, *cselection;
 
@@ -116,7 +121,10 @@ loadglyph(int32_t code);
    current code, it may be increased depending on what code is.
 */
 bool
-linebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l);
+islinebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l);
+
+bool
+iswordbreak(int32_t code);
 
 /* User Input */
 
@@ -296,7 +304,13 @@ piecefree(struct piece *p);
 
 /* Finds pos in list of pieces. Sets *i to index in piece returned. */
 struct piece *
-findpiece(struct piece *p, int pos, int *i);
+piecefind(struct piece *pieces, int pos, int *i);
+
+/* Finds the start and end of a word around pos. Returns false if pos
+   is not inside a word.
+*/
+bool
+piecefindword(struct piece *pieces, int pos, int *start, int *end);
 
 /* Splits the piece p and position pos and sets lr and rr to point
    to the newly created left and right pieces.
@@ -312,9 +326,9 @@ struct piece *
 pieceinsert(struct piece *old, size_t pos,
 	    uint8_t *s, size_t l);
 
-
 bool
-textboxinit(struct textbox *t, struct colour *bg, bool noscroll);
+textboxinit(struct textbox *t, struct tab *tab,
+	    struct colour *bg, bool noscroll);
 
 void
 textboxfree(struct textbox *t);
@@ -350,13 +364,26 @@ bool
 textboxkeyrelease(struct textbox *t, keycode_t k);
 
 struct selection *
-selectionnew(unsigned int start, unsigned int end);
+selectionnew(struct colour *fg, struct colour *bg,
+	     unsigned int start, unsigned int end);
 
 void
 selectionfree(struct selection *s);
 
 void
 selectionupdate(struct selection *s, unsigned int end);
+
+struct selection *
+inselections(struct selection *s, unsigned int pos);
+
+/* Allocates the required string and fills it out with data from 
+   pieces.
+*/
+uint8_t *
+selectiontostring(struct selection *s, struct piece *pieces);
+
+bool
+docommand(uint8_t *cmd);
 
 /* Variables */
 
