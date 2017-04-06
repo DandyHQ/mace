@@ -7,7 +7,11 @@ cc = meson.get_compiler('c')
 x11        = dependency('x11')
 freetype   = dependency('freetype2')
 lua        = dependency('lua52')
-utf8proc   = dependency('libutf8proc')
+# hopefully one of these two methods will work
+utf8proc   = dependency('libutf8proc', required : false)
+if not utf8proc.found()
+	utf8proc   = cc.find_library('utf8proc')
+endif
 
 executable('mace',
 	sources: [
