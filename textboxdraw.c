@@ -16,20 +16,19 @@ textboxdrawglyph(struct textbox *t, uint8_t *dest, int dw, int dh,
 {
   int by, bh;
 
-  if (baseline - face->glyph->bitmap_top < ly) {
-    by = ly - (baseline - face->glyph->bitmap_top);
-  } else {
+  by = ly - (baseline - face->glyph->bitmap_top);
+  if (by < 0) {
     by = 0;
   }
 
-  bh = face->glyph->bitmap.rows - by;
-  if (baseline - face->glyph->bitmap_top + by - ly + bh >= lh - 1) {
-    bh = lh - 1 - (baseline - face->glyph->bitmap_top + by - ly);
+  bh = lh - 1 - (baseline - face->glyph->bitmap_top + by - ly);
+  if (bh + by > face->glyph->bitmap.rows) {
+    bh = face->glyph->bitmap.rows - by;
   }
 
   drawrect(dest, dw, dh,
 	   x, y + ly,
-	   x + ww, y + ly + lh,
+	   x + ww, y + lineheight - 1,
 	   bg);
   
   drawglyph(dest, dw, dh,

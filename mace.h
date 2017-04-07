@@ -1,6 +1,6 @@
 
 #define NAMEMAX 32
-#define PIECE_min 16
+#define PIECE_min 64
 
 #define max(a, b) (a > b ? a : b)
 
@@ -41,7 +41,7 @@ struct colour {
 struct piece {
   struct piece *prev, *next;
 
-  size_t rl; /* Real length of s. */
+  size_t rl; /* Allocated length of s. */
   size_t pl; /* Currently populated length of s. */
   uint8_t *s;
 };
@@ -60,10 +60,17 @@ struct selection {
 struct textbox {
   struct tab *tab;
   
-  unsigned int cursor;
-  struct selection *selections, *cselection;
-
   struct piece *pieces;
+
+  unsigned int cursor;
+
+  /* Pointer to the current piece being edited. This may be NULL in
+  the case of cursor movements. */
+  struct piece *cpiece;
+
+  struct selection *selections;
+  /* Current selection being made. */
+  struct selection *cselection;
 
   struct colour bg;
 
@@ -320,11 +327,17 @@ piecesplit(struct piece *p, size_t pos,
 	   struct piece **lr, struct piece **rr);
 
 /* Splits old at position pos and inserts a new piece created by
-   copying the string s of lenght l.
+   copying the string s of lenght l. Returns the new piece.
 */
 struct piece *
 pieceinsert(struct piece *old, size_t pos,
 	    uint8_t *s, size_t l);
+
+/* Appends string s of len l to the piece. Returns false if this was
+   not possible else true.
+*/
+bool
+pieceappend(struct piece *p, uint8_t *s, size_t l);
 
 bool
 textboxinit(struct textbox *t, struct tab *tab,

@@ -31,6 +31,7 @@ textboxinit(struct textbox *t, struct tab *tab,
   e->prev = b;
   e->next = NULL;
 
+  t->cpiece = NULL;
   t->pieces = b;
   t->cursor = 0;
 
@@ -78,10 +79,7 @@ findpos(struct textbox *t,
 
   *pos = 0;
 
-  for (p = t->pieces;
-       p != NULL && yy - t->yscroll < t->height - 1;
-       p = p->next) {
-
+  for (p = t->pieces; p != NULL; p = p->next) {
     for (i = 0; i < p->pl; *pos += a, i += a) {
       a = utf8proc_iterate(p->s + i, p->pl - i, &code);
       if (a <= 0) {
@@ -141,6 +139,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   uint8_t *cmd;
   bool r;
 
+  t->cpiece = NULL;
   tp = findpos(t, x, y, &pos);
   if (tp == NULL) {
     return false;
@@ -200,11 +199,12 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
     if (t->cselection != NULL) {
       if (t->cselection->start == t->cselection->end) {
 	/* TODO: How to differentiate clicks from selections? */
-	printf("this is a bad selection. should get rid of it?\n");
+	printf("only selected one glyph, this is probably ment to be a cursor reloaction\n");
       }
 
       t->cselection = NULL;
     }
+
     return true;
 
   default:
@@ -224,10 +224,7 @@ textboxmotion(struct textbox *t, int x, int y)
 
   tp = findpos(t, x, y, &pos);
   if (tp == NULL) {
-    pos = 0;
-    for (tp = t->pieces; tp->next != NULL; tp = tp->next) {
-      pos += tp->pl;
-    }
+    return false;
   }
   
   selectionupdate(t->cselection, pos);
@@ -264,6 +261,11 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
   struct piece *o, *n;
   int i;
 
+  if (t->cpiece != NULL && pieceappend(t->cpiece, s, l)) {
+    t->cursor += l;
+    return true;
+  } 
+  
   o = piecefind(t->pieces, t->cursor, &i);
   if (o == NULL) {
     return false;
@@ -275,6 +277,7 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
   }
 
   t->cursor += l;
+  t->cpiece = n;
   
   return true;
 }
@@ -286,12 +289,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
   uint8_t s[16];
   size_t l;
   int i;
-
-  o = piecefind(t->pieces, t->cursor, &i);
-  if (o == NULL) {
-    return false;
-  }
-  
+   
   switch (k) {
   default: 
     return false;
@@ -337,13 +335,25 @@ textboxkeypress(struct textbox *t, keycode_t k)
   case KEY_return:
     l = snprintf((char *) s, sizeof(s), "\n");
 
-    n = pieceinsert(o, i, s, l);
-    if (n == NULL) {
-      return false;
-    }
+    if (t->cpiece != NULL && pieceappend(t->cpiece, s, l)) {
+      t->cursor += l;
+      return true;
+    } else {
+      o = piecefind(t->pieces, t->cursor, &i);
+      if (o == NULL) {
+	return false;
+      }
+    
+      n = pieceinsert(o, i, s, l);
+      if (n == NULL) {
+	return false;
+      }
 
-    t->cursor += l;
-    return true;
+      t->cursor += l;
+      t->cpiece = n;
+
+      return true;
+    }
     
   case KEY_tab:
     return false;

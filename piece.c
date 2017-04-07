@@ -229,3 +229,24 @@ piecefindword(struct piece *p, int pos,
     return false;
   }
 }
+
+bool
+pieceappend(struct piece *p, uint8_t *s, size_t l)
+{
+  uint8_t *ns;
+  
+  if (p->rl - p->pl < l) {
+    ns = reallocarray(p->s, p->rl + l, sizeof(uint8_t));
+    if (ns == NULL) {
+      return false;
+    } else {
+      p->s = ns;
+      p->rl += l;
+    }
+  }
+
+  memmove(p->s + p->pl, s, l);
+  p->pl += l;
+
+  return true;
+}
