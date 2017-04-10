@@ -119,7 +119,7 @@ inserttab(struct pane *p, struct tab *t, int x)
   struct tab **tt;
   int xx;
 
-  xx = p->x + p->norm.loff;
+  xx = p->x;
   tt = &p->norm.tabs;
   while (*tt != NULL && !(xx < x && x < xx + tabwidth)) {
     tt = &(*tt)->next;
@@ -194,7 +194,7 @@ initselected(struct pane *p, int x, int y)
   struct tab *t;
   int xx;
 
-  xx = p->x + p->norm.loff;
+  xx = p->x;
   for (t = p->norm.tabs; t != NULL; t = t->next) {
     if (xx < x && x < xx + tabwidth) {
       break;
@@ -353,12 +353,7 @@ handlescroll(int x, int y, int dx, int dy)
       return false;
     }
   } else {
-    if (handlepanetablistscroll(p, x, y, dx, dy)) {
-      panedrawtablist(p);
-      return true;
-    } else {
-      return false;
-    }
+    return false;
   }
 }
 

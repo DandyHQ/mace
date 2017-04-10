@@ -62,8 +62,8 @@ tabfree(struct tab *t)
 void
 tabresize(struct tab *t, int w, int h)
 {
-  textboxresize(&t->action, w);
-  textboxresize(&t->main, w);
+  textboxresize(&t->action, w - 1);
+  textboxresize(&t->main, w - 1);
 }
 
 void

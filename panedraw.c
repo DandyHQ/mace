@@ -15,9 +15,7 @@ int
 panedrawtablist(struct pane *p)
 {
   struct tab *t;
-  int xo, x, w;
-
-  xo = p->norm.loff;
+  int x, w;
 
   drawrect(buf, width, height,
 	   p->x, p->y,
@@ -29,57 +27,50 @@ panedrawtablist(struct pane *p)
 	   p->x + p->width - 1, p->y + lineheight - 1,
 	   &fg);
  
-  for (t = p->norm.tabs; t != NULL && xo < p->width; t = t->next) {
-    if (xo + tabwidth > 0) {
-      if (xo < 0) {
-	x = -xo;
-      } else {
-	x = 0;
-      }
-
-      if (xo + tabwidth < p->width) {
-	w = tabwidth;
-      } else {
-	w = p->width - xo;
-      }
-
-      drawstring(buf, width, height,
-		 p->x + xo, p->y,
-		 0, 0,
-		 w, lineheight,
-		 t->name, true,
-		 &fg);
-
-      drawline(buf, width, height,
-	       p->x + xo + tabwidth, p->y,
-	       p->x + xo + tabwidth, p->y + lineheight - 1,
-	       &fg);
-
-      drawline(buf, width, height,
-	       p->x + xo + x, p->y,
-	       p->x + xo + w, p->y,
-	       &fg);
-
-      if (p->norm.focus == t) {
-	drawline(buf, width, height,
-		 p->x + xo + x + 1, p->y + lineheight - 1,
-		 p->x + xo + w - 1, p->y + lineheight - 1,
-		 &bg);
-      } else {
-	drawline(buf, width, height,
-		 p->x + xo + x, p->y + lineheight - 1,
-		 p->x + xo + w, p->y + lineheight - 1,
-		 &fg);
-      }
+  x = 0;
+  for (t = p->norm.tabs; t != NULL && x < p->width; t = t->next) {
+    if (x + tabwidth < p->width) {
+      w = tabwidth;
+    } else {
+      w = p->width - x;
     }
 
-    xo += tabwidth;
+    drawstring(buf, width, height,
+	       p->x + x, p->y,
+	       0, 0,
+	       w, lineheight,
+	       t->name, true,
+	       &fg);
+
+    drawline(buf, width, height,
+	     p->x + x + tabwidth, p->y,
+	     p->x + x + tabwidth, p->y + lineheight - 1,
+	     &fg);
+
+    drawline(buf, width, height,
+	     p->x + x, p->y,
+	     p->x + x + w, p->y,
+	     &fg);
+
+    if (p->norm.focus == t) {
+      drawline(buf, width, height,
+	       p->x + x + 1, p->y + lineheight - 1,
+	       p->x + w - 1, p->y + lineheight - 1,
+	       &bg);
+    } else {
+      drawline(buf, width, height,
+	       p->x + x, p->y + lineheight - 1,
+	       p->x + w, p->y + lineheight - 1,
+	       &fg);
+    }
+
+    x += tabwidth;
   }
 
-  if (xo > 0 && xo < p->width) {
+  if (x < p->width) {
     drawline(buf, width, height,
-	     p->x + xo, p->y + lineheight - 1,
-	     p->x + p->width, p->y + lineheight - 1,
+	     p->x + x, p->y + lineheight - 1,
+	     p->x + p->width - 1, p->y + lineheight - 1,
 	     &fg);
   }
 

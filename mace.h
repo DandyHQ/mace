@@ -101,7 +101,6 @@ struct pane {
 
     struct {
       struct tab *tabs, *focus;
-      int loff;
     } norm;
   };
 };

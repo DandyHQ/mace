@@ -21,7 +21,6 @@ panenew(struct pane *parent, struct tab *tabs)
 
   p->parent = parent;
   p->type = PANE_norm;
-  p->norm.loff = 0;
 
   p->norm.tabs = p->norm.focus = tabs;
 
@@ -103,10 +102,8 @@ panesplit(struct pane *h, struct tab *t, pane_t type, bool na)
 
   o->norm.tabs = h->norm.tabs;
   o->norm.focus = h->norm.focus;
-  o->norm.loff = h->norm.loff;
   
   n->norm.tabs = n->norm.focus = t;
-  n->norm.loff = 0;
 
   h->split.ratio = 0.5f;
   h->split.a = a;
@@ -143,6 +140,14 @@ panesplit(struct pane *h, struct tab *t, pane_t type, bool na)
 
   default:
     errx(1, "Invalid pane type");
+  }
+
+  for (t = a->norm.tabs; t != NULL; t = t->next) {
+    tabresize(t, a->width, a->height - lineheight);
+  }
+
+  for (t = b->norm.tabs; t != NULL; t = t->next) {
+    tabresize(t, b->width, b->height - lineheight);
   }
 
   return n;
@@ -241,7 +246,6 @@ paneremove(struct pane *p)
   case PANE_norm:
     parent->norm.tabs = s->norm.tabs;
     parent->norm.focus = s->norm.focus;
-    parent->norm.loff = s->norm.loff;
   
     s->norm.tabs = NULL;
     s->norm.focus = NULL;
@@ -261,25 +265,3 @@ paneremove(struct pane *p)
   paneresize(parent, parent->x, parent->y,
 	     parent->width, parent->height);
 }
-
-bool
-handlepanetablistscroll(struct pane *p, int x, int y, int dx, int dy)
-{
-  struct tab *t;
-  int w;
-
-  w = 0;
-  for (t = p->norm.tabs; t != NULL; t = t->next)
-    w += tabwidth;
-
-  if (p->norm.loff + dy > 0) {
-    p->norm.loff = 0;
-  } else if (p->norm.loff + dy < -w) {
-    p->norm.loff = -w;
-  } else {
-    p->norm.loff += dy;
-  }
-
-  return true;
-}
-
