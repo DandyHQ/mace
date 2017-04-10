@@ -1,3 +1,2 @@
-
-setfont("/usr/local/share/fonts/Liberation/LiberationMono-Regular.ttf", 15)
+setfont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 15)
 

@@ -78,10 +78,9 @@ textboxresize(struct textbox *t, int w)
   t->height = 0;
   t->rheight = lineheight;
 
-  t->buf = realloc(t->buf,
-		   t->width * t->rheight * sizeof(uint8_t) * 4);
+  t->buf = realloc(t->buf, t->width * t->rheight * sizeof(uint8_t) * 4);
   if (t->buf == NULL) {
-    err(1, "Failed to allocate new buffer for tab!\n");
+    err(1, "Failed to allocate new buffer for textbox!\n");
   }
 
   textboxpredraw(t);
