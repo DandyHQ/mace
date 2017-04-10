@@ -239,7 +239,7 @@ pieceappend(struct piece *p, uint8_t *s, size_t l)
   if (p->rl - p->pl < l) {
     nl = p->rl + l + PIECE_min;
 
-    ns = reallocarray(p->s, nl, sizeof(uint8_t));
+    ns = realloc(p->s, nl * sizeof(uint8_t));
     if (ns == NULL) {
       return false;
     } else {

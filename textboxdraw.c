@@ -92,9 +92,7 @@ endofline(struct textbox *t, int *x, int *y,
   if (*y + lineheight * 2 >= t->rheight) {
     h = t->rheight + lineheight * 10;
 
-    t->buf = reallocarray(t->buf, t->width * h,
-			  sizeof(uint8_t) * 4);
-
+    t->buf = realloc(t->buf, t->width * h * sizeof(uint8_t) * 4);
     if (t->buf == NULL) {
       return false;
     }
