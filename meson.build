@@ -7,7 +7,7 @@ cc = meson.get_compiler('c')
 x11        = dependency('x11')
 freetype   = dependency('freetype2')
 lua        = dependency('lua52')
-utf8proc   = find_library('utf8proc', dirs : ['/usr/lib/x86_64-linux-gnu/'])
+utf8proc   = cc.find_library('utf8proc', dirs : ['/usr/local/lib'])
 
 executable('mace',
 	sources: [

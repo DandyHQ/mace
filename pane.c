@@ -142,7 +142,7 @@ panesplit(struct pane *h, struct tab *t, pane_t type, bool na)
     break;
 
   default:
-    err(1, "Invalid pane type!\n");
+    errx(1, "Invalid pane type");
   }
 
   return n;

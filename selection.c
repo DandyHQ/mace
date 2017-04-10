@@ -10,7 +10,8 @@
 #include "mace.h"
 
 struct selection *
-selectionnew(struct colour *fg, struct colour *bg,
+selectionnew(struct textbox *t,
+	     struct colour *fg, struct colour *bg,
 	     unsigned int start, unsigned int end)
 {
   struct selection *s;
@@ -20,6 +21,7 @@ selectionnew(struct colour *fg, struct colour *bg,
     return NULL;
   }
 
+  s->textbox = t;
   s->start = start;
   s->end = end;
   s->increasing = true;
@@ -63,13 +65,13 @@ selectionupdate(struct selection *s, unsigned int end)
 }
 
 struct selection *
-inselections(struct selection *s, unsigned int pos)
+inselections(struct textbox *t, unsigned int pos)
 {
-  while (s != NULL) {
-    if (s->start <= pos && pos <= s->end) {
+  struct selection *s;
+
+  for (s = selections; s != NULL; s = s->next) {
+    if (s->textbox == t && s->start <= pos && pos <= s->end) {
       return s;
-    } else {
-      s = s->next;
     }
   }
 
@@ -77,7 +79,7 @@ inselections(struct selection *s, unsigned int pos)
 }
 
 uint8_t *
-selectiontostring(struct selection *s, struct piece *pieces)
+selectiontostring(struct selection *s)
 {
   struct piece *p;
   int pos, b, l;
@@ -89,7 +91,7 @@ selectiontostring(struct selection *s, struct piece *pieces)
   }
   
   pos = 0;
-  for (p = pieces; p != NULL; p = p->next) {
+  for (p = s->textbox->pieces; p != NULL; p = p->next) {
     if (pos > s->end) {
       break;
     } else if (pos + p->pl < s->start) {

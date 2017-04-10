@@ -18,7 +18,7 @@ fontinit(void)
   
   e = FT_Init_FreeType(&library);
   if (e != 0) {
-    err(e, "Failed to initialize freetype2 library!\n");
+    err(e, "Failed to initialize freetype2 library");
   }
 
   /* TODO: Load a default font. */

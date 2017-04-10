@@ -25,7 +25,7 @@ xresize(int w, int h)
 
   nbuf = malloc(w * h * 4);
   if (nbuf == NULL) {
-    err(1, "Failed to allocate window buffer!\n");
+    errx(1, "Failed to allocate window buffer");
   }
 
   buf = nbuf;
@@ -259,7 +259,7 @@ main(int argc, char **argv)
   
   display = XOpenDisplay(NULL);
   if (display == NULL) {
-    err(1, "Failed to open X display!\n");
+    err(1, "Failed to open X display!");
   }
   
   screen = DefaultScreen(display);

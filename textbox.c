@@ -52,8 +52,6 @@ textboxinit(struct textbox *t, struct tab *tab,
   
   t->tab = tab;
 
-  t->selections = t->cselection = NULL;
-
   memmove(&t->bg, bg, sizeof(struct colour));
 
   return true;
@@ -80,7 +78,7 @@ textboxresize(struct textbox *t, int w)
 
   t->buf = realloc(t->buf, t->width * t->rheight * sizeof(uint8_t) * 4);
   if (t->buf == NULL) {
-    err(1, "Failed to allocate new buffer for textbox!\n");
+    errx(1, "Failed to allocate new buffer for textbox!");
   }
 
   textboxpredraw(t);
@@ -189,35 +187,37 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   case 1:
     t->cursor = pos;
 
-    s = t->selections;
+    s = selections;
+    cselection = selections = NULL;
     while (s != NULL) {
       sn = s->next;
+      textboxpredraw(s->textbox);
       selectionfree(s);
       s = sn;
     }
 
-    s = selectionnew(&t->bg, &fg, pos, pos);
+    s = selectionnew(t, &t->bg, &fg, pos, pos);
     /* Doesn't matter if s == NULL */
     
-    t->cselection = t->selections = s;
+    cselection = selections = s;
 
     textboxpredraw(t);
     return true;
 
   case 3:
-    s = inselections(t->selections, pos);
+    s = inselections(t, pos);
     if (s == NULL) {
       if (!piecefindword(t->pieces, pos, &start, &end)) {
 	return false;
       }
 
-      s = selectionnew(&t->bg, &fg, start, end);
+      s = selectionnew(t, &t->bg, &fg, start, end);
       if (s == NULL) {
 	return false;
       }
     }
 
-    cmd = selectiontostring(s, t->pieces);
+    cmd = selectiontostring(s);
     if (cmd != NULL) {
       r = docommand(cmd);
       free(cmd);
@@ -238,13 +238,13 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 {
   switch (button) {
   case 1:
-    if (t->cselection != NULL) {
-      if (t->cselection->start == t->cselection->end) {
+    if (cselection != NULL) {
+      if (cselection->start == cselection->end) {
 	/* TODO: How to differentiate clicks from selections? */
 	printf("only selected one glyph, this is probably meant to be a cursor reloaction\n");
       }
 
-      t->cselection = NULL;
+      cselection = NULL;
     }
 
     return true;
@@ -257,10 +257,12 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 bool
 textboxmotion(struct textbox *t, int x, int y)
 {
+  struct selection *s;
   struct piece *tp;
   int pos;
 
-  if (t->cselection == NULL) {
+  s = cselection;
+  if (s == NULL || s->textbox != t) {
     return false;
   }
 
@@ -269,7 +271,7 @@ textboxmotion(struct textbox *t, int x, int y)
     return false;
   }
   
-  if (selectionupdate(t->cselection, pos)) {
+  if (selectionupdate(s, pos)) {
     t->cursor = pos;
     textboxpredraw(t);
     return true;

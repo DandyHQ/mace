@@ -125,7 +125,7 @@ textboxlinebreak(struct textbox *t, unsigned int pos,
     }
   }
 
-  s = inselections(t->selections, pos);
+  s = inselections(t, pos);
   if (s != NULL) {
     cbg = &s->bg;
   } else {
@@ -178,7 +178,7 @@ textboxpredraw(struct textbox *t)
 
       if (pos == t->cursor) {
 	drawcursor(t, x, y, ww, t == focus);
-      } else if ((s = inselections(t->selections, pos)) != NULL) {
+      } else if ((s = inselections(t, pos)) != NULL) {
 	drawselected(t, x, y, ww, s);
       } else {
 	drawnormal(t, x, y, ww);

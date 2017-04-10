@@ -47,6 +47,8 @@ struct piece {
 };
 
 struct selection {
+  struct textbox *textbox;
+  
   unsigned int start, end;
   bool increasing;
 
@@ -64,10 +66,6 @@ struct textbox {
 
   /* Pointer to the current piece being written to. */
   struct piece *cpiece;
-
-  struct selection *selections;
-  /* Current selection being made. */
-  struct selection *cselection;
 
   struct colour bg;
 
@@ -396,7 +394,8 @@ bool
 textboxkeyrelease(struct textbox *t, keycode_t k);
 
 struct selection *
-selectionnew(struct colour *fg, struct colour *bg,
+selectionnew(struct textbox *textbox,
+	     struct colour *fg, struct colour *bg,
 	     unsigned int start, unsigned int end);
 
 void
@@ -406,13 +405,13 @@ bool
 selectionupdate(struct selection *s, unsigned int end);
 
 struct selection *
-inselections(struct selection *s, unsigned int pos);
+inselections(struct textbox *t, unsigned int pos);
 
 /* Allocates the required string and fills it out with data from 
    pieces.
 */
 uint8_t *
-selectiontostring(struct selection *s, struct piece *pieces);
+selectiontostring(struct selection *s);
 
 bool
 docommand(uint8_t *cmd);
@@ -435,3 +434,8 @@ extern struct pane *root;
 
 extern struct pane *focuspane;
 extern struct textbox *focus;
+
+extern struct selection *selections;
+/* Current selection being made. */
+extern struct selection *cselection;
+

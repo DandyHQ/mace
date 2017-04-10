@@ -108,23 +108,16 @@ tabdraw(struct tab *t, int x, int y, int w, int h)
 bool
 tabscroll(struct tab *t, int x, int y, int dx, int dy)
 {
-  if (y < t->action.height) {
-    if (textboxscroll(&t->action, dx, dy)) {
-      return true;
-    }
-  } else {
-    if (textboxscroll(&t->main, dx, dy)) {
-      return true;
-    }
+  if (y > t->action.height && textboxscroll(&t->main, dx, dy)) {
+    return true;
   }
   
   return false;
-
 }
 
 bool
 tabpress(struct tab *t, int x, int y,
-	       unsigned int button)
+	 unsigned int button)
 {
   if (y < t->action.height) {
     focus = &t->action;
@@ -138,9 +131,9 @@ tabpress(struct tab *t, int x, int y,
 
 bool
 tabrelease(struct tab *t, int x, int y,
-		 unsigned int button)
+	   unsigned int button)
 {
-  if (y < t->action.height) {
+  if (focus == &t->action) {
     return textboxbuttonrelease(&t->action, x, y, button);
   } else {
     return textboxbuttonrelease(&t->main, x, y - t->action.height,

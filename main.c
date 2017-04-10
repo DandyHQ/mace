@@ -31,6 +31,10 @@ struct pane *root = NULL;
 struct pane *focuspane = NULL;
 struct textbox *focus = NULL;
 
+struct selection *selections = NULL;
+/* Current selection being made. */
+struct selection *cselection = NULL;
+
 void
 init(void)
 {
@@ -40,14 +44,14 @@ init(void)
 
   t = tabnew((uint8_t *) "Mace");
   if (t == NULL) {
-    err(1, "Failed to allocate root tab!\n");
+    errx(1, "Failed to allocate root tab");
   }
 
   focus = &t->main;
 
   focuspane = root = panenew(NULL, t);
   if (root == NULL) {
-    err(1, "Failed to allocate root pane!\n");
+    errx(1, "Failed to allocate root pane");
   }
 
   luainit();

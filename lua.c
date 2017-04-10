@@ -16,7 +16,7 @@
 static lua_State *lua = NULL;
 
 static int
-lfontload(lua_State *L)
+lloadfont(lua_State *L)
 {
   const uint8_t *name;
   size_t size, len;
@@ -28,11 +28,12 @@ lfontload(lua_State *L)
   r = fontload(name, size);
   
   lua_pushnumber(L, r);
+
   return 1; 
 }
 
 luaL_Reg funcs[] = {
-  { "setfont", lfontload },
+  { "loadfont", lloadfont },
 };
 
 void
@@ -42,7 +43,7 @@ luainit(void)
 
   lua = luaL_newstate();
   if (lua == NULL) {
-    err(1, "Failed to initalize lua!\n");
+    errx(1, "Failed to initalize lua!");
   }
 
   luaL_openlibs(lua);
@@ -54,13 +55,13 @@ luainit(void)
   
   r = luaL_loadfile(lua, "init.lua");
   if (r == LUA_ERRFILE) {
-    err(1, "Failed to open init.lua\n");
+    errx(1, "Failed to open init.lua");
   } else if (r != LUA_OK) {
-    err(1, "Error loading init: %s\n", lua_tostring(lua, -1));
+    errx(1, "Error loading init: %s", lua_tostring(lua, -1));
   }
 
   r = lua_pcall(lua, 0, LUA_MULTRET, 0);
   if (r != LUA_OK) {
-    err(1, "Error running init: %s\n", lua_tostring(lua, -1));
+    errx(1, "Error running init: %s", lua_tostring(lua, -1));
   }
 }
