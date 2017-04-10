@@ -183,9 +183,9 @@ piecefindword(struct piece *p, int pos,
   bool found;
 
   cpos = 0;
-  found = false;
-  *start = 0;
   preva = 0;
+  *start = 0;
+  found = false;
 
   while (p != NULL) {
     for (i = 0; i < p->pl; preva = a, cpos += a, i += a) {
@@ -234,14 +234,17 @@ bool
 pieceappend(struct piece *p, uint8_t *s, size_t l)
 {
   uint8_t *ns;
+  size_t nl;
   
   if (p->rl - p->pl < l) {
-    ns = reallocarray(p->s, p->rl + l, sizeof(uint8_t));
+    nl = p->rl + l + PIECE_min;
+
+    ns = reallocarray(p->s, nl, sizeof(uint8_t));
     if (ns == NULL) {
       return false;
     } else {
       p->s = ns;
-      p->rl += l;
+      p->rl = nl;
     }
   }
 

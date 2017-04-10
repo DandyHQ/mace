@@ -87,56 +87,11 @@ panedrawtablist(struct pane *p)
 }
 
 void
-panedrawaction(struct pane *p)
+panedrawfocus(struct pane *p)
 {
-  struct tab *t;
-
-  t = p->norm.focus;
- 
-  textboxdraw(&t->action, buf, width, height,
-	      p->x, p->y + lineheight,
-	      p->width - 1, p->height - lineheight,
-	      p == focus && focustype == FOCUS_action);
-
-  drawline(buf, width, height,
-	   p->x,
-	   p->y + lineheight + t->action.height - 1,
-	   p->x + p->width,
-	   p->y + lineheight + t->action.height - 1,
-	   &fg);
-
-  drawline(buf, width, height,
-	   p->x + p->width - 1,
-	   p->y + lineheight,
-	   p->x + p->width - 1,
-	   p->y + lineheight + t->action.height - 1,
-	   &fg);
- }
-
-void
-panedrawmain(struct pane *p)
-{
-  struct tab *t;
-  int y;
-  
-  t = p->norm.focus;
-
-  y = lineheight + t->action.height;
-
-  drawline(buf, width, height,
-	   p->x + p->width - 1, p->y + y,
-	   p->x + p->width - 1, p->y + p->height - 1,
-	   &fg);
-  
-  textboxdraw(&t->main, buf, width, height,
-	      p->x, p->y + y,
-	      p->width - 1, p->height - y,
-	      p == focus && focustype == FOCUS_main);
-
-  drawrect(buf, width, height,
-	   p->x, p->y + y + t->main.height,
-	   p->x + p->width - 2, p->y + p->height - 1,
-	   &bg);
+  tabdraw(p->norm.focus,
+	  p->x, p->y + lineheight,
+	  p->width, p->height - lineheight);
 }
 
 void
@@ -145,8 +100,7 @@ panedraw(struct pane *p)
   switch (p->type) {
   case PANE_norm:
     panedrawtablist(p);
-    panedrawaction(p);
-    panedrawmain(p);
+    panedrawfocus(p);
     break;
 
   case PANE_hsplit:

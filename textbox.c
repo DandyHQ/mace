@@ -11,18 +11,30 @@
 
 bool
 textboxinit(struct textbox *t, struct tab *tab,
-	    struct colour *bg, bool noscroll)
+	    bool scrollable,
+	    struct colour *bg)
 {
   struct piece *b, *e;
+ 
+  t->width = 0;
+  t->height = 0;
+  t->rheight = 0;
+
+  t->buf = malloc(sizeof(uint8_t) * 4);
+  if (t->buf == NULL) {
+    return false;
+  }
 
   b = piecenewtag();
   if (b == NULL) {
+    free(t->buf);
     return false;
   }
 
   e = piecenewtag();
   if (e == NULL) {
     piecefree(b);
+    free(t->buf);
     return false;
   }
 
@@ -35,17 +47,13 @@ textboxinit(struct textbox *t, struct tab *tab,
   t->pieces = b;
   t->cursor = 0;
 
+  t->scrollable = scrollable;
+  t->scroll = 0;
+  
   t->tab = tab;
 
-  t->noscroll = noscroll;
-  t->yscroll = 0;
-
-  t->width = 0;
-  t->height = 0;
-  t->textheight = 0;
-
   t->selections = t->cselection = NULL;
-  
+
   memmove(&t->bg, bg, sizeof(struct colour));
 
   return true;
@@ -59,6 +67,24 @@ textboxfree(struct textbox *t)
   /* TODO: Free removed pieces. */
   for (p = t->pieces; p != NULL; p = p->next)
     piecefree(p);
+
+  free(t->buf);
+}
+
+void
+textboxresize(struct textbox *t, int w)
+{
+  t->width = w;
+  t->height = 0;
+  t->rheight = lineheight;
+
+  t->buf = reallocarray(t->buf, t->width * t->rheight,
+			sizeof(uint8_t) * 4);
+  if (t->buf == NULL) {
+    err(1, "Failed to allocate new buffer for tab!\n");
+  }
+
+  textboxpredraw(t);
 }
 
 /* Returns the piece that was clicked on and sets *pos to the position
@@ -74,7 +100,7 @@ findpos(struct textbox *t,
   int32_t code, a;
   struct piece *p;
 
-  xx = TEXTBOX_PADDING;
+  xx = 0;
   yy = 0;
 
   *pos = 0;
@@ -89,10 +115,10 @@ findpos(struct textbox *t,
 
       /* Line Break. */
       if (islinebreak(code, p->s + i, p->pl - i, &a)) {
-	if (y < yy - t->yscroll + lineheight - 1) {
+	if (y < yy + lineheight - 1) {
 	  return p;
 	} else {
-	  xx = TEXTBOX_PADDING;
+	  xx = 0;
 	  yy += lineheight;
 	}
       }
@@ -104,18 +130,18 @@ findpos(struct textbox *t,
       ww = face->glyph->advance.x >> 6;
 
       /* Wrap Line. */
-      if (xx + ww >= t->width - TEXTBOX_PADDING) {
-	if (y < yy - t->yscroll + lineheight - 1) {
+      if (xx + ww >= t->width) {
+	if (y < yy + lineheight - 1) {
 	  return p;
 	} else {
-	  xx = TEXTBOX_PADDING;
+	  xx = 0;
 	  yy += lineheight;
 	}
       }
 
       xx += ww;
       
-      if (y < yy - t->yscroll + lineheight - 1 && x < xx) {
+      if (y < yy + lineheight - 1 && x < xx) {
 	/* Found position. */
 	return p;
       }
@@ -127,6 +153,21 @@ findpos(struct textbox *t,
   }
 
   return NULL;
+}
+
+bool
+textboxscroll(struct textbox *t, int dx, int dy)
+{
+  if (!t->scrollable) return false;
+  
+  t->scroll += dy;
+  if (t->scroll < 0) {
+    t->scroll = 0;
+  } else if (t->scroll > t->height - lineheight) {
+    t->scroll = t->height - lineheight;
+  }
+
+  return true;
 }
 
 bool
@@ -161,6 +202,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     
     t->cselection = t->selections = s;
 
+    textboxpredraw(t);
     return true;
 
   case 3:
@@ -180,6 +222,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     if (cmd != NULL) {
       r = docommand(cmd);
       free(cmd);
+      textboxpredraw(t);
       return r;
     } else {
       return false;
@@ -199,7 +242,7 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
     if (t->cselection != NULL) {
       if (t->cselection->start == t->cselection->end) {
 	/* TODO: How to differentiate clicks from selections? */
-	printf("only selected one glyph, this is probably ment to be a cursor reloaction\n");
+	printf("only selected one glyph, this is probably meant to be a cursor reloaction\n");
       }
 
       t->cselection = NULL;
@@ -227,32 +270,13 @@ textboxmotion(struct textbox *t, int x, int y)
     return false;
   }
   
-  selectionupdate(t->cselection, pos);
-  t->cursor = pos;
- 
-  return true;
-}
-
-/* TODO: scroll text if cursor stops being visible.
-   Also update cursor when scrolling so it is always visible.
-*/
-
-bool
-textboxscroll(struct textbox *t, int dx, int dy)
-{
-  if (t->noscroll) {
+  if (selectionupdate(t->cselection, pos)) {
+    t->cursor = pos;
+    textboxpredraw(t);
+    return true;
+  } else {
     return false;
   }
-
-  t->yscroll += dy;
-
-  if (t->yscroll < 0) {
-    t->yscroll = 0;
-  } else if (t->yscroll > t->textheight - lineheight) {
-    t->yscroll = t->textheight - lineheight;
-  }
-
-  return true;
 }
 
 bool
@@ -263,6 +287,7 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 
   if (t->cpiece != NULL && pieceappend(t->cpiece, s, l)) {
     t->cursor += l;
+    textboxpredraw(t);
     return true;
   } 
   
@@ -278,6 +303,8 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 
   t->cursor += l;
   t->cpiece = n;
+
+  textboxpredraw(t);
   
   return true;
 }
@@ -337,6 +364,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     if (t->cpiece != NULL && pieceappend(t->cpiece, s, l)) {
       t->cursor += l;
+      textboxpredraw(t);
       return true;
     } else {
       o = piecefind(t->pieces, t->cursor, &i);
@@ -352,6 +380,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
       t->cursor += l;
       t->cpiece = n;
 
+      textboxpredraw(t);
       return true;
     }
     

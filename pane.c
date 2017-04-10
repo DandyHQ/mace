@@ -151,6 +151,7 @@ panesplit(struct pane *h, struct tab *t, pane_t type, bool na)
 void
 paneresize(struct pane *p, int x, int y, int w, int h)
 {
+  struct tab *t;
   int r;
 
   p->x = x;
@@ -160,6 +161,10 @@ paneresize(struct pane *p, int x, int y, int w, int h)
 
   switch (p->type) {
   case PANE_norm:
+    for (t = p->norm.tabs; t != NULL; t = t->next) {
+      tabresize(t, w, h - lineheight);
+    }
+    
     break;
 
   case PANE_hsplit:
@@ -276,117 +281,5 @@ handlepanetablistscroll(struct pane *p, int x, int y, int dx, int dy)
   }
 
   return true;
-}
-
-bool
-handlepanescroll(struct pane *p, int x, int y, int dx, int dy)
-{
-  struct tab *f;
-
-  f = p->norm.focus;
-
-  if (y < p->y + lineheight + f->action.height) {
-    if (textboxscroll(&f->action, dx, dy)) {
-      panedraw(p);
-      return true;
-    }
-  } else {
-    if (textboxscroll(&f->main, dx, dy)) {
-      panedraw(p);
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool
-handlepanepress(struct pane *p, int x, int y,
-		unsigned int button)
-{
-  struct tab *f;
-
-  focus = p;
-  
-  f = p->norm.focus;
-
-  if (y < p->y + lineheight + f->action.height) {
-    focustype = FOCUS_action;
-
-    if (textboxbuttonpress(&f->action,
-			   x - p->x,
-			   y - p->y - lineheight,
-			   button)) {
-      panedraw(p);
-      return true;
-    }
-  } else {
-    focustype = FOCUS_main;
-
-    if (textboxbuttonpress(&f->main,
-			   x - p->x,
-			   y - p->y - lineheight - f->action.height,
-			   button)) {
-      panedraw(p);
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool
-handlepanerelease(struct pane *p, int x, int y,
-		  unsigned int button)
-{
-  struct tab *f;
-
-  f = p->norm.focus;
-
-  if (focustype == FOCUS_action) {
-    if (textboxbuttonrelease(&f->action,
-			     x - p->x,
-			     y - p->y - lineheight,
-			     button)) {
-      panedraw(p);
-      return true;
-    }
-  } else {
-    if (textboxbuttonrelease(&f->main,
-			     x - p->x,
-			     y - p->y - lineheight - f->action.height,
-			     button)) {
-      panedraw(p);
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool
-handlepanemotion(struct pane *p, int x, int y)
-{
-  struct tab *f;
-
-  f = p->norm.focus;
-
-  if (y < p->y + lineheight + f->action.height) {
-    if (textboxmotion(&f->action,
-		      x - p->x,
-		      y - p->y - lineheight)) {
-      panedraw(p);
-      return true;
-    }
-  } else {
-    if (textboxmotion(&f->main,
-		      x - p->x,
-		      y - p->y - lineheight - f->action.height)) {
-      panedraw(p);
-      return true;
-    }
-  }
-
-  return false;
 }
 

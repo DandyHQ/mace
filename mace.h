@@ -1,6 +1,6 @@
 
 #define NAMEMAX 32
-#define PIECE_min 64
+#define PIECE_min 16
 
 #define max(a, b) (a > b ? a : b)
 
@@ -55,8 +55,6 @@ struct selection {
   struct selection *next;
 };
 
-#define TEXTBOX_PADDING 5
-
 struct textbox {
   struct tab *tab;
   
@@ -64,8 +62,7 @@ struct textbox {
 
   unsigned int cursor;
 
-  /* Pointer to the current piece being edited. This may be NULL in
-  the case of cursor movements. */
+  /* Pointer to the current piece being written to. */
   struct piece *cpiece;
 
   struct selection *selections;
@@ -74,10 +71,12 @@ struct textbox {
 
   struct colour bg;
 
-  bool noscroll;
-  int yscroll;
+  int scroll;
+  bool scrollable;
 
-  int width, height, textheight;
+  int width, height;
+  int rheight; /* Allocated height */
+  uint8_t *buf;
 };
 
 struct tab {
@@ -157,21 +156,7 @@ bool
 handlescroll(int x, int y, int dx, int dy);
 
 bool
-handlepanepress(struct pane *p, int x, int y,
-		unsigned int button);
-
-bool
-handlepanerelease(struct pane *p, int x, int y,
-		  unsigned int button);
-
-bool
-handlepanemotion(struct pane *p, int x, int y);
-
-bool
 handlepanetablistscroll(struct pane *p, int x, int y, int dx, int dy);
-
-bool
-handlepanescroll(struct pane *p, int x, int y, int dx, int dy);
 
 
 /* Drawing */
@@ -226,20 +211,13 @@ drawstring(uint8_t *dest, int dw, int dh,
 	   uint8_t *s, bool drawpart,
 	   struct colour *c);
 
-/* Draws a pane to the global image buffer. */
+/* Draws the contents of src into dest. No blending */
 void
-panedraw(struct pane *p);
-
-/* Draws a component of a pane to the global image buffer. */
-
-int
-panedrawtablist(struct pane *p);
-
-void
-panedrawaction(struct pane *p);
-
-void
-panedrawmain(struct pane *p);
+drawbuffer(uint8_t *dest, int dw, int dh,
+	   int dx, int dy,
+	   uint8_t *src, int sw, int sh,
+	   int sx, int sy,
+	   int w, int h);
 
 struct pane *
 panenew(struct pane *parent, struct tab *tabs);
@@ -283,11 +261,44 @@ paneremovetab(struct pane *p, struct tab *t);
 void
 paneremove(struct pane *p);
 
+/* Draws a pane to the global image buffer. */
+void
+panedraw(struct pane *p);
+
+/* Draws a component of a pane to the global image buffer. */
+
+int
+panedrawtablist(struct pane *p);
+
+void
+panedrawfocus(struct pane *p);
+
 struct tab *
 tabnew(uint8_t *name);
 
 void
 tabfree(struct tab *t);
+
+void
+tabresize(struct tab *t, int w, int h);
+
+void
+tabdraw(struct tab *t, int x, int y, int w, int h);
+
+bool
+tabscroll(struct tab *t, int x, int y, int dx, int dy);
+
+bool
+tabpress(struct tab *t, int x, int y,
+	 unsigned int button);
+
+bool
+tabrelease(struct tab *t, int x, int y,
+	   unsigned int button);
+
+bool
+tabmotion(struct tab *t, int x, int y);
+
 
 /* Creates a new piece. Claims the string s as its own,
    s should have a allocated length of rl and a used lenght of pl.
@@ -341,14 +352,22 @@ pieceappend(struct piece *p, uint8_t *s, size_t l);
 
 bool
 textboxinit(struct textbox *t, struct tab *tab,
-	    struct colour *bg, bool noscroll);
+	    bool scrollable,
+	    struct colour *bg);
 
 void
 textboxfree(struct textbox *t);
 
 void
+textboxresize(struct textbox *t, int w);
+
+/* Updates t->buf and maybe t->height. */
+void
+textboxpredraw(struct textbox *t);
+
+void
 textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
-	    int x, int y, int w, int h, bool focus);
+	    int x, int y, int h);
 
 bool
 textboxscroll(struct textbox *t, int dx, int dy);
@@ -383,7 +402,7 @@ selectionnew(struct colour *fg, struct colour *bg,
 void
 selectionfree(struct selection *s);
 
-void
+bool
 selectionupdate(struct selection *s, unsigned int end);
 
 struct selection *
@@ -412,5 +431,7 @@ extern int baseline;
 
 extern int tabwidth;
 
-extern struct pane *root, *focus;
-extern focus_t focustype;
+extern struct pane *root;
+
+extern struct pane *focuspane;
+extern struct textbox *focus;

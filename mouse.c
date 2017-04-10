@@ -237,6 +237,9 @@ handletablistpress(struct pane *p, int x, int y,
 
     tp->next = t;
     p->norm.focus = t;
+
+    tabresize(t, p->width, p->height);
+
     panedraw(p);
     
     return true;
@@ -257,7 +260,14 @@ handlebuttonpress(int x, int y, int button)
   }
 
   if (y > p->y + lineheight) {
-    return handlepanepress(p, x, y, button);
+    if (tabpress(p->norm.focus, x - p->x, y - p->y - lineheight,
+		       button)) {
+      focuspane = p;
+      panedrawfocus(p);
+      return true;
+    } else {
+      return false;
+    }
   } else {
     return handletablistpress(p, x, y, button);
   }
@@ -268,21 +278,27 @@ handlebuttonrelease(int x, int y, int button)
 {
   struct pane *p;
 
+  p = findpane(root, x, y);
+  if (p == NULL) {
+    return false;
+  }
+
   switch (button) {
   case 1:
     if (selected != NULL) {
-      p = findpane(root, x, y);
-      if (p == NULL) {
-	return false;
-      }
-
       return placeselected(p, x, y);
-    } else if (y > focus->y + lineheight) {
-      return handlepanerelease(focus, x, y, button);
-    } else {
-      return false;
+
+      /* Releases should always go the the focused tab. */
+    } else if (tabrelease(focuspane->norm.focus,
+			  x - focuspane->x,
+			  y - focuspane->y - lineheight,
+			  button)) {
+      panedrawfocus(focuspane);
+      return true;
     }
 
+    return false;
+    
   case 2:
   case 3:
     return false;
@@ -305,10 +321,13 @@ handlemotion(int x, int y)
   if (selected != NULL) {
     return moveselected(p, x, y);
   } else if (y > p->y + lineheight) {
-    return handlepanemotion(p, x, y);
-  } else {
-    return false;
-  } 
+    if (tabmotion(p->norm.focus, x - p->x, y - p->y - lineheight)) {
+      panedrawfocus(p);
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 bool
@@ -326,8 +345,9 @@ handlescroll(int x, int y, int dx, int dy)
   }
 
   if (y > p->y + lineheight) {
-    if (handlepanescroll(p, x, y, dx, dy)) {
-      panedraw(p);
+    if (tabscroll(p->norm.focus, x - p->x, y - p->y - lineheight,
+		 dx, dy)) {
+      panedrawfocus(p);
       return true;
     } else {
       return false;

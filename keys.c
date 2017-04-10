@@ -9,47 +9,22 @@
 
 #include "mace.h"
 
-static struct textbox *
-focustextbox(void)
-{
-  struct tab *f;
-
-  f = focus->norm.focus;
-
-  switch (focustype) {
-  case FOCUS_action:
-    return &f->action;
-  case FOCUS_main:
-    return &f->main;
-  default:
-    return NULL;
-  }
-}
-
 bool
 handletyping(uint8_t *s, size_t n)
 {
-  struct textbox *tb;
-
-  tb = focustextbox();
-  
-  if (tb != NULL && textboxtyping(tb, s, n)) {
-    panedraw(focus);
+  if (focus != NULL && textboxtyping(focus, s, n)) {
+    panedrawfocus(focuspane);
     return true;
-  } else {
-    return false;
   }
+
+  return false;
 }
 
 bool
 handlekeypress(keycode_t k)
 {
-  struct textbox *tb;
-
-  tb = focustextbox();
-
-  if (tb != NULL && textboxkeypress(tb, k)) {
-    panedraw(focus);
+  if (focus != NULL && textboxkeypress(focus, k)) {
+    panedrawfocus(focuspane);
     return true;
   } else {
     return false;
@@ -59,12 +34,8 @@ handlekeypress(keycode_t k)
 bool
 handlekeyrelease(keycode_t k)
 {
-  struct textbox *tb;
-
-  tb = focustextbox();
-  
-  if (tb != NULL && textboxkeyrelease(tb, k)) {
-    panedraw(focus);
+  if (focus != NULL && textboxkeyrelease(focus, k)) {
+    panedrawfocus(focuspane);
     return true;
   } else {
     return false;

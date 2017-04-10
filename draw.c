@@ -70,6 +70,31 @@ drawglyph(uint8_t *dest, int dw, int dh,
   }
 }
 
+void
+drawbuffer(uint8_t *dest, int dw, int dh,
+	   int dx, int dy,
+	   uint8_t *src, int sw, int sh,
+	   int sx, int sy,
+	   int w, int h)
+{
+  uint8_t *d, *s;
+  int xx, yy;
+  
+  fixboundswh(dx, dy, sx, sy, w, h, dw, dh);
+
+  for (xx = 0; xx < w; xx++) {
+    for (yy = 0; yy < h; yy++) {
+      d = &dest[((dx + xx) + (dy + yy) * dw) * 4];
+      s = &src[((sx + xx) + (sy + yy) * sw) * 4];
+
+      *(d+0) = *(s+0);
+      *(d+1) = *(s+1);
+      *(d+2) = *(s+2);
+      *(d+3) = *(s+3);
+    }
+  }
+}
+
 int
 drawstring(uint8_t *dest, int dw, int dh,
 	   int dx, int dy,

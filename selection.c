@@ -38,21 +38,27 @@ selectionfree(struct selection *s)
   free(s);
 }
 
-void
+bool
 selectionupdate(struct selection *s, unsigned int end)
 {
   if (s->increasing && end < s->start) {
     s->end = s->start;
     s->start = end;
     s->increasing = false;
+    return true;
   } else if (!s->increasing && end > s->start) {
     s->start = s->end;
     s->end = end;
     s->increasing = true;
+    return true;
   } else if (!s->increasing && end != s->start) {
     s->start = end;
+    return true;
   } else if (s->increasing && end != s->end) {
     s->end = end;
+    return true;
+  } else {
+    return false;
   }
 }
 

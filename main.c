@@ -28,8 +28,8 @@ unsigned int height = 0;
 
 struct pane *root = NULL;
 
-struct pane *focus = NULL;
-focus_t focustype = FOCUS_main;
+struct pane *focuspane = NULL;
+struct textbox *focus = NULL;
 
 void
 init(void)
@@ -43,7 +43,9 @@ init(void)
     err(1, "Failed to allocate root tab!\n");
   }
 
-  focus = root = panenew(NULL, t);
+  focus = &t->main;
+
+  focuspane = root = panenew(NULL, t);
   if (root == NULL) {
     err(1, "Failed to allocate root pane!\n");
   }
