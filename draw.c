@@ -79,7 +79,7 @@ drawbuffer(uint8_t *dest, int dw, int dh,
 {
   uint8_t *d, *s;
   int xx, yy;
-  
+
   fixboundswh(dx, dy, sx, sy, w, h, dw, dh);
 
   for (xx = 0; xx < w; xx++) {

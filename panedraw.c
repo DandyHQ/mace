@@ -11,70 +11,71 @@
 
 /* TODO: Make pretty */
 
-int
+#define PADDING 3 
+
+void
 panedrawtablist(struct pane *p)
 {
+  struct colour *bb;
   struct tab *t;
   int x, w;
 
   drawrect(buf, width, height,
-	   p->x, p->y,
-	   p->x + p->width - 2, p->y + lineheight - 1,
+	   p->x, p->y + 1,
+	   p->x + p->width - 1, p->y + lineheight - 2,
 	   &bg);
 
   drawline(buf, width, height,
+	   p->x, p->y,
 	   p->x + p->width - 1, p->y,
-	   p->x + p->width - 1, p->y + lineheight - 1,
 	   &fg);
- 
+  
   x = 0;
   for (t = p->norm.tabs; t != NULL && x < p->width; t = t->next) {
     if (x + tabwidth < p->width) {
       w = tabwidth;
     } else {
-      w = p->width - x;
+      w = p->width - 1 - x;
     }
 
     drawstring(buf, width, height,
-	       p->x + x, p->y,
+	       p->x + x + PADDING, p->y,
 	       0, 0,
-	       w, lineheight,
+	       w - PADDING * 2, lineheight,
 	       t->name, true,
 	       &fg);
 
     drawline(buf, width, height,
-	     p->x + x + tabwidth, p->y,
-	     p->x + x + tabwidth, p->y + lineheight - 1,
+	     p->x + x + w - 1, p->y + 1,
+	     p->x + x + w - 1, p->y + lineheight - 1,
 	     &fg);
+
+    bb = t == p->norm.focus ? &bg : &fg;
 
     drawline(buf, width, height,
-	     p->x + x, p->y,
-	     p->x + x + w, p->y,
-	     &fg);
-
-    if (p->norm.focus == t) {
-      drawline(buf, width, height,
-	       p->x + x + 1, p->y + lineheight - 1,
-	       p->x + w - 1, p->y + lineheight - 1,
-	       &bg);
-    } else {
-      drawline(buf, width, height,
-	       p->x + x, p->y + lineheight - 1,
-	       p->x + w, p->y + lineheight - 1,
-	       &fg);
-    }
-
+	     p->x + x,
+	     p->y + lineheight - 1,
+	     p->x + x + w - 2,
+	     p->y + lineheight - 1,
+	     bb);
+    
     x += tabwidth;
   }
 
   if (x < p->width) {
     drawline(buf, width, height,
-	     p->x + x, p->y + lineheight - 1,
+	     p->x + x,
+	     p->y + lineheight - 1,
+	     p->x + p->width - 1,
+	     p->y + lineheight - 1,
+	     &fg);
+
+    drawline(buf, width, height,
+	     p->x + p->width - 1, p->y + 1,
 	     p->x + p->width - 1, p->y + lineheight - 1,
 	     &fg);
-  }
 
-  return lineheight;
+  }
 }
 
 void

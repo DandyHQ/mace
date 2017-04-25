@@ -29,6 +29,10 @@ executable('mace',
 		  'xmain.c'
 		],
 
+	include_directories: [
+		  include_directories('/usr/local/include'),
+	],
+
 	dependencies: [
 	          x11,
 		  freetype,

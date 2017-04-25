@@ -36,7 +36,7 @@ static void
 drawselected(struct textbox *t, int x, int y, int ww,
 	     struct selection *s)
 {
-  textboxdrawglyph(t, x, y, ww, &s->fg, &s->bg);
+  textboxdrawglyph(t, x, y, ww, &t->sfg, &t->sbg);
 }
 
 static void
@@ -103,6 +103,8 @@ endofline(struct textbox *t, int *x, int *y,
   *x = 0;
   *y += lineheight;
 
+  t->height = *y;
+
   return true;
 }
 
@@ -127,7 +129,7 @@ textboxlinebreak(struct textbox *t, unsigned int pos,
 
   s = inselections(t, pos);
   if (s != NULL) {
-    cbg = &s->bg;
+    cbg = &t->sbg;
   } else {
     cbg = &t->bg;
   }
@@ -189,16 +191,4 @@ textboxpredraw(struct textbox *t)
   }
 
   textboxlinebreak(t, pos, &x, &y);
-  t->height = y;
 } 
-
-void
-textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
-	    int x, int y, int h)
-{
-  drawbuffer(dest, dw, dh,
-	     x, y,
-	     t->buf, t->width, t->height,
-	     0, t->scroll,
-	     t->width, h);
-}

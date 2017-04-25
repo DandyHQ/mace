@@ -52,8 +52,6 @@ struct selection {
   unsigned int start, end;
   bool increasing;
 
-  struct colour fg, bg;
-
   struct selection *next;
 };
 
@@ -67,10 +65,7 @@ struct textbox {
   /* Pointer to the current piece being written to. */
   struct piece *cpiece;
 
-  struct colour bg;
-
-  int scroll;
-  bool scrollable;
+  struct colour bg, sfg, sbg;
 
   int width, height;
   int rheight; /* Allocated height */
@@ -81,6 +76,7 @@ struct tab {
   uint8_t name[NAMEMAX];
   struct tab *next;
 
+  int scroll;
   struct textbox action, main;
 };
 
@@ -126,6 +122,7 @@ loadglyph(int32_t code);
 bool
 islinebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l);
 
+/* Checks if code counds as a word break, ie: is white space. */
 bool
 iswordbreak(int32_t code);
 
@@ -151,9 +148,6 @@ handlemotion(int x, int y);
 
 bool
 handlescroll(int x, int y, int dx, int dy);
-
-bool
-handlepanetablistscroll(struct pane *p, int x, int y, int dx, int dy);
 
 
 /* Drawing */
@@ -259,12 +253,13 @@ void
 paneremove(struct pane *p);
 
 /* Draws a pane to the global image buffer. */
+
 void
 panedraw(struct pane *p);
 
 /* Draws a component of a pane to the global image buffer. */
 
-int
+void
 panedrawtablist(struct pane *p);
 
 void
@@ -349,8 +344,9 @@ pieceappend(struct piece *p, uint8_t *s, size_t l);
 
 bool
 textboxinit(struct textbox *t, struct tab *tab,
-	    bool scrollable,
-	    struct colour *bg);
+	    struct colour *bg,
+	    struct colour *sfg,
+	    struct colour *sbg);
 
 void
 textboxfree(struct textbox *t);
@@ -358,16 +354,9 @@ textboxfree(struct textbox *t);
 void
 textboxresize(struct textbox *t, int w);
 
-/* Updates t->buf and maybe t->height. */
+/* May updates t->buf and/or t->height. */
 void
 textboxpredraw(struct textbox *t);
-
-void
-textboxdraw(struct textbox *t, uint8_t *dest, int dw, int dh,
-	    int x, int y, int h);
-
-bool
-textboxscroll(struct textbox *t, int dx, int dy);
 
 bool
 textboxbuttonpress(struct textbox *t, int x, int y,
@@ -394,7 +383,6 @@ textboxkeyrelease(struct textbox *t, keycode_t k);
 
 struct selection *
 selectionnew(struct textbox *textbox,
-	     struct colour *fg, struct colour *bg,
 	     unsigned int start, unsigned int end);
 
 void
@@ -415,12 +403,12 @@ selectiontostring(struct selection *s);
 bool
 docommand(uint8_t *cmd);
 
-/* Variables */
+/* Global Variables */
 
 extern unsigned int width, height;
 extern uint8_t *buf;
 
-extern struct colour bg, fg, abg;
+extern struct colour bg, fg, abg, sbg, sfg;
 
 extern FT_Face face;
 

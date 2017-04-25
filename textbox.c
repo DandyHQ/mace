@@ -11,8 +11,9 @@
 
 bool
 textboxinit(struct textbox *t, struct tab *tab,
-	    bool scrollable,
-	    struct colour *bg)
+	    struct colour *bg,
+	    struct colour *sfg,
+	    struct colour *sbg)
 {
   struct piece *b, *e;
  
@@ -47,12 +48,11 @@ textboxinit(struct textbox *t, struct tab *tab,
   t->pieces = b;
   t->cursor = 0;
 
-  t->scrollable = scrollable;
-  t->scroll = 0;
-  
   t->tab = tab;
 
   memmove(&t->bg, bg, sizeof(struct colour));
+  memmove(&t->sfg, sfg, sizeof(struct colour));
+  memmove(&t->sbg, sbg, sizeof(struct colour));
 
   return true;
 }
@@ -153,21 +153,6 @@ findpos(struct textbox *t,
 }
 
 bool
-textboxscroll(struct textbox *t, int dx, int dy)
-{
-  if (!t->scrollable) return false;
-  
-  t->scroll += dy;
-  if (t->scroll < 0) {
-    t->scroll = 0;
-  } else if (t->scroll > t->height - lineheight) {
-    t->scroll = t->height - lineheight;
-  }
-
-  return true;
-}
-
-bool
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
@@ -196,7 +181,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       s = sn;
     }
 
-    s = selectionnew(t, &t->bg, &fg, pos, pos);
+    s = selectionnew(t, pos, pos);
     /* Doesn't matter if s == NULL */
     
     cselection = selections = s;
@@ -211,7 +196,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
 	return false;
       }
 
-      s = selectionnew(t, &t->bg, &fg, start, end);
+      s = selectionnew(t, start, end);
       if (s == NULL) {
 	return false;
       }

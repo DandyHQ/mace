@@ -36,6 +36,7 @@ xresize(int w, int h)
   panedraw(root);
 
   if (img != NULL) {
+    /* Frees buf */
     XDestroyImage(img);
   }
 
@@ -271,13 +272,13 @@ main(int argc, char **argv)
 	       | KeyPressMask | KeyReleaseMask | PointerMotionMask
 	       | ButtonPressMask | ButtonReleaseMask);
 
-  XSetStandardProperties(display, win, "mace", "um",
+  XSetStandardProperties(display, win, "Mace", "Mace",
 			 None, NULL, 0, NULL);
 
   init();
 
   xresize(width, height);
-  
+
   XMapWindow(display, win);
   
   eventLoop();

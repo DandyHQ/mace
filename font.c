@@ -31,11 +31,13 @@ fontload(const uint8_t *name, size_t size)
 
   e = FT_New_Face(library, (const char *) name, 0, &face);
   if (e != 0) {
+    /* TODO: Load default font. */
     return e;
   }
 
   e = FT_Set_Pixel_Sizes(face, 0, size);
   if (e != 0) {
+    /* TODO: Load default font. */
     return e;
   }
 

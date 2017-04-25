@@ -21,12 +21,12 @@ tabnew(uint8_t *name)
     return NULL;
   }
 
-  if (!textboxinit(&t->action, t, false, &abg)) {
+  if (!textboxinit(&t->action, t, &abg, &sfg, &sbg)) {
     free(t);
     return NULL;
   }
 
-  if (!textboxinit(&t->main, t, true, &bg)) {
+  if (!textboxinit(&t->main, t, &bg, &sfg, &sbg)) {
     textboxfree(&t->action);
     free(t);
     return NULL;
@@ -43,6 +43,8 @@ tabnew(uint8_t *name)
   }
 
   t->action.cursor = n;
+
+  t->scroll = 0;
   
   t->next = NULL;
 
@@ -66,49 +68,18 @@ tabresize(struct tab *t, int w, int h)
   textboxresize(&t->main, w - 1);
 }
 
-void
-tabdraw(struct tab *t, int x, int y, int w, int h)
-{
-  int ta, tm;
-  
-  drawline(buf, width, height,
-	   x + w - 1, y,
-	   x + w - 1, y + h - 1,
-	   &fg);
-
-  ta = t->action.height > h ? h : t->action.height;
-  
-  textboxdraw(&t->action, buf, width, height,
-	      x, y, ta);
-  
-  drawline(buf, width, height,
-	   x,
-	   y + ta,
-	   x + w - 2,
-	   y + ta,
-	   &fg);
-
-  if (t->main.height - t->main.scroll > h - (ta + 1)) {
-    tm = h - (ta + 1);
-  } else {
-    tm = t->main.height - t->main.scroll;
-  }
-
-  textboxdraw(&t->main, buf, width, height,
-	      x, y + (ta + 1), tm);
-  
-  drawrect(buf, width, height,
-	   x,
-	   y + ta + 1 + tm,
-	   x + w - 2,
-	   y + h - 1,
-	   &bg);
-}
-
 bool
 tabscroll(struct tab *t, int x, int y, int dx, int dy)
 {
-  if (y > t->action.height && textboxscroll(&t->main, dx, dy)) {
+  if (y > t->action.height) {
+    t->scroll += dy;
+    if (t->scroll < 0) {
+      t->scroll = 0;
+    } else if (t->scroll > t->main.height - lineheight) {
+      t->scroll = t->main.height - lineheight;
+    }
+
+    printf("tab scrolled to %i\n", t->scroll);
     return true;
   }
   
@@ -148,6 +119,57 @@ tabmotion(struct tab *t, int x, int y)
     return textboxmotion(&t->action, x, y);
   } else {
     return textboxmotion(&t->main, x, y - t->action.height);
+  }
+}
+
+void
+tabdraw(struct tab *t, int x, int y, int w, int h)
+{
+  int ta, tm;
+
+  drawline(buf, width, height,
+	   x + w - 1, y,
+	   x + w - 1, y + h - 1,
+	   &fg);
+  
+  ta = t->action.height > h - 1 ? h - 1 : t->action.height;
+
+  drawbuffer(buf, width, height,
+	     x, y,
+	     t->action.buf, t->action.width, t->action.height,
+	     0, 0,
+	     t->action.width, ta);
+
+  if (ta == h - 1) {
+    return;
+  }
+
+  drawline(buf, width, height,
+	   x,
+	   y + ta,
+	   x + w - 2,
+	   y + ta,
+	   &fg);
+  
+  if (t->main.height - t->scroll > h - 1 - ta - 1) {
+    tm = h - 1 - ta - 1;
+  } else {
+    tm = t->main.height - t->scroll;
+  }
+
+  drawbuffer(buf, width, height,
+	     x, y + ta + 1,
+	     t->main.buf, t->main.width, t->main.height,
+	     0, t->scroll,
+	     t->main.width, tm);
+
+  if (ta + 1 + tm < h - 1) {
+    drawrect(buf, width, height,
+	     x,
+	     y + ta + 1 + tm,
+	     x + w - 2,
+	     y + h - 1,
+	     &bg);
   }
 }
 

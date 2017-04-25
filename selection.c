@@ -11,7 +11,6 @@
 
 struct selection *
 selectionnew(struct textbox *t,
-	     struct colour *fg, struct colour *bg,
 	     unsigned int start, unsigned int end)
 {
   struct selection *s;
@@ -26,9 +25,6 @@ selectionnew(struct textbox *t,
   s->end = end;
   s->increasing = true;
 
-  memmove(&s->fg, fg, sizeof(struct colour));
-  memmove(&s->bg, bg, sizeof(struct colour));
-  
   s->next = NULL;
   
   return s;

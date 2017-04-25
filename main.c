@@ -13,9 +13,13 @@ FT_Face face;
 
 int fontsize;
 
-struct colour bg = { 255, 255, 255, 255 };
 struct colour fg = { 0, 0, 0, 255 };
+struct colour bg = { 255, 255, 255, 255 };
+
 struct colour abg = { 220, 240, 255, 255 };
+
+struct colour sfg = { 0, 0, 0, 255 };
+struct colour sbg = { 200, 150, 100, 255 };
 
 int lineheight;
 int baseline;
