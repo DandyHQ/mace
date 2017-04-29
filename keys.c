@@ -3,41 +3,28 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
 
 #include "mace.h"
 
-bool
+void
 handletyping(uint8_t *s, size_t n)
 {
-  if (focus != NULL && textboxtyping(focus, s, n)) {
-    panedrawfocus(focuspane);
-    return true;
-  }
-
-  return false;
+  textboxtyping(focus, s, n);
 }
 
-bool
+void
 handlekeypress(keycode_t k)
 {
-  if (focus != NULL && textboxkeypress(focus, k)) {
-    panedrawfocus(focuspane);
-    return true;
-  } else {
-    return false;
-  }
+  textboxkeypress(focus, k);
 }
 
-bool
+void
 handlekeyrelease(keycode_t k)
 {
-  if (focus != NULL && textboxkeyrelease(focus, k)) {
-    panedrawfocus(focuspane);
-    return true;
-  } else {
-    return false;
-  }
+  textboxkeyrelease(focus, k);
 }

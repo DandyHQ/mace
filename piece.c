@@ -3,11 +3,16 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
 
 #include "mace.h"
+
+#define PIECE_max 32
+#define max(a, b) (a > b ? a : b)
 
 struct piece *
 piecenewgive(uint8_t *s, size_t rl, size_t pl)
@@ -39,7 +44,7 @@ piecenewcopy(uint8_t *s, size_t l)
     return NULL;
   }
 
-  p->rl = max(PIECE_min, l);
+  p->rl = max(l, PIECE_max);
   p->s = malloc(p->rl);
   if (p->s == NULL) {
     free(p);
@@ -235,9 +240,13 @@ pieceappend(struct piece *p, uint8_t *s, size_t l)
 {
   uint8_t *ns;
   size_t nl;
-  
+
   if (p->rl - p->pl < l) {
-    nl = p->rl + l + PIECE_min;
+    if (p->rl >= PIECE_max) {
+      return false;
+    }
+    
+    nl = p->rl - p->pl + l;
 
     ns = realloc(p->s, nl * sizeof(uint8_t));
     if (ns == NULL) {

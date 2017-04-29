@@ -3,6 +3,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+#include <utf8proc.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>

@@ -5,27 +5,21 @@ add_global_arguments('-std=c11', language : 'c')
 cc = meson.get_compiler('c')
 
 x11        = dependency('x11')
-freetype   = dependency('freetype2')
-lua        = dependency('lua52')
+cairo      = dependency('cairo')
+ft         = dependency('freetype2')
 utf8proc   = cc.find_library('utf8proc', dirs : ['/usr/local/lib'])
 
 executable('mace',
 	sources: [
 		  'main.c',
-		  'draw.c',
 		  'font.c',
+		  'utf8.c',
+		  'piece.c',
+		  'keys.c',
 		  'mouse.c',
 		  'tab.c',
-		  'pane.c',
-		  'panedraw.c',
 		  'textbox.c',
 		  'textboxdraw.c',
-		  'selection.c',
-		  'keys.c',
-		  'piece.c',
-		  'lua.c',
-		  'utf8.c',
-		  'command.c',
 		  'xmain.c'
 		],
 
@@ -35,8 +29,8 @@ executable('mace',
 
 	dependencies: [
 	          x11,
-		  freetype,
+		  cairo,
+		  ft,
 		  utf8proc,
-		  lua,
 		]
 	)

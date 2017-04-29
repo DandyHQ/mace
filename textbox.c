@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
@@ -10,33 +12,31 @@
 #include "mace.h"
 
 bool
-textboxinit(struct textbox *t, struct tab *tab,
-	    struct colour *bg,
-	    struct colour *sfg,
-	    struct colour *sbg)
+textboxpredraw(struct textbox *t);
+
+struct textbox *
+textboxnew(struct tab *tab,
+	   struct colour *bg)
 {
   struct piece *b, *e;
- 
-  t->width = 0;
-  t->height = 0;
-  t->rheight = 0;
+  struct textbox *t;
 
-  t->buf = malloc(sizeof(uint8_t) * 4);
-  if (t->buf == NULL) {
-    return false;
+  t = malloc(sizeof(struct textbox));
+  if (t == NULL) {
+    return NULL;
   }
 
   b = piecenewtag();
   if (b == NULL) {
-    free(t->buf);
-    return false;
+    free(t);
+    return NULL;
   }
 
   e = piecenewtag();
   if (e == NULL) {
     piecefree(b);
-    free(t->buf);
-    return false;
+    free(t);
+    return NULL;
   }
 
   b->prev = NULL;
@@ -50,11 +50,12 @@ textboxinit(struct textbox *t, struct tab *tab,
 
   t->tab = tab;
 
-  memmove(&t->bg, bg, sizeof(struct colour));
-  memmove(&t->sfg, sfg, sizeof(struct colour));
-  memmove(&t->sbg, sbg, sizeof(struct colour));
+  t->cr = NULL;
+  t->sfc = NULL;
 
-  return true;
+  memmove(&t->bg, bg, sizeof(struct colour));
+
+  return t;
 }
 
 void
@@ -66,33 +67,55 @@ textboxfree(struct textbox *t)
   for (p = t->pieces; p != NULL; p = p->next)
     piecefree(p);
 
-  free(t->buf);
-}
-
-void
-textboxresize(struct textbox *t, int w)
-{
-  t->width = w;
-  t->height = 0;
-  t->rheight = lineheight;
-
-  t->buf = realloc(t->buf, t->width * t->rheight * sizeof(uint8_t) * 4);
-  if (t->buf == NULL) {
-    errx(1, "Failed to allocate new buffer for textbox!");
+  if (t->cr != NULL) {
+    cairo_destroy(t->cr);
   }
 
-  textboxpredraw(t);
+  if (t->sfc != NULL) {
+    cairo_surface_destroy(t->sfc);
+  }
+}
+
+bool
+textboxresize(struct textbox *t, int w)
+{
+  if (t->cr != NULL) {
+    cairo_destroy(t->cr);
+    t->cr = NULL;
+  }
+
+  if (t->sfc != NULL) {
+    cairo_surface_destroy(t->sfc);
+    t->sfc = NULL;
+  }
+
+  t->sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
+				       w, lineheight * 30);
+  if (t->sfc == NULL) {
+    return false;
+  }
+
+  t->cr = cairo_create(t->sfc);
+  if (t->cr == NULL) {
+    return false;
+  }
+
+  return textboxpredraw(t);
 }
 
 /* Returns the piece that was clicked on and sets *pos to the position
    in the list of pieces.
 */
 
+ #if 0 
 static struct piece *
 findpos(struct textbox *t,
 	int x, int y,
 	int *pos)
 {
+  *pos = 0;
+  
+  return NULL;
   int i, xx, yy, ww;
   int32_t code, a;
   struct piece *p;
@@ -151,151 +174,67 @@ findpos(struct textbox *t,
 
   return NULL;
 }
+  #endif
 
-bool
+void
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
-  struct selection *s, *sn;
-  int pos, start, end;
-  struct piece *tp;
-  uint8_t *cmd;
-  bool r;
-
-  t->cpiece = NULL;
-  tp = findpos(t, x, y, &pos);
-  if (tp == NULL) {
-    return false;
-  }
-
   switch (button) {
   case 1:
-    t->cursor = pos;
-
-    s = selections;
-    cselection = selections = NULL;
-    while (s != NULL) {
-      sn = s->next;
-      textboxpredraw(s->textbox);
-      selectionfree(s);
-      s = sn;
-    }
-
-    s = selectionnew(t, pos, pos);
-    /* Doesn't matter if s == NULL */
-    
-    cselection = selections = s;
-
-    textboxpredraw(t);
-    return true;
+    break;
 
   case 3:
-    s = inselections(t, pos);
-    if (s == NULL) {
-      if (!piecefindword(t->pieces, pos, &start, &end)) {
-	return false;
-      }
-
-      s = selectionnew(t, start, end);
-      if (s == NULL) {
-	return false;
-      }
-    }
-
-    cmd = selectiontostring(s);
-    if (cmd != NULL) {
-      r = docommand(cmd);
-      free(cmd);
-      textboxpredraw(t);
-      return r;
-    } else {
-      return false;
-    }
-    
-  default:
-    return false;
+    break;
   }
 }
 
-bool
+void
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
   switch (button) {
   case 1:
-    if (cselection != NULL) {
-      if (cselection->start == cselection->end) {
-	/* TODO: How to differentiate clicks from selections? */
-	printf("only selected one glyph, this is probably meant to be a cursor reloaction\n");
-      }
-
-      cselection = NULL;
-    }
-
-    return true;
-
-  default:
-    return false;
+    break;
   }
 }
 
-bool
+void
 textboxmotion(struct textbox *t, int x, int y)
 {
-  struct selection *s;
-  struct piece *tp;
-  int pos;
 
-  s = cselection;
-  if (s == NULL || s->textbox != t) {
-    return false;
-  }
-
-  tp = findpos(t, x, y, &pos);
-  if (tp == NULL) {
-    return false;
-  }
-  
-  if (selectionupdate(s, pos)) {
-    t->cursor = pos;
-    textboxpredraw(t);
-    return true;
-  } else {
-    return false;
-  }
 }
 
-bool
+void
 textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 {
   struct piece *o, *n;
   int i;
 
   if (t->cpiece != NULL && pieceappend(t->cpiece, s, l)) {
+    printf("appended\n");
     t->cursor += l;
-    textboxpredraw(t);
-    return true;
-  } 
-  
-  o = piecefind(t->pieces, t->cursor, &i);
-  if (o == NULL) {
-    return false;
-  }
+  } else {
+    o = piecefind(t->pieces, t->cursor, &i);
+    if (o == NULL) {
+      return;
+    }
 
-  n = pieceinsert(o, i, s, l);
-  if (n == NULL) {
-    return false;
-  }
+    n = pieceinsert(o, i, s, l);
+    if (n == NULL) {
+      return;
+    }
 
-  t->cursor += l;
-  t->cpiece = n;
+    printf("inserted\n");
+    t->cursor += l;
+    t->cpiece = n;
+  }
 
   textboxpredraw(t);
-  
-  return true;
+  tabdraw(t->tab);
 }
 
-bool
+void
 textboxkeypress(struct textbox *t, keycode_t k)
 {
   struct piece *o, *n;
@@ -305,88 +244,89 @@ textboxkeypress(struct textbox *t, keycode_t k)
    
   switch (k) {
   default: 
-    return false;
+    return;
     
   case KEY_shift:
-    return false;
+    return;
     
   case KEY_alt:
-    return false;
+    return;
     
   case KEY_super:
-    return false;
+    return;
     
   case KEY_control:
-    return false;
+    return;
     
 
   case KEY_left:
-    return false;
+    return;
     
   case KEY_right:
-    return false;
+    return;
     
   case KEY_up:
-    return false;
+    return;
     
   case KEY_down:
-    return false;
+    return;
     
   case KEY_pageup:
-    return false;
+    return;
     
   case KEY_pagedown:
-    return false;
+    return;
     
   case KEY_home:
-    return false;
+    return;
     
   case KEY_end:
-    return false;
+    return;
     
 
   case KEY_return:
     l = snprintf((char *) s, sizeof(s), "\n");
 
-    if (t->cpiece != NULL && pieceappend(t->cpiece, s, l)) {
-      t->cursor += l;
-      textboxpredraw(t);
-      return true;
+    if (t->cpiece != NULL) {
+      o = t->cpiece;
+      i = o->pl;
     } else {
       o = piecefind(t->pieces, t->cursor, &i);
       if (o == NULL) {
-	return false;
+	return;
       }
-    
-      n = pieceinsert(o, i, s, l);
-      if (n == NULL) {
-	return false;
-      }
-
-      t->cursor += l;
-      t->cpiece = n;
-
-      textboxpredraw(t);
-      return true;
     }
     
+    n = pieceinsert(o, i, s, l);
+    if (n == NULL) {
+      return;
+    }
+
+    t->cursor += l;
+    t->cpiece = n;
+
+    break;
+    
   case KEY_tab:
-    return false;
+    return;
     
   case KEY_backspace:
-    return false;
+    return;
     
   case KEY_delete:
-    return false;
+    return;
     
 
   case KEY_escape:
-    return false;
+    return;
   }
+
+  textboxpredraw(t);
+  tabdraw(t->tab);
 }
 
-bool
+void
 textboxkeyrelease(struct textbox *t, keycode_t k)
 {
-  return false;
+
 }

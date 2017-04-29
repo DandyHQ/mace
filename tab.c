@@ -3,52 +3,73 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
 
 #include "mace.h"
 
+static struct colour bg   = { 1, 0, 1 };
+static struct colour abg  = { 0.5, 0.5, 0.8 };
+
 struct tab *
-tabnew(uint8_t *name)
+tabnew(uint8_t *name, size_t len)
 {
-  uint8_t s[128];
+  uint8_t s[128] = ": save cut copy paste search";
+  struct piece *p;
   struct tab *t;
-  size_t n;
 
   t = malloc(sizeof(struct tab));
   if (t == NULL) {
     return NULL;
   }
 
-  if (!textboxinit(&t->action, t, &abg, &sfg, &sbg)) {
+  t->name = malloc(len + 1);
+  if (t->name == NULL) {
     free(t);
     return NULL;
   }
 
-  if (!textboxinit(&t->main, t, &bg, &sfg, &sbg)) {
-    textboxfree(&t->action);
-    free(t);
-    return NULL;
-  }
+  strncpy(t->name, name, len);
+  t->name[len] = 0;
   
-  n = snprintf((char *) s, sizeof(s),
-	       "%s save cut copy paste search", name);
-
-  if (pieceinsert(t->action.pieces->next, 0, s, n) == NULL) {
-    textboxfree(&t->main);
-    textboxfree(&t->action);
+  t->action = textboxnew(t, &abg);
+  if (t->action == NULL) {
+    free(t->name);
     free(t);
     return NULL;
   }
 
-  t->action.cursor = n;
+  t->main = textboxnew(t, &bg);
+  if (t->main == NULL) {
+    textboxfree(t->action);
+    free(t->name);
+    free(t);
+    return NULL;
+  }
 
-  t->scroll = 0;
+  p = pieceinsert(t->action->pieces->next, 0, name, len);
+  if (p == NULL) {
+    textboxfree(t->main);
+    textboxfree(t->action);
+    free(t->name);
+    free(t);
+    return NULL;
+  }    
   
+  if (pieceinsert(p, len, s, strlen(s)) == NULL) {
+    textboxfree(t->main);
+    textboxfree(t->action);
+    free(t->name);
+    free(t);
+    return NULL;
+  }
+
+  t->action->cursor = len + strlen(s);
+
   t->next = NULL;
-
-  strncpy((char *) t->name, (char *) name, NAMEMAX);
 
   return t;
 } 
@@ -56,120 +77,113 @@ tabnew(uint8_t *name)
 void
 tabfree(struct tab *t)
 {
-  textboxfree(&t->action);
-  textboxfree(&t->main);
+  textboxfree(t->action);
+  textboxfree(t->main);
+  free(t->name);
   free(t);
 }
 
-void
-tabresize(struct tab *t, int w, int h)
+bool
+tabresize(struct tab *t, int x, int y, int w, int h)
 {
-  textboxresize(&t->action, w - 1);
-  textboxresize(&t->main, w - 1);
+  t->x = x;
+  t->y = y;
+  t->width = w;
+  t->height = h;
+  
+  if (!textboxresize(t->action, w)) {
+    return false;
+  }
+
+  if (!textboxresize(t->main, w)) {
+    return false;
+  }
+
+  return true;
 }
 
-bool
+void
 tabscroll(struct tab *t, int x, int y, int dx, int dy)
 {
-  if (y > t->action.height) {
-    t->scroll += dy;
-    if (t->scroll < 0) {
-      t->scroll = 0;
-    } else if (t->scroll > t->main.height - lineheight) {
-      t->scroll = t->main.height - lineheight;
-    }
 
-    printf("tab scrolled to %i\n", t->scroll);
-    return true;
-  }
-  
-  return false;
 }
 
-bool
-tabpress(struct tab *t, int x, int y,
+void
+tabbuttonpress(struct tab *t, int x, int y,
 	 unsigned int button)
 {
-  if (y < t->action.height) {
-    focus = &t->action;
-    return textboxbuttonpress(&t->action, x, y, button);
+  if (y < t->action->height) {
+    focus = t->action;
+    return textboxbuttonpress(t->action, x, y, button);
   } else {
-    focus = &t->main;
-    return textboxbuttonpress(&t->main, x, y - t->action.height,
+    focus = t->main;
+    return textboxbuttonpress(t->main, x, y - t->action->height,
 			      button);
   }
 }
 
-bool
-tabrelease(struct tab *t, int x, int y,
+void
+tabbuttonrelease(struct tab *t, int x, int y,
 	   unsigned int button)
 {
-  if (focus == &t->action) {
-    return textboxbuttonrelease(&t->action, x, y, button);
+  if (focus == t->action) {
+    return textboxbuttonrelease(t->action, x, y, button);
   } else {
-    return textboxbuttonrelease(&t->main, x, y - t->action.height,
+    return textboxbuttonrelease(t->main, x, y - t->action->height,
 				button);
   }
 }
 
-bool
+void
 tabmotion(struct tab *t, int x, int y)
 {
-  if (y < t->action.height) {
-    return textboxmotion(&t->action, x, y);
+  if (y < t->action->height) {
+    return textboxmotion(t->action, x, y);
   } else {
-    return textboxmotion(&t->main, x, y - t->action.height);
+    return textboxmotion(t->main, x, y - t->action->height);
   }
 }
 
 void
-tabdraw(struct tab *t, int x, int y, int w, int h)
+tabdraw(struct tab *t)
 {
-  int ta, tm;
-
-  drawline(buf, width, height,
-	   x + w - 1, y,
-	   x + w - 1, y + h - 1,
-	   &fg);
+  int y, h;
   
-  ta = t->action.height > h - 1 ? h - 1 : t->action.height;
+  y = 0;
 
-  drawbuffer(buf, width, height,
-	     x, y,
-	     t->action.buf, t->action.width, t->action.height,
-	     0, 0,
-	     t->action.width, ta);
+  h = t->height - y;
+  if (t->action->height < h) {
+    h = t->action->height;
+  }
+  
+  cairo_set_source_surface(cr, t->action->sfc, t->x, t->y + y);
+  cairo_rectangle(cr, t->x, t->y + y, t->width, h);
+  cairo_fill(cr);
 
-  if (ta == h - 1) {
+  y += h;
+
+  h = t->height - y;
+  if (h == 0) {
     return;
+  } else if (t->main->height < h) {
+    h = t->main->height;
   }
 
-  drawline(buf, width, height,
-	   x,
-	   y + ta,
-	   x + w - 2,
-	   y + ta,
-	   &fg);
-  
-  if (t->main.height - t->scroll > h - 1 - ta - 1) {
-    tm = h - 1 - ta - 1;
-  } else {
-    tm = t->main.height - t->scroll;
-  }
+  cairo_set_source_surface(cr, t->main->sfc, t->x, t->y + y);
+  cairo_rectangle(cr, t->x, t->y + y, t->width, h);
+  cairo_fill(cr);
 
-  drawbuffer(buf, width, height,
-	     x, y + ta + 1,
-	     t->main.buf, t->main.width, t->main.height,
-	     0, t->scroll,
-	     t->main.width, tm);
+  y += h;
+  h = t->height - y;
+  if (h == 0) {
+    return;
+  } 
 
-  if (ta + 1 + tm < h - 1) {
-    drawrect(buf, width, height,
-	     x,
-	     y + ta + 1 + tm,
-	     x + w - 2,
-	     y + h - 1,
-	     &bg);
-  }
+  cairo_set_source_rgb(cr, 
+		       t->main->bg.r,
+		       t->main->bg.g,
+		       t->main->bg.b);
+
+  cairo_rectangle(cr, t->x, t->y + y, t->width, h);
+  cairo_fill(cr);
 }
-

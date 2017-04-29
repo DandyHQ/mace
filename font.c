@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
@@ -22,6 +24,7 @@ fontinit(void)
   }
 
   /* TODO: Load a default font. */
+  fontload("/usr/X11R6/lib/X11/fonts/TTF/DejaVuSans.ttf", 15);
 }
 
 int
@@ -46,11 +49,6 @@ fontload(const uint8_t *name, size_t size)
 
   lineheight = 2 + (face->size->metrics.height >> 6);
 
-  if (buf != NULL) {
-    paneresize(root, 0, 0, width, height);
-    panedraw(root);
-  }
-  
   return 0;
 }
 

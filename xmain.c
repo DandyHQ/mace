@@ -2,54 +2,45 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <err.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+
+#include "mace.h"
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/XKBlib.h>
 #include <X11/keysymdef.h>
-
-#include "mace.h"
+#include <cairo-xlib.h>
 
 static Display *display;
 static Window win;
 static int screen;
-static XImage *img = NULL;
+
+static cairo_surface_t *sfc;
 
 static void
 xresize(int w, int h)
 {
-  unsigned char *nbuf;
-
-  nbuf = malloc(w * h * 4);
-  if (nbuf == NULL) {
-    errx(1, "Failed to allocate window buffer");
-  }
-
-  buf = nbuf;
   width = w;
   height = h;
 
-  paneresize(root, 0, 0, w, h);
-  panedraw(root);
-
-  if (img != NULL) {
-    /* Frees buf */
-    XDestroyImage(img);
+  if (!tabresize(tab, 0, 0, w, h)) {
+    errx(1, "Failed to resize panes!");
   }
 
-  img = XCreateImage(display, CopyFromParent, 24, ZPixmap, 0,
-		     (char *) buf,
-		     width, height, 32, 0);
-}
+  cairo_xlib_surface_set_size(sfc, w, h);
 
-static void
-updatewindow(void)
-{
-  XPutImage(display, win, DefaultGC(display, screen), img,
-	    0, 0, 0, 0, width, height);
+  cairo_push_group(cr);
+
+  tabdraw(tab);
+
+  cairo_pop_group_to_source(cr);
+  cairo_paint(cr);
+  cairo_surface_flush(sfc);
 }
 
 static keycode_t
@@ -99,7 +90,6 @@ xhandlekeypress(XKeyEvent *e)
 {
   uint8_t s[16];
   keycode_t c;
-  bool redraw;
   KeySym sym;
   ssize_t n;
 
@@ -108,27 +98,26 @@ xhandlekeypress(XKeyEvent *e)
 
   c = symtocode(sym);
 
+  cairo_push_group(cr);
+
   if (c == KEY_none) {
     n = utf8proc_encode_char(sym, s);
     if (n > 0) {
-      redraw = handletyping(s, n);
-    } else {
-      redraw = false;
+      handletyping(s, n);
     }
   } else {
-    redraw = handlekeypress(c);
+    handlekeypress(c);
   }
 
-  if (redraw) {
-    updatewindow();
-  }
+  cairo_pop_group_to_source(cr);
+  cairo_paint(cr);
+  cairo_surface_flush(sfc);
 }
 
 static void
 xhandlekeyrelease(XKeyEvent *e)
 {
   keycode_t c;
-  bool redraw;
   KeySym sym;
 
   sym = XkbKeycodeToKeysym(display, e->keycode, 0,
@@ -137,65 +126,71 @@ xhandlekeyrelease(XKeyEvent *e)
   c = symtocode(sym);
 
   if (c != KEY_none) {
-    redraw = handlekeyrelease(c);
-  } else {
-    redraw = false;
-  }
+    cairo_push_group(cr);
+    
+    handlekeyrelease(c);
 
-  if (redraw) {
-    updatewindow();
+    cairo_pop_group_to_source(cr);
+    cairo_paint(cr);
+    cairo_surface_flush(sfc);
   }
 }
 
 static void
 xhandlebuttonpress(XButtonEvent *e)
 {
-  bool redraw;
+  cairo_push_group(cr);
 
   switch (e->button) {
   case 1:
   case 2:
   case 3:
-    redraw = handlebuttonpress(e->x, e->y, e->button);
+    handlebuttonpress(e->x, e->y, e->button);
     break;
 
   case 4:
-    redraw = handlescroll(e->x, e->y, 0, -lineheight / 2);
+    handlescroll(e->x, e->y, 0, -5);
     break;
     
   case 5:
-    redraw = handlescroll(e->x, e->y, 0, lineheight / 2);
+    handlescroll(e->x, e->y, 0, 5);
     break;
+  }
 
-  default:
-    redraw = false;
-  }
-  
-  if (redraw) {
-    updatewindow();
-  }
+  cairo_pop_group_to_source(cr);
+  cairo_paint(cr);
+  cairo_surface_flush(sfc);
 }
 
 static void
 xhandlebuttonrelease(XButtonEvent *e)
 {
-  bool redraw;
+  cairo_push_group(cr);
 
   switch (e->button) {
   case 1:
   case 2:
   case 3:
-    redraw = handlebuttonrelease(e->x, e->y, e->button);
+    handlebuttonrelease(e->x, e->y, e->button);
     break;
+  }
 
-  default:
-    redraw = false;
-  }
-  
-  if (redraw) {
-    updatewindow();
-  }
+  cairo_pop_group_to_source(cr);
+  cairo_paint(cr);
+  cairo_surface_flush(sfc);
 }
+
+static void
+xhandlemotion(XMotionEvent *e)
+{
+  cairo_push_group(cr);
+
+  handlemotion(e->x, e->y);
+
+  cairo_pop_group_to_source(cr);
+  cairo_paint(cr);
+  cairo_surface_flush(sfc);
+} 
 
 static void
 eventLoop(void)
@@ -213,12 +208,17 @@ eventLoop(void)
 
 	xresize(e.xconfigure.width, e.xconfigure.height);
       }
-
-      updatewindow();
+      
       break;
 
     case Expose:
-      updatewindow();
+      cairo_push_group(cr);
+
+      tabdraw(tab);
+
+      cairo_pop_group_to_source(cr);
+      cairo_paint(cr);
+      cairo_surface_flush(sfc);
       break;
 
     case KeyPress:
@@ -238,10 +238,7 @@ eventLoop(void)
       break;
 
     case MotionNotify:
-      if (handlemotion(e.xmotion.x, e.xmotion.y)) {
-	updatewindow();
-      }
-      
+      xhandlemotion(&e.xmotion);     
       break;
 
     default:
@@ -253,8 +250,6 @@ eventLoop(void)
 int
 main(int argc, char **argv)
 {
-  int width, height;
-  
   width = 800;
   height = 500;
   
@@ -275,14 +270,32 @@ main(int argc, char **argv)
   XSetStandardProperties(display, win, "Mace", "Mace",
 			 None, NULL, 0, NULL);
 
-  init();
-
-  xresize(width, height);
-
   XMapWindow(display, win);
-  
+
+  sfc = cairo_xlib_surface_create(display, win,
+				  DefaultVisual(display, screen),
+				  width, height);
+
+  cr = cairo_create(sfc);
+
+  init();
+  fontinit();
+
+  tabresize(tab, 0, 0, width, height);
+
+  cairo_push_group(cr);
+
+  tabdraw(tab);
+
+  cairo_pop_group_to_source(cr);
+  cairo_paint(cr);
+  cairo_surface_flush(sfc);
+
   eventLoop();
 
+  cairo_destroy(cr);
+  cairo_surface_destroy(sfc);
+  
   XDestroyWindow(display, win);
   XCloseDisplay(display);
 

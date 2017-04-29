@@ -3,192 +3,168 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
 
 #include "mace.h"
 
-static void
-textboxdrawglyph(struct textbox *t, int x, int y, int ww,
-		 struct colour *fg, struct colour *bg)
-{
-  drawrect(t->buf, t->width, t->rheight,
-	   x, y,
-	   x + ww, y + lineheight - 1,
-	   bg);
-  
-  drawglyph(t->buf, t->width, t->rheight,
-	    x + face->glyph->bitmap_left,
-	    y + baseline - face->glyph->bitmap_top,
-	    0, 0,
-	    face->glyph->bitmap.width, face->glyph->bitmap.rows,
-	    fg);
-}
-
-static void
-drawnormal(struct textbox *t, int x, int y, int ww)
-{
-  textboxdrawglyph(t, x, y, ww, &fg, &t->bg);
-}
-
-static void
-drawselected(struct textbox *t, int x, int y, int ww,
-	     struct selection *s)
-{
-  textboxdrawglyph(t, x, y, ww, &t->sfg, &t->sbg);
-}
-
-static void
-drawcursor(struct textbox *t, int x, int y, int ww, bool focus)
-{
-  struct colour *cfg, *cbg;
-
-  if (focus) {
-    cfg = &t->bg;
-    cbg = &fg;
-  } else {
-    cfg = &fg;
-    cbg = &t->bg;
-  }
-
-  textboxdrawglyph(t, x, y, ww, cfg, cbg);
-
-  if (!focus) {
-    drawline(t->buf, t->width, t->rheight,
-	     x, y + 1,
-	     x + ww - 1, y + 1,
-	     cfg);
-
-    drawline(t->buf, t->width, t->rheight,
-	     x, y + lineheight - 2,
-	     x + ww - 1, y + lineheight - 2,
-	     cfg);
-
-    drawline(t->buf, t->width, t->rheight,
-	     x, y + 1,
-	     x, y + lineheight - 2,
-	     cfg);
-
-    drawline(t->buf, t->width, t->rheight,
-	     x + ww - 1, y + 1,
-	     x + ww - 1, y + lineheight - 2,
-	     cfg);
-  }
-}
-
 static bool
-endofline(struct textbox *t, int *x, int *y,
-	  struct colour *bg)
+nextline(struct textbox *t, int *x, int *y)
 {
-  int h;
-  
-  drawrect(t->buf, t->width, t->rheight,
-	   *x, *y,
-	   t->width - 1,
-	   *y + lineheight - 1,
-	   bg);
- 
-  if (*y + lineheight * 2 >= t->rheight) {
-    h = t->rheight + lineheight * 10;
-
-    t->buf = realloc(t->buf, t->width * h * sizeof(uint8_t) * 4);
-    if (t->buf == NULL) {
-      return false;
-    }
-
-    t->rheight = h;
-  }
+  cairo_surface_t *sfc, *osfc;
+  cairo_t *cr, *ocr;
+  int w, h;
   
   *x = 0;
   *y += lineheight;
 
-  t->height = *y;
+  h = cairo_image_surface_get_height(t->sfc);
+  
+  if (*y + lineheight < h) {
+    t->height = *y + lineheight;
+    return true;
+  }
+
+  printf("grow textbox surface\n");
+
+  osfc = t->sfc;
+  ocr = t->cr;
+  
+  w = cairo_image_surface_get_width(osfc);
+
+  sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
+				   w,
+				   *y + lineheight * 30);
+  if (sfc == NULL) {
+    return false;
+  }
+
+  cr = cairo_create(sfc);
+  if (cr == NULL) {
+    cairo_surface_destroy(sfc);
+    return false;
+  }
+
+  cairo_set_source_surface(cr, osfc, 0, 0);
+  cairo_rectangle(cr, 0, 0, w, h);
+  cairo_fill(cr);
+
+  t->sfc = sfc;
+  t->cr = cr;
+
+  cairo_destroy(ocr);
+  cairo_surface_destroy(osfc);
+
+  t->height = *y + lineheight;
 
   return true;
 }
 
-static bool
-textboxlinebreak(struct textbox *t, unsigned int pos,
-		 int *x, int *y)
+static void 
+drawglyph(struct textbox *t, int x, int y, int32_t pos)
 {
-  struct colour *cbg;
-  struct selection *s;
-  int ww;
+  uint8_t buf[1024]; /* Hopefully this is big enough */
+  FT_Bitmap *map = &face->glyph->bitmap;
+  cairo_surface_t *s;
+  int stride, h;
 
-  if (pos == t->cursor) {
-    if (loadglyph((int32_t) ' ')) {
-      ww = face->glyph->advance.x >> 6;
-      if (*x + ww < t->width) {
-	drawcursor(t, *x, *y, ww, t == focus);
-      }
+  struct colour *fg, *bg;
+  struct colour test1 = { 0.1, 0.5, 1.0 };
+  struct colour test2 = { 1.0, 0.5, 1.0 };
 
-      *x += ww;
-    }
-  }
-
-  s = inselections(t, pos);
-  if (s != NULL) {
-    cbg = &t->sbg;
+  if (t->cursor == pos) {
+    fg = &test1;
+    bg = &test2;
   } else {
-    cbg = &t->bg;
+    fg = &test2;
+    bg = &test1;
   }
 
-  return endofline(t, x, y, cbg);
+  /* The buffer needs to be in a format cairo accepts */
+
+  stride = cairo_format_stride_for_width(CAIRO_FORMAT_A8, map->width);
+  for (h = 0; h < map->rows; h++) {
+    memmove(buf + h * stride,
+	    map->buffer + h * map->width,
+	    map->width);
+  }
+
+  s = cairo_image_surface_create_for_data(buf,
+					  CAIRO_FORMAT_A8,
+					  map->width,
+					  map->rows,
+					  stride);
+  if (s == NULL) {
+    return;
+  }
+
+  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
+  cairo_rectangle(t->cr, x, y, 
+		  face->glyph->advance.x >> 6, lineheight);
+
+  cairo_fill(t->cr);
+  
+  cairo_set_source_rgb(t->cr, fg->r, fg->g, fg->b);
+
+  cairo_mask_surface(t->cr, s, x + face->glyph->bitmap_left,
+		     y + baseline - face->glyph->bitmap_top);
+
+  cairo_surface_destroy(s);
 }
 
-void
+bool
 textboxpredraw(struct textbox *t)
 {
-  int32_t code, a, pos;
-  struct selection *s;
-  int i, x, y, ww;
+  int32_t code, i, a, pos;
+  int x, y, ww;
   struct piece *p;
 
-  x = 0;
-  y = 0;
-  pos = 0;
+  cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
+  cairo_paint(t->cr);
 
+  pos = 0;
+  x = 0;
+
+  /* Hacky */
+  y = -lineheight;
+  if (!nextline(t, &x, &y)) {
+    return false;
+  }
+  
   for (p = t->pieces; p != NULL; p = p->next) {
-    for (i = 0; i < p->pl; pos += a, i += a) {
+    for (a = 0, i = 0; i < p->pl; i += a, pos += a) {
       a = utf8proc_iterate(p->s + i, p->pl - i, &code);
       if (a <= 0) {
 	a = 1;
 	continue;
       }
-
+      
       if (islinebreak(code, p->s + i, p->pl - i, &a)) {
-	if (!textboxlinebreak(t, pos, &x, &y)) {
-	  return;
-	} else {
-	  continue;
+	if (!nextline(t, &x, &y)) {
+	  return false;
 	}
       }
-
+      
       if (!loadglyph(code)) {
 	continue;
-      } 
+      }
 
       ww = face->glyph->advance.x >> 6;
 
-      /* Wrap line */
-      if (x + ww >= t->width) {
-	if (!endofline(t, &x, &y, &t->bg)) {
-	  return;
+      if (x + ww >= cairo_image_surface_get_width(t->sfc)) {
+	if (!nextline(t, &x, &y)) {
+	  return false;
 	}
       }
 
-      if (pos == t->cursor) {
-	drawcursor(t, x, y, ww, t == focus);
-      } else if ((s = inselections(t, pos)) != NULL) {
-	drawselected(t, x, y, ww, s);
-      } else {
-	drawnormal(t, x, y, ww);
-      }
-      
+      drawglyph(t, x, y, pos);
+
       x += ww;
     }
   }
 
-  textboxlinebreak(t, pos, &x, &y);
+  return true;
 } 
