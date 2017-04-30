@@ -11,8 +11,10 @@
 
 #include "mace.h"
 
-static struct colour bg   = { 1, 0, 1 };
-static struct colour abg  = { 0.5, 0.5, 0.8 };
+#define SCROLL_WIDTH   10
+
+static struct colour bg   = { 1, 1, 1 };
+static struct colour abg  = { 0.86, 0.94, 1 };
 
 struct tab *
 tabnew(uint8_t *name, size_t len)
@@ -95,7 +97,7 @@ tabresize(struct tab *t, int x, int y, int w, int h)
     return false;
   }
 
-  if (!textboxresize(t->main, w)) {
+  if (!textboxresize(t->main, w - SCROLL_WIDTH)) {
     return false;
   }
 
@@ -103,21 +105,25 @@ tabresize(struct tab *t, int x, int y, int w, int h)
 }
 
 void
-tabscroll(struct tab *t, int x, int y, int dx, int dy)
+tabscroll(struct tab *t, int x, int y, int dy)
 {
-
+  if (y < t->action->height) {
+    /* Do nothing */
+  } else {
+    textboxscroll(t->main, x, y - t->action->height - 1, dy);
+  }
 }
 
 void
 tabbuttonpress(struct tab *t, int x, int y,
-	 unsigned int button)
+	       unsigned int button)
 {
   if (y < t->action->height) {
     focus = t->action;
-    return textboxbuttonpress(t->action, x, y, button);
+    textboxbuttonpress(t->action, x, y, button);
   } else {
     focus = t->main;
-    return textboxbuttonpress(t->main, x, y - t->action->height,
+    textboxbuttonpress(t->main, x, y - t->action->height - 1,
 			      button);
   }
 }
@@ -127,9 +133,9 @@ tabbuttonrelease(struct tab *t, int x, int y,
 	   unsigned int button)
 {
   if (focus == t->action) {
-    return textboxbuttonrelease(t->action, x, y, button);
+    textboxbuttonrelease(t->action, x, y, button);
   } else {
-    return textboxbuttonrelease(t->main, x, y - t->action->height,
+    textboxbuttonrelease(t->main, x, y - t->action->height - 1,
 				button);
   }
 }
@@ -137,20 +143,18 @@ tabbuttonrelease(struct tab *t, int x, int y,
 void
 tabmotion(struct tab *t, int x, int y)
 {
-  if (y < t->action->height) {
-    return textboxmotion(t->action, x, y);
+  if (focus == t->action) {
+    textboxmotion(t->action, x, y);
   } else {
-    return textboxmotion(t->main, x, y - t->action->height);
+    textboxmotion(t->main, x, y - t->action->height - 1);
   }
 }
 
-void
-tabdraw(struct tab *t)
+static int
+tabdrawaction(struct tab *t, int y)
 {
-  int y, h;
+  int h;
   
-  y = 0;
-
   h = t->height - y;
   if (t->action->height < h) {
     h = t->action->height;
@@ -160,30 +164,103 @@ tabdraw(struct tab *t)
   cairo_rectangle(cr, t->x, t->y + y, t->width, h);
   cairo_fill(cr);
 
-  y += h;
+  return y + h;
+}
 
+static int
+tabdrawmain(struct tab *t, int y)
+{
+  int h, pos, size;
+  
   h = t->height - y;
   if (h == 0) {
-    return;
-  } else if (t->main->height < h) {
-    h = t->main->height;
+    return y;
+  } else if (t->main->height - t->main->yoff < h) {
+    h = t->main->height - t->main->yoff;
   }
 
-  cairo_set_source_surface(cr, t->main->sfc, t->x, t->y + y);
-  cairo_rectangle(cr, t->x, t->y + y, t->width, h);
+  cairo_set_source_surface(cr, t->main->sfc,
+			   t->x,
+			   t->y + y - t->main->yoff);
+
+  cairo_rectangle(cr,
+		  t->x, t->y + y,
+		  t->main->linewidth, h);
   cairo_fill(cr);
 
-  y += h;
-  h = t->height - y;
-  if (h == 0) {
-    return;
-  } 
-
+  /* Fill rest of main block */
+  
   cairo_set_source_rgb(cr, 
 		       t->main->bg.r,
 		       t->main->bg.g,
 		       t->main->bg.b);
 
-  cairo_rectangle(cr, t->x, t->y + y, t->width, h);
+  cairo_rectangle(cr,
+		  t->x, t->y + y + h,
+		  t->main->linewidth, t->height - h - y);
   cairo_fill(cr);
+
+  /* Draw scroll bar */
+
+  pos = (int) (
+	       (float) t->main->yoff
+	       / (float) t->main->height
+	       * (t->height - y));
+
+  size = (int) (
+		(float) h
+		/ (float) t->main->height
+		* (t->height - y));
+
+  cairo_set_source_rgb(cr, 0, 0, 0);
+  cairo_move_to(cr, t->x + t->main->linewidth, t->y + y);
+  cairo_line_to(cr, t->x + t->main->linewidth, t->y + t->height);
+  cairo_set_line_width (cr, 1.0);
+  cairo_stroke(cr);
+  
+  cairo_set_source_rgb(cr, 1, 1, 1);
+  cairo_rectangle(cr,
+		  t->x + t->main->linewidth + 1,
+		  t->y + y,
+		  SCROLL_WIDTH - 1,
+		  pos);
+  cairo_fill(cr);
+
+  cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
+  cairo_rectangle(cr,
+		  t->x + t->main->linewidth + 1,
+		  t->y + y + pos,
+		  SCROLL_WIDTH - 1,
+		  size);
+  cairo_fill(cr);
+
+  cairo_set_source_rgb(cr, 1, 1, 1);
+  cairo_rectangle(cr,
+		  t->x + t->main->linewidth + 1,
+		  t->y + y + pos + size,
+		  SCROLL_WIDTH - 1,
+		  t->height - y - pos - size);
+  cairo_fill(cr);
+
+
+  return y + h;
+}
+
+void
+tabdraw(struct tab *t)
+{
+  int y;
+  
+  y = 0;
+
+  y = tabdrawaction(t, y);
+
+  cairo_set_source_rgb(cr, 0, 0, 0);
+  cairo_move_to(cr, 0, y);
+  cairo_line_to(cr, t->width, y);
+  cairo_stroke(cr);
+
+  y += 1;
+
+  y = tabdrawmain(t, y);
 }

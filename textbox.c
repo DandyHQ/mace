@@ -53,6 +53,10 @@ textboxnew(struct tab *tab,
   t->cr = NULL;
   t->sfc = NULL;
 
+  t->yoff = 0;
+  t->linewidth = 0;
+  t->height = 0;
+  
   memmove(&t->bg, bg, sizeof(struct colour));
 
   return t;
@@ -77,8 +81,10 @@ textboxfree(struct textbox *t)
 }
 
 bool
-textboxresize(struct textbox *t, int w)
+textboxresize(struct textbox *t, int lw)
 {
+  t->linewidth = lw;
+  
   if (t->cr != NULL) {
     cairo_destroy(t->cr);
     t->cr = NULL;
@@ -90,7 +96,7 @@ textboxresize(struct textbox *t, int w)
   }
 
   t->sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
-				       w, lineheight * 30);
+				       lw, lineheight * 30);
   if (t->sfc == NULL) {
     return false;
   }
@@ -107,18 +113,14 @@ textboxresize(struct textbox *t, int w)
    in the list of pieces.
 */
 
- #if 0 
 static struct piece *
 findpos(struct textbox *t,
 	int x, int y,
-	int *pos)
+	int *pos, int *i)
 {
-  *pos = 0;
-  
-  return NULL;
-  int i, xx, yy, ww;
   int32_t code, a;
   struct piece *p;
+  int xx, yy, ww;
 
   xx = 0;
   yy = 0;
@@ -126,15 +128,15 @@ findpos(struct textbox *t,
   *pos = 0;
 
   for (p = t->pieces; p != NULL; p = p->next) {
-    for (i = 0; i < p->pl; *pos += a, i += a) {
-      a = utf8proc_iterate(p->s + i, p->pl - i, &code);
+    for (*i = 0; *i < p->pl; *pos += a, *i += a) {
+      a = utf8proc_iterate(p->s + *i, p->pl - *i, &code);
       if (a <= 0) {
 	a = 1;
 	continue;
       }
 
       /* Line Break. */
-      if (islinebreak(code, p->s + i, p->pl - i, &a)) {
+      if (islinebreak(code, p->s + *i, p->pl - *i, &a)) {
 	if (y < yy + lineheight - 1) {
 	  return p;
 	} else {
@@ -150,7 +152,7 @@ findpos(struct textbox *t,
       ww = face->glyph->advance.x >> 6;
 
       /* Wrap Line. */
-      if (xx + ww >= t->width) {
+      if (xx + ww >= t->linewidth) {
 	if (y < yy + lineheight - 1) {
 	  return p;
 	} else {
@@ -174,14 +176,27 @@ findpos(struct textbox *t,
 
   return NULL;
 }
-  #endif
 
 void
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
+  struct piece *p;
+  int pos, i;
+  
+  p = findpos(t, x, y + t->yoff, &pos, &i);
+  if (p == NULL) {
+    return;
+  }
+  
   switch (button) {
   case 1:
+    t->cpiece = NULL;
+    t->cursor = pos;
+
+    textboxpredraw(t);
+    tabdraw(t->tab);
+    
     break;
 
   case 3:
@@ -212,7 +227,6 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
   int i;
 
   if (t->cpiece != NULL && pieceappend(t->cpiece, s, l)) {
-    printf("appended\n");
     t->cursor += l;
   } else {
     o = piecefind(t->pieces, t->cursor, &i);
@@ -225,7 +239,6 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
       return;
     }
 
-    printf("inserted\n");
     t->cursor += l;
     t->cpiece = n;
   }
@@ -329,4 +342,17 @@ void
 textboxkeyrelease(struct textbox *t, keycode_t k)
 {
 
+}
+
+void
+textboxscroll(struct textbox *t, int x, int y, int dy)
+{
+  t->yoff += dy;
+  if (t->yoff < 0) {
+    t->yoff = 0;
+  } else if (t->yoff > t->height - lineheight) {
+    t->yoff = t->height - lineheight;
+  }
+
+  tabdraw(t->tab);
 }

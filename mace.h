@@ -49,17 +49,17 @@ struct textbox {
 
   struct colour bg;
 
-  int height;
-  
   cairo_t *cr;
   cairo_surface_t *sfc;
+
+  int yoff;
+  int linewidth, height;
 };
 
 struct tab {
   uint8_t *name;
 
-  int x, y;
-  int width, height;
+  int x, y, width, height;
   
   struct textbox *action, *main;
 
@@ -104,7 +104,7 @@ void
 handlemotion(int x, int y);
 
 void
-handlescroll(int x, int y, int dx, int dy);
+handlescroll(int x, int y, int dy);
 
 
 struct tab *
@@ -120,7 +120,7 @@ void
 tabdraw(struct tab *t);
 
 void
-tabscroll(struct tab *t, int x, int y, int dx, int dy);
+tabscroll(struct tab *t, int x, int y, int dy);
 
 void
 tabbuttonpress(struct tab *t, int x, int y,
@@ -132,6 +132,7 @@ tabbuttonrelease(struct tab *t, int x, int y,
 
 void
 tabmotion(struct tab *t, int x, int y);
+
 struct textbox *
 textboxnew(struct tab *tab,
 	   struct colour *bg);
@@ -143,6 +144,9 @@ bool
 textboxresize(struct textbox *t, int w);
 
 void
+textboxscroll(struct textbox *t, int x, int y, int dy);
+
+void
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button);
 
@@ -152,9 +156,6 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 
 void
 textboxmotion(struct textbox *t, int x, int y);
-
-void
-textboxscroll(struct textbox *t, int dx, int dy);
 
 void
 textboxtyping(struct textbox *t, uint8_t *s, size_t l);

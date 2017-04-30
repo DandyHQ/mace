@@ -149,11 +149,11 @@ xhandlebuttonpress(XButtonEvent *e)
     break;
 
   case 4:
-    handlescroll(e->x, e->y, 0, -5);
+    handlescroll(e->x, e->y, -5);
     break;
     
   case 5:
-    handlescroll(e->x, e->y, 0, 5);
+    handlescroll(e->x, e->y, 5);
     break;
   }
 

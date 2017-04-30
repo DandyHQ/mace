@@ -11,33 +11,26 @@
 
 #include "mace.h"
 
+static struct colour nfg = { 0, 0, 0 };
+
 static bool
-nextline(struct textbox *t, int *x, int *y)
+buffergrow(struct textbox *t, int hn)
 {
   cairo_surface_t *sfc, *osfc;
   cairo_t *cr, *ocr;
-  int w, h;
+  int h;
   
-  *x = 0;
-  *y += lineheight;
-
   h = cairo_image_surface_get_height(t->sfc);
   
-  if (*y + lineheight < h) {
-    t->height = *y + lineheight;
+  if (h > hn) {
     return true;
   }
-
-  printf("grow textbox surface\n");
 
   osfc = t->sfc;
   ocr = t->cr;
   
-  w = cairo_image_surface_get_width(osfc);
-
   sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
-				   w,
-				   *y + lineheight * 30);
+				   t->linewidth, hn);
   if (sfc == NULL) {
     return false;
   }
@@ -49,7 +42,7 @@ nextline(struct textbox *t, int *x, int *y)
   }
 
   cairo_set_source_surface(cr, osfc, 0, 0);
-  cairo_rectangle(cr, 0, 0, w, h);
+  cairo_rectangle(cr, 0, 0, t->linewidth, h);
   cairo_fill(cr);
 
   t->sfc = sfc;
@@ -58,30 +51,31 @@ nextline(struct textbox *t, int *x, int *y)
   cairo_destroy(ocr);
   cairo_surface_destroy(osfc);
 
-  t->height = *y + lineheight;
-
   return true;
 }
 
+static bool
+nextline(struct textbox *t, int *x, int *y)
+{
+  *x = 0;
+  *y += lineheight;
+
+  if (buffergrow(t, *y + lineheight * 10)) {
+    t->height = *y + lineheight;
+    return true;
+  } else {
+    return false;
+  }
+}
+
 static void 
-drawglyph(struct textbox *t, int x, int y, int32_t pos)
+drawglyph(struct textbox *t, int x, int y, int32_t pos,
+	  struct colour *fg, struct colour *bg)
 {
   uint8_t buf[1024]; /* Hopefully this is big enough */
   FT_Bitmap *map = &face->glyph->bitmap;
   cairo_surface_t *s;
   int stride, h;
-
-  struct colour *fg, *bg;
-  struct colour test1 = { 0.1, 0.5, 1.0 };
-  struct colour test2 = { 1.0, 0.5, 1.0 };
-
-  if (t->cursor == pos) {
-    fg = &test1;
-    bg = &test2;
-  } else {
-    fg = &test2;
-    bg = &test1;
-  }
 
   /* The buffer needs to be in a format cairo accepts */
 
@@ -115,22 +109,42 @@ drawglyph(struct textbox *t, int x, int y, int32_t pos)
   cairo_surface_destroy(s);
 }
 
+static void
+drawcursor(struct textbox *t, int x, int y)
+{
+  cairo_set_source_rgb(t->cr, 0, 0, 0);
+  cairo_set_line_width (cr, 1.0);
+
+  cairo_move_to(t->cr, x, y);
+  cairo_line_to(t->cr, x, y + lineheight - 1);
+  cairo_stroke(t->cr);
+
+  cairo_move_to(t->cr, x - 2, y);
+  cairo_line_to(t->cr, x + 2, y);
+  cairo_stroke(t->cr);
+
+  cairo_move_to(t->cr, x - 2, y + lineheight - 1);
+  cairo_line_to(t->cr, x + 2, y + lineheight - 1);
+  cairo_stroke(t->cr);
+}
+
 bool
 textboxpredraw(struct textbox *t)
 {
   int32_t code, i, a, pos;
-  int x, y, ww;
   struct piece *p;
+  int x, y, ww;
 
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
-
+ 
   pos = 0;
   x = 0;
-
-  /* Hacky */
-  y = -lineheight;
-  if (!nextline(t, &x, &y)) {
+  y = 0;
+  
+  if (buffergrow(t, lineheight * 10)) {
+    t->height = lineheight;
+  } else {
     return false;
   }
   
@@ -143,6 +157,10 @@ textboxpredraw(struct textbox *t)
       }
       
       if (islinebreak(code, p->s + i, p->pl - i, &a)) {
+	if (pos == t->cursor) {
+	  drawcursor(t, x, y);
+	}
+
 	if (!nextline(t, &x, &y)) {
 	  return false;
 	}
@@ -154,16 +172,24 @@ textboxpredraw(struct textbox *t)
 
       ww = face->glyph->advance.x >> 6;
 
-      if (x + ww >= cairo_image_surface_get_width(t->sfc)) {
+      if (x + ww >= t->linewidth) {
 	if (!nextline(t, &x, &y)) {
 	  return false;
 	}
       }
 
-      drawglyph(t, x, y, pos);
+      drawglyph(t, x, y, pos, &nfg, &t->bg);
+
+      if (pos == t->cursor) {
+	drawcursor(t, x, y);
+      }
 
       x += ww;
     }
+  }
+
+  if (pos == t->cursor) {
+    drawcursor(t, x, y);
   }
 
   return true;
