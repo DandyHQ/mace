@@ -19,11 +19,14 @@ int baseline, lineheight;
 
 struct tab *tab;
 struct textbox *focus;
+struct selection *selections;
 
 void
 init(void)
 {
   uint8_t name[] = "Mace";
+  
+  selections = NULL;
   
   tab = tabnew(name, sizeof(name));
   if (tab == NULL) {

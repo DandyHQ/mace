@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
@@ -10,8 +12,7 @@
 #include "mace.h"
 
 struct selection *
-selectionnew(struct textbox *t,
-	     unsigned int start, unsigned int end)
+selectionnew(struct textbox *t, int32_t pos)
 {
   struct selection *s;
 
@@ -21,9 +22,9 @@ selectionnew(struct textbox *t,
   }
 
   s->textbox = t;
-  s->start = start;
-  s->end = end;
-  s->increasing = true;
+  s->start = pos;
+  s->end = pos;
+  s->direction = SELECTION_right;
 
   s->next = NULL;
   
@@ -37,31 +38,37 @@ selectionfree(struct selection *s)
 }
 
 bool
-selectionupdate(struct selection *s, unsigned int end)
+selectionupdate(struct selection *s, int32_t pos)
 {
-  if (s->increasing && end < s->start) {
-    s->end = s->start;
-    s->start = end;
-    s->increasing = false;
-    return true;
-  } else if (!s->increasing && end > s->start) {
-    s->start = s->end;
-    s->end = end;
-    s->increasing = true;
-    return true;
-  } else if (!s->increasing && end != s->start) {
-    s->start = end;
-    return true;
-  } else if (s->increasing && end != s->end) {
-    s->end = end;
-    return true;
+  if (s->direction == SELECTION_right) {
+    if (pos < s->start) {
+      s->direction = SELECTION_left;
+      s->end = s->start;
+      s->start = pos;
+      return true;
+    } else if (pos != s->end) {
+      s->end = pos;
+      return true;
+    } else {
+      return false;
+    }
   } else {
-    return false;
+    if (pos > s->end) {
+      s->direction = SELECTION_right;
+      s->start = s->end;
+      s->end = pos;
+      return true;
+    } else if (pos != s->start) {
+      s->start = pos;
+      return true;
+    } else {
+      return false;
+    }
   }
 }
 
 struct selection *
-inselections(struct textbox *t, unsigned int pos)
+inselections(struct textbox *t, int32_t pos)
 {
   struct selection *s;
 
@@ -72,46 +79,5 @@ inselections(struct textbox *t, unsigned int pos)
   }
 
   return NULL;
-}
-
-uint8_t *
-selectiontostring(struct selection *s)
-{
-  struct piece *p;
-  int pos, b, l;
-  uint8_t *buf;
-
-  buf = malloc(sizeof(uint8_t) * (s->end - s->start + 1));
-  if (buf == NULL) {
-    return NULL;
-  }
-  
-  pos = 0;
-  for (p = s->textbox->pieces; p != NULL; p = p->next) {
-    if (pos > s->end) {
-      break;
-    } else if (pos + p->pl < s->start) {
-      pos += p->pl;
-      continue;
-    }
-
-    if (pos < s->start) {
-      b = s->start - pos;
-    } else {
-      b = 0;
-    }
-
-    if (pos + p->pl > s->end + 1) {
-      l = s->end + 1 - pos - b;
-    } else {
-      l = p->pl - b;
-    }
-
-    memmove(buf + (pos + b - s->start), p->s + b, l);
-    pos += b + l;
-  }
-
-  buf[pos - s->start] = 0;
-  return buf;
 }
 

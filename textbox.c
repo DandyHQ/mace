@@ -116,7 +116,7 @@ textboxresize(struct textbox *t, int lw)
 static struct piece *
 findpos(struct textbox *t,
 	int x, int y,
-	int *pos, int *i)
+	int32_t *pos, int32_t *i)
 {
   int32_t code, a;
   struct piece *p;
@@ -177,12 +177,59 @@ findpos(struct textbox *t,
   return NULL;
 }
 
+static uint8_t *
+rangetostring(struct textbox *t,
+	      int32_t start, int32_t end,
+	      size_t *len)
+{
+  struct piece *p;
+  int pos, b, l;
+  uint8_t *buf;
+
+  *len = end - start + 1;
+  buf = malloc(*len);
+  if (buf == NULL) {
+    return NULL;
+  }
+  
+  pos = 0;
+  for (p = t->pieces; p != NULL; p = p->next) {
+    if (pos > end) {
+      break;
+    } else if (pos + p->pl < start) {
+      pos += p->pl;
+      continue;
+    }
+
+    if (pos < start) {
+      b = start - pos;
+    } else {
+      b = 0;
+    }
+
+    if (pos + p->pl > end + 1) {
+      l = end + 1 - pos - b;
+    } else {
+      l = p->pl - b;
+    }
+
+    memmove(buf + (pos + b - start), p->s + b, l);
+    pos += b + l;
+  }
+
+  buf[pos - start] = 0;
+  return buf;
+}
+
 void
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
+  int32_t pos, i, start, end;
+  struct selection *s, *sn;
   struct piece *p;
-  int pos, i;
+  uint8_t *cmd;
+  size_t len;
   
   p = findpos(t, x, y + t->yoff, &pos, &i);
   if (p == NULL) {
@@ -194,12 +241,49 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     t->cpiece = NULL;
     t->cursor = pos;
 
+    /* In future there will be a way to have multiple selections */
+    
+    s = selections;
+    while (s != NULL) {
+      sn = s->next;
+      selectionfree(s);
+      s = sn;
+    }
+
+    selections = NULL;
+    
+    t->csel = selectionnew(t, pos);
+    if (t->csel != NULL) {
+      t->csel->next = selections;
+      selections = t->csel;
+    }
+    
     textboxpredraw(t);
     tabdraw(t->tab);
     
     break;
 
   case 3:
+    s = inselections(t, pos);
+    if (s != NULL) {
+      start = s->start;
+      end = s->end;
+    } else if (!piecefindword(t->pieces, pos, &start, &end)) {
+      return;
+    }
+
+    cmd = rangetostring(t, start, end, &len);
+    if (cmd == NULL) {
+      return;
+    }
+    
+    docommand(cmd, len);
+
+    free(cmd);
+
+    textboxpredraw(t);
+    tabdraw(t->tab);
+
     break;
   }
 }
@@ -208,16 +292,28 @@ void
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
-  switch (button) {
-  case 1:
-    break;
-  }
+  t->csel = NULL;
 }
 
 void
 textboxmotion(struct textbox *t, int x, int y)
 {
+  struct piece *p;
+  int pos, i;
+  
+  if (t->csel == NULL) {
+    return;
+  }
+   
+  p = findpos(t, x, y + t->yoff, &pos, &i);
+  if (p == NULL) {
+    return;
+  }
 
+  if (selectionupdate(t->csel, pos)) {
+    textboxpredraw(t);
+    tabdraw(t->tab);
+  }
 }
 
 void

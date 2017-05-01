@@ -280,6 +280,7 @@ main(int argc, char **argv)
 
   init();
   fontinit();
+  luainit();
 
   tabresize(tab, 0, 0, width, height);
 

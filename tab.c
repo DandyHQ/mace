@@ -202,15 +202,8 @@ tabdrawmain(struct tab *t, int y)
 
   /* Draw scroll bar */
 
-  pos = (int) (
-	       (float) t->main->yoff
-	       / (float) t->main->height
-	       * (t->height - y));
-
-  size = (int) (
-		(float) h
-		/ (float) t->main->height
-		* (t->height - y));
+  pos = t->main->yoff * (t->height - y) / t->main->height;
+  size = h * (t->height - y) / t->main->height;
 
   cairo_set_source_rgb(cr, 0, 0, 0);
   cairo_move_to(cr, t->x + t->main->linewidth, t->y + y);

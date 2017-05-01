@@ -7,6 +7,7 @@ cc = meson.get_compiler('c')
 x11        = dependency('x11')
 cairo      = dependency('cairo')
 ft         = dependency('freetype2')
+lua        = dependency('lua53')
 utf8proc   = cc.find_library('utf8proc', dirs : ['/usr/local/lib'])
 
 executable('mace',
@@ -20,6 +21,8 @@ executable('mace',
 		  'tab.c',
 		  'textbox.c',
 		  'textboxdraw.c',
+		  'selection.c',
+		  'lua.c',
 		  'xmain.c'
 		],
 
@@ -31,6 +34,7 @@ executable('mace',
 	          x11,
 		  cairo,
 		  ft,
+		  lua,
 		  utf8proc,
 		]
 	)

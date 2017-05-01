@@ -12,6 +12,7 @@
 #include "mace.h"
 
 static struct colour nfg = { 0, 0, 0 };
+static struct colour sbg = { 0.5, 0.8, 0.7 };
 
 static bool
 buffergrow(struct textbox *t, int hn)
@@ -132,6 +133,8 @@ bool
 textboxpredraw(struct textbox *t)
 {
   int32_t code, i, a, pos;
+  struct selection *sel;
+  struct colour *bg;
   struct piece *p;
   int x, y, ww;
 
@@ -155,8 +158,16 @@ textboxpredraw(struct textbox *t)
 	a = 1;
 	continue;
       }
+
+      sel = inselections(t, pos);
       
       if (islinebreak(code, p->s + i, p->pl - i, &a)) {
+	if (sel != NULL) {
+	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
+	  cairo_rectangle(t->cr, x, y, t->linewidth - x, lineheight);
+	  cairo_fill(t->cr);
+	}
+	    
 	if (pos == t->cursor) {
 	  drawcursor(t, x, y);
 	}
@@ -173,12 +184,24 @@ textboxpredraw(struct textbox *t)
       ww = face->glyph->advance.x >> 6;
 
       if (x + ww >= t->linewidth) {
+	if (sel != NULL) {
+	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
+	  cairo_rectangle(t->cr, x, y, t->linewidth - x, lineheight);
+	  cairo_fill(t->cr);
+	}
+
 	if (!nextline(t, &x, &y)) {
 	  return false;
 	}
       }
 
-      drawglyph(t, x, y, pos, &nfg, &t->bg);
+      if (sel != NULL) {
+	bg = &sbg;
+      } else {
+	bg = &t->bg;
+      }
+      
+      drawglyph(t, x, y, pos, &nfg, bg);
 
       if (pos == t->cursor) {
 	drawcursor(t, x, y);

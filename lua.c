@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+
+#include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
@@ -14,6 +16,12 @@
 #include "mace.h"
 
 static lua_State *lua = NULL;
+
+void
+docommand(uint8_t *cmd, size_t len)
+{
+  printf("should do command '%s'\n", cmd);
+}
 
 static int
 lloadfont(lua_State *L)

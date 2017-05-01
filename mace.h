@@ -26,7 +26,6 @@ typedef enum {
   KEY_escape
 } keycode_t;
 
-
 struct piece {
   struct piece *prev, *next;
 
@@ -39,6 +38,18 @@ struct colour {
   double r, g, b;
 };
 
+
+typedef enum { SELECTION_left, SELECTION_right } selection_t;
+
+struct selection {
+  struct textbox *textbox;
+  
+  int32_t start, end;
+  selection_t direction;
+
+  struct selection *next;
+};
+
 struct textbox {
   struct tab *tab;
   
@@ -46,7 +57,8 @@ struct textbox {
 
   int32_t cursor;
   struct piece *cpiece;
-
+  struct selection *csel;
+  
   struct colour bg;
 
   cairo_t *cr;
@@ -66,10 +78,11 @@ struct tab {
   struct tab *next;
 };
 
-
 void
 init(void);
 
+void
+luainit(void);
 
 void
 fontinit(void);
@@ -80,32 +93,18 @@ fontload(const uint8_t *name, size_t size);
 bool
 loadglyph(int32_t code);
 
+/* Checks if code warrents a line break.
+   May update l if code requires consuming more code points such as a 
+   "\r\n". */
 bool
 islinebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l);
 
+/* Checks if code is a word break. */
 bool
 iswordbreak(int32_t code);
-void
-handletyping(uint8_t *s, size_t n);
 
 void
-handlekeypress(keycode_t k);
-
-void
-handlekeyrelease(keycode_t k);
-
-void
-handlebuttonpress(int x, int y, int b);
-
-void
-handlebuttonrelease(int x, int y, int b);
-
-void
-handlemotion(int x, int y);
-
-void
-handlescroll(int x, int y, int dy);
-
+docommand(uint8_t *cmd, size_t len);
 
 struct tab *
 tabnew(uint8_t *name, size_t len);
@@ -166,6 +165,17 @@ textboxkeypress(struct textbox *t, keycode_t k);
 void
 textboxkeyrelease(struct textbox *t, keycode_t k);
 
+struct selection *
+selectionnew(struct textbox *t, int32_t pos);
+
+void
+selectionfree(struct selection *s);
+
+bool
+selectionupdate(struct selection *s, int32_t pos);
+
+struct selection *
+inselections(struct textbox *t, int32_t pos);
 
 /* Creates a new piece. Claims the string s as its own,
    s should have a allocated length of rl and a used lenght of pl.
@@ -218,6 +228,28 @@ bool
 pieceappend(struct piece *p, uint8_t *s, size_t l);
 
 
+void
+handletyping(uint8_t *s, size_t n);
+
+void
+handlekeypress(keycode_t k);
+
+void
+handlekeyrelease(keycode_t k);
+
+void
+handlebuttonpress(int x, int y, int b);
+
+void
+handlebuttonrelease(int x, int y, int b);
+
+void
+handlemotion(int x, int y);
+
+void
+handlescroll(int x, int y, int dy);
+
+
 extern int width, height;
 extern cairo_t *cr;
 
@@ -226,3 +258,4 @@ extern int baseline, lineheight;
 
 extern struct tab *tab;
 extern struct textbox *focus;
+extern struct selection *selections;
