@@ -226,9 +226,9 @@ textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
   int32_t pos, i, start, end;
-  struct selection *s, *sn;
+  struct selection *sel, *seln;
   struct piece *p;
-  uint8_t *cmd;
+  uint8_t *s;
   size_t len;
   
   p = findpos(t, x, y + t->yoff, &pos, &i);
@@ -243,11 +243,11 @@ textboxbuttonpress(struct textbox *t, int x, int y,
 
     /* In future there will be a way to have multiple selections */
     
-    s = selections;
-    while (s != NULL) {
-      sn = s->next;
-      selectionfree(s);
-      s = sn;
+    sel = selections;
+    while (sel != NULL) {
+      seln = sel->next;
+      selectionfree(sel);
+      sel = seln;
     }
 
     selections = NULL;
@@ -264,22 +264,22 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     break;
 
   case 3:
-    s = inselections(t, pos);
-    if (s != NULL) {
-      start = s->start;
-      end = s->end;
+    sel = inselections(t, pos);
+    if (sel != NULL) {
+      start = sel->start;
+      end = sel->end;
     } else if (!piecefindword(t->pieces, pos, &start, &end)) {
       return;
     }
 
-    cmd = rangetostring(t, start, end, &len);
-    if (cmd == NULL) {
+    s = rangetostring(t, start, end, &len);
+    if (s == NULL) {
       return;
     }
     
-    docommand(cmd, len);
+    eval(t->tab->main, s, len);
 
-    free(cmd);
+    free(s);
 
     textboxpredraw(t);
     tabdraw(t->tab);

@@ -15,12 +15,21 @@
 
 #include "mace.h"
 
-static lua_State *lua = NULL;
+static lua_State *L= NULL;
 
 void
-docommand(uint8_t *cmd, size_t len)
+eval(struct textbox *main, uint8_t *s, size_t len)
 {
-  printf("should do command '%s'\n", cmd);
+  printf("getting lua to eval '%s'\n", s);
+  
+  lua_getglobal(L, "eval");
+  lua_pushlightuserdata(L, main);
+  lua_pushlstring(L, s, len);
+
+  if (lua_pcall(L, 2, 0, 0) != LUA_OK) {
+    fprintf(stderr, "error calling eval: %s\n", lua_tostring(L, -1));
+    return;
+  }
 }
 
 static int
@@ -40,36 +49,35 @@ lloadfont(lua_State *L)
   return 1; 
 }
 
-luaL_Reg funcs[] = {
+static const struct luaL_Reg funcs[] = {
   { "loadfont", lloadfont },
+  { NULL, NULL }
 };
 
 void
 luainit(void)
 {
-  int r, i;
+  int r;
 
-  lua = luaL_newstate();
-  if (lua == NULL) {
+  L = luaL_newstate();
+  if (L == NULL) {
     errx(1, "Failed to initalize lua!");
   }
 
-  luaL_openlibs(lua);
+  luaL_openlibs(L);
 
-  for (i = 0; i < sizeof(funcs) / sizeof(funcs[0]); i++) {
-    lua_pushcfunction(lua, funcs[i].func);
-    lua_setglobal(lua, funcs[i].name);
-  }
-  
-  r = luaL_loadfile(lua, "init.lua");
+  luaL_newlib(L, funcs);
+  lua_setglobal(L, "mace");
+
+  r = luaL_loadfile(L, "init.lua");
   if (r == LUA_ERRFILE) {
     errx(1, "Failed to open init.lua");
   } else if (r != LUA_OK) {
-    errx(1, "Error loading init: %s", lua_tostring(lua, -1));
+    errx(1, "Error loading init: %s", lua_tostring(L, -1));
   }
 
-  r = lua_pcall(lua, 0, LUA_MULTRET, 0);
+  r = lua_pcall(L, 0, LUA_MULTRET, 0);
   if (r != LUA_OK) {
-    errx(1, "Error running init: %s", lua_tostring(lua, -1));
+    errx(1, "Error running init: %s", lua_tostring(L, -1));
   }
 }

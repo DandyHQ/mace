@@ -104,7 +104,7 @@ bool
 iswordbreak(int32_t code);
 
 void
-docommand(uint8_t *cmd, size_t len);
+eval(struct textbox *main, uint8_t *s, size_t len);
 
 struct tab *
 tabnew(uint8_t *name, size_t len);
