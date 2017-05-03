@@ -15,25 +15,158 @@
 
 #include "mace.h"
 
-static lua_State *L= NULL;
+static lua_State *L = NULL;
+
+static struct textbox *
+lua_checktextbox(lua_State *L)
+{
+  luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
+  return (struct textbox *) lua_touserdata(L, 1);
+}
+
+static int
+ltextboxtostring(lua_State *L)
+{
+  struct textbox *t = lua_checktextbox(L);
+
+  lua_pushfstring(L, "textbox[%d %dx%d -> %d]", t->cursor,
+		  t->linewidth, t->height, t->yoff);
+
+  return 1;
+}
+
+static int
+ltextboxcursor(lua_State *L)
+{
+  struct textbox *t = lua_checktextbox(L);
+
+  lua_pushnumber(L, t->cursor);
+
+  return 1;
+}
+
+static int
+ltextboxpieces(lua_State *L)
+{
+  struct textbox *t = lua_checktextbox(L);
+
+  lua_pushlightuserdata(L, t->pieces);
+
+  return 1;
+}
+
+static int
+ltextboxdata(lua_State *L)
+{
+  struct textbox *t = lua_checktextbox(L);
+
+  lua_pushlightuserdata(L, t->data);
+
+  return 1;
+}
+
+static const struct luaL_Reg textbox_f[] = {
+  { "tostring",   ltextboxtostring },
+  { "cursor",     ltextboxcursor },
+  { "pieces",     ltextboxpieces },
+  { "data",       ltextboxdata },
+  { NULL, NULL },
+};
+
+static struct piece *
+lua_checkpiece(lua_State *L)
+{
+  luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
+  return (struct piece *) lua_touserdata(L, 1);
+}
+
+static int
+lpiecenext(lua_State *L)
+{
+  struct piece *p = lua_checkpiece(L);
+
+  lua_pushlightuserdata(L, p->next);
+
+  return 1;
+}
+
+static int
+lpieceprev(lua_State *L)
+{
+  struct piece *p = lua_checkpiece(L);
+
+  lua_pushlightuserdata(L, p->prev);
+
+  return 1;
+}
+
+static int
+lpiecelen(lua_State *L)
+{
+  struct piece *p = lua_checkpiece(L);
+
+  lua_pushnumber(L, p->pl);
+
+  return 1;
+}
+
+static int
+lpiecestart(lua_State *L)
+{
+  struct piece *p = lua_checkpiece(L);
+
+  lua_pushlstring(L, p->s, p->pl);
+
+  return 1;
+}
+
+static const struct luaL_Reg piece_f[] = {
+  { "prev",      lpieceprev },
+  { "next",      lpiecenext },
+  { "start",     lpiecestart },
+  { "len",       lpiecelen },
+  { NULL, NULL },
+};
 
 void
-eval(struct textbox *main, uint8_t *s, size_t len)
+command(struct textbox *main, uint8_t *s)
 {
-  printf("getting lua to eval '%s'\n", s);
+  struct selection *sel;
+  int index;
   
-  lua_getglobal(L, "eval");
+  lua_getglobal(L, s);
+
   lua_pushlightuserdata(L, main);
-  lua_pushlstring(L, s, len);
+
+  lua_newtable(L);
+  index = 0;
+  for (sel = selections; sel != NULL; sel = sel->next) {
+    lua_pushnumber(L, index++);
+    lua_newtable(L);
+
+    lua_pushstring(L, "start");
+    lua_pushnumber(L, sel->start);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "len");
+    lua_pushnumber(L, sel->end - sel->start + 1);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "textbox");
+    lua_pushlightuserdata(L, sel->textbox);
+    lua_settable(L, -3);
+
+    lua_settable(L, -3);
+  }
 
   if (lua_pcall(L, 2, 0, 0) != LUA_OK) {
-    fprintf(stderr, "error calling eval: %s\n", lua_tostring(L, -1));
+    fprintf(stderr, "error calling %s: %s\n", s, lua_tostring(L, -1));
     return;
   }
 }
 
 static int
-lloadfont(lua_State *L)
+lsetfont(lua_State *L)
 {
   const uint8_t *name;
   size_t size, len;
@@ -42,7 +175,7 @@ lloadfont(lua_State *L)
   name = (const uint8_t *) luaL_checklstring(L, -2, &len);
   size = luaL_checknumber(L, -1);
 
-  r = fontload(name, size);
+  r = fontset(name, size);
   
   lua_pushnumber(L, r);
 
@@ -50,7 +183,7 @@ lloadfont(lua_State *L)
 }
 
 static const struct luaL_Reg funcs[] = {
-  { "loadfont", lloadfont },
+  { "setfont", lsetfont },
   { NULL, NULL }
 };
 
@@ -68,6 +201,12 @@ luainit(void)
 
   luaL_newlib(L, funcs);
   lua_setglobal(L, "mace");
+
+  luaL_newlib(L, textbox_f);
+  lua_setglobal(L, "textbox");
+
+  luaL_newlib(L, piece_f);
+  lua_setglobal(L, "piece");
 
   r = luaL_loadfile(L, "init.lua");
   if (r == LUA_ERRFILE) {

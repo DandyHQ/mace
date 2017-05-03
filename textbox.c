@@ -277,7 +277,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       return;
     }
     
-    eval(t->tab->main, s, len);
+    command(t->tab->main, s);
 
     free(s);
 

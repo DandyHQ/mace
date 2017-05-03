@@ -4,7 +4,7 @@ fonts = {
 }
 
 for key, value in pairs(fonts) do
-   e = mace.loadfont(value, 15)
+   e = mace.setfont(value, 15)
    if e == 0 then
       break
    end
@@ -14,7 +14,11 @@ if e ~= 0 then
    error("Failed to load a font!")
 end
 
-function eval(textbox, s)
-   io.write("lua should eval ", s, " in textbox: ", textbox, "\n")
+function test(main, selections)
+   print("textbox: ", textbox.tostring(main))
+   for key, sel in pairs(selections) do
+      print("start = ", sel.start)
+      print("len   = ", sel.len)
+      print("tb = ", textbox.tostring(sel.textbox))
+   end
 end
-

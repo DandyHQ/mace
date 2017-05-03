@@ -54,6 +54,7 @@ struct textbox {
   struct tab *tab;
   
   struct piece *pieces;
+  uint8_t *data;
 
   int32_t cursor;
   struct piece *cpiece;
@@ -88,7 +89,7 @@ void
 fontinit(void);
 
 int
-fontload(const uint8_t *name, size_t size);
+fontset(const uint8_t *name, size_t size);
 
 bool
 loadglyph(int32_t code);
@@ -104,7 +105,7 @@ bool
 iswordbreak(int32_t code);
 
 void
-eval(struct textbox *main, uint8_t *s, size_t len);
+command(struct textbox *main, uint8_t *s);
 
 struct tab *
 tabnew(uint8_t *name, size_t len);

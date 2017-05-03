@@ -24,11 +24,11 @@ fontinit(void)
   }
 
   /* TODO: Load a default font. */
-  fontload("/usr/X11R6/lib/X11/fonts/TTF/DejaVuSans.ttf", 15);
+  fontset("/usr/X11R6/lib/X11/fonts/TTF/DejaVuSans.ttf", 15);
 }
 
 int
-fontload(const uint8_t *name, size_t size)
+fontset(const uint8_t *name, size_t size)
 {
   int e;
 

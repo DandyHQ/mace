@@ -28,7 +28,7 @@ init(void)
   
   selections = NULL;
   
-  tab = tabnew(name, sizeof(name));
+  tab = tabnew(name, strlen(name));
   if (tab == NULL) {
     errx(1, "Failed to create main tab!");
   }
