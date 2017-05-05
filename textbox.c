@@ -11,9 +11,6 @@
 
 #include "mace.h"
 
-bool
-textboxpredraw(struct textbox *t);
-
 struct textbox *
 textboxnew(struct tab *tab,
 	   struct colour *bg)
@@ -78,7 +75,7 @@ textboxresize(struct textbox *t, int lw)
   }
 
   t->sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
-				       lw, lineheight * 30);
+				      lw, lineheight * 30);
   if (t->sfc == NULL) {
     return false;
   }
@@ -159,8 +156,8 @@ void
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
-  struct selection *sel, *seln;
   size_t pos, start, len;
+  struct selection *sel;
   uint8_t *buf;
   
   pos = findpos(t, x, y + t->yoff);
@@ -169,26 +166,8 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   case 1:
     t->cursor = pos;
 
-    /* In future there will be a way to have multiple selections */
-    
-    sel = selections;
-    selections = NULL;
-
-    while (sel != NULL) {
-      seln = sel->next;
-
-      textboxpredraw(sel->textbox);
-      tabdraw(sel->textbox->tab);
-
-      selectionfree(sel);
-      sel = seln;
-    }
-
-    t->csel = selectionnew(t, pos);
-    if (t->csel != NULL) {
-      t->csel->next = selections;
-      selections = t->csel;
-    }
+    t->csel = selectionreplace(t, pos);
+    t->cselvalid = false;
     
     textboxpredraw(t);
     tabdraw(t->tab);
@@ -209,7 +188,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       return;
     }
 
-    if (!sequencecopytobuf(t->text, start, buf, len)) {
+    if (!sequenceget(t->text, start, buf, len)) {
       return;
     }
 
@@ -230,6 +209,13 @@ void
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
+  if (!t->cselvalid && t->csel != NULL) {
+    selectionremove(t->csel);
+
+    textboxpredraw(t);
+    tabdraw(t->tab);
+  }
+  
   t->csel = NULL;
 }
 
@@ -245,6 +231,7 @@ textboxmotion(struct textbox *t, int x, int y)
   pos = findpos(t, x, y + t->yoff);
 
   if (selectionupdate(t->csel, pos)) {
+    t->cselvalid = true;
     textboxpredraw(t);
     tabdraw(t->tab);
   }
@@ -327,7 +314,9 @@ textboxkeypress(struct textbox *t, keycode_t k)
     
   case KEY_tab:
     break;
-    
+
+
+    /* TODO: improve significantly */
 
   case KEY_delete:
     if (selections == NULL) {
@@ -353,26 +342,25 @@ textboxkeypress(struct textbox *t, keycode_t k)
     } 
 
     /* Delete selections */
-    
-    sel = selections;
-    selections = NULL;
 
-    while (sel != NULL) {
+    for (sel = selections; sel != NULL; sel = nsel) {
       nsel = sel->next;
 
-      if (sequencedelete(sel->textbox->text,
-			 sel->start,
-			 sel->end - sel->start + 1)) {
+      if (sel->textbox != t) {
+	continue;
+      }
 
-	textboxpredraw(sel->textbox);
-	tabdraw(sel->textbox->tab);
+      if (sel->start <= t->cursor && t->cursor <= sel->end) {
+	t->cursor = sel->start;
       }
       
-      selectionfree(sel);
-
-      sel = nsel;
+      sequencedelete(t->text, sel->start, sel->end - sel->start + 1);
+      selectionremove(sel);
     }
 
+    textboxpredraw(t);
+    tabdraw(t->tab);
+ 
     break;
 
   case KEY_escape:

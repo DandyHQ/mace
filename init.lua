@@ -15,10 +15,25 @@ if e ~= 0 then
 end
 
 function test(main, selections)
-   print("textbox: ", textbox.tostring(main))
+   print("lua function test called")
+
+   seq = textbox.sequence(main)
+
+   
+   str = sequence.get(seq, 10, 10)
+   print("got ", str)
+
+   print("insert message")
+
+   sequence.insert(seq, 0, "\nhello there\n")
+
+   print("go through selections")
+
    for key, sel in pairs(selections) do
       print("start = ", sel.start)
       print("len   = ", sel.len)
-      print("tb = ", textbox.tostring(sel.textbox))
+      print("tb = ", sel.textbox)
    end
+
+   print("test finished")
 end

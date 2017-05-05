@@ -104,7 +104,7 @@ pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 }
 
 static bool
-appenddata(struct sequence *s, uint8_t *data, size_t len)
+appenddata(struct sequence *s, const uint8_t *data, size_t len)
 {
   if (s->dlen + len >= s->dmax) {
     s->data = realloc(s->data, s->dlen + len);
@@ -124,7 +124,7 @@ appenddata(struct sequence *s, uint8_t *data, size_t len)
 
 static bool
 sequenceappend(struct sequence *s, ssize_t p, size_t pos,
-	       uint8_t *data, size_t len)
+	       const uint8_t *data, size_t len)
 {
   if (p != SEQ_start && p != SEQ_end
       && s->pieces[p].pos + s->pieces[p].len == pos
@@ -146,7 +146,7 @@ sequenceappend(struct sequence *s, ssize_t p, size_t pos,
 
 bool
 sequenceinsert(struct sequence *s, size_t pos,
-	       uint8_t *data, size_t len)
+	       const uint8_t *data, size_t len)
 {
   ssize_t p, pprev, pnext, n, l, r;
   size_t i;
@@ -365,9 +365,9 @@ sequencefindword(struct sequence *s, size_t pos,
   return true;
 }
 
-bool
-sequencecopytobuf(struct sequence *s, size_t pos,
-		  uint8_t *buf, size_t len)
+size_t
+sequenceget(struct sequence *s, size_t pos,
+	    uint8_t *buf, size_t len)
 {
   size_t i, l, b;
   size_t p;
@@ -401,5 +401,5 @@ sequencecopytobuf(struct sequence *s, size_t pos,
     i += b + l;
   }
   
-  return true;
+  return i - pos;
 }

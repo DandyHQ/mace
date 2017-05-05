@@ -44,7 +44,6 @@ tabnew(uint8_t *name, size_t len)
   }
 
   if (!sequenceinsert(t->action->text, 0, name, len)) {
-    printf("failed to insert name\n");
     textboxfree(t->action);
     free(t->name);
     free(t);
@@ -52,14 +51,11 @@ tabnew(uint8_t *name, size_t len)
   }    
 
   if (!sequenceinsert(t->action->text, len, s, strlen(s))) {
-    printf("failed to insert extra\n");
     textboxfree(t->action);
     free(t->name);
     free(t);
     return NULL;
   }    
-
-  printf("make main\n");
 
   t->main = textboxnew(t, &bg);
   if (t->main == NULL) {
@@ -70,9 +66,6 @@ tabnew(uint8_t *name, size_t len)
   }
 
   t->action->cursor = len + strlen(s);
-
-  t->next = NULL;
-  printf("tab made\n");
 
   return t;
 } 

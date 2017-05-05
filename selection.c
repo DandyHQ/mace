@@ -11,7 +11,7 @@
 
 #include "mace.h"
 
-struct selection *
+static struct selection *
 selectionnew(struct textbox *t, int32_t pos)
 {
   struct selection *s;
@@ -26,14 +26,65 @@ selectionnew(struct textbox *t, int32_t pos)
   s->end = pos;
   s->direction = SELECTION_right;
 
-  s->next = NULL;
+  return s;
+}
+
+struct selection *
+selectionadd(struct textbox *t, int32_t pos)
+{
+  struct selection *s;
+
+  s = selectionnew(t, pos);
+  if (s == NULL) {
+    return NULL;
+  }
+
+  s->next = selections;
+  selections = s;
+
+  return s;
+}
+
+struct selection *
+selectionreplace(struct textbox *t, int32_t pos)
+{
+  struct selection *s, *o;
+
+  s = selections;
+  while (s != NULL) {
+    o = s->next;
+    selectionremove(s);
+    s = o;
+  }
   
+  s = selectionnew(t, pos);
+  if (s == NULL) {
+    return NULL;
+  }
+  
+  s->next = NULL;
+  selections = s;
+
   return s;
 }
 
 void
-selectionfree(struct selection *s)
+selectionremove(struct selection *s)
 {
+  struct selection *o;
+
+  if (selections == s) {
+    selections = s->next;
+  } else {
+    for (o = selections; o->next != s; o = o->next)
+      ;
+
+    o->next = s->next;
+  }
+  
+  textboxpredraw(s->textbox);
+  tabdraw(s->textbox->tab);
+
   free(s);
 }
 

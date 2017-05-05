@@ -25,30 +25,105 @@ lua_checktextbox(lua_State *L)
 }
 
 static int
-ltextboxtostring(lua_State *L)
+ltextboxcursor(lua_State *L)
 {
   struct textbox *t = lua_checktextbox(L);
+  lua_pushnumber(L, t->cursor);
+  return 1;
+}
 
-  lua_pushfstring(L, "textbox[%d %dx%d -> %d]", t->cursor,
-		  t->linewidth, t->height, t->yoff);
+static int
+ltextboxsequence(lua_State *L)
+{
+  struct textbox *t = lua_checktextbox(L);
+  lua_pushlightuserdata(L, t->text);
+  return 1;
+}
+
+
+static const struct luaL_Reg textbox_f[] = {
+  { "cursor",     ltextboxcursor },
+  { "sequence",   ltextboxsequence },
+  { NULL, NULL },
+};
+
+static struct sequence *
+lua_checksequence(lua_State *L)
+{
+  luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
+  return (struct sequence *) lua_touserdata(L, 1);
+}
+
+static int
+lsequenceinsert(lua_State *L)
+{
+  const uint8_t *data;
+  struct sequence *s;
+  size_t pos, len;
+  bool r;
+  
+  s = lua_checksequence(L);
+  pos = luaL_checknumber(L, 2);
+  data = luaL_checklstring(L, 3, &len);
+
+  r = sequenceinsert(s, pos, data, len);
+
+  lua_pushboolean(L, r);
 
   return 1;
 }
 
 static int
-ltextboxcursor(lua_State *L)
+lsequencedelete(lua_State *L)
 {
-  struct textbox *t = lua_checktextbox(L);
+  struct sequence *s;
+  size_t start, len;
+  bool r;
+  
+  s = lua_checksequence(L);
+  start = luaL_checknumber(L, 2);
+  len = luaL_checknumber(L, 3);
 
-  lua_pushnumber(L, t->cursor);
+  r = sequencedelete(s, start, len);
 
+  lua_pushboolean(L, r);
+  
   return 1;
 }
 
-static const struct luaL_Reg textbox_f[] = {
-  { "tostring",   ltextboxtostring },
-  { "cursor",     ltextboxcursor },
-  { NULL, NULL },
+static int
+lsequenceget(lua_State *L)
+{
+  size_t start, len, i, l;
+  struct sequence *s;
+  uint8_t buf[512];
+  luaL_Buffer b;
+
+  s = lua_checksequence(L);
+  start = luaL_checknumber(L, 2);
+  len = luaL_checknumber(L, 3);
+
+  luaL_buffinit(L, &b);
+  
+  i = 0;
+  while (i < len) {
+    l = sequenceget(s, start + i, buf,
+		    sizeof(buf) > len - i ? len - i : sizeof(buf));
+
+    luaL_addlstring(&b, buf, l);
+    i += l;
+  }
+
+  luaL_pushresult(&b);
+  
+  return 1;
+}
+
+
+static const struct luaL_Reg sequence_f[] = {
+  { "insert",     lsequenceinsert },
+  { "delete",     lsequencedelete },
+  { "get",        lsequenceget },
 };
 
 void
@@ -127,6 +202,9 @@ luainit(void)
 
   luaL_newlib(L, textbox_f);
   lua_setglobal(L, "textbox");
+
+  luaL_newlib(L, sequence_f);
+  lua_setglobal(L, "sequence");
 
   r = luaL_loadfile(L, "init.lua");
   if (r == LUA_ERRFILE) {

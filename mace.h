@@ -1,6 +1,8 @@
+
 /* Most keys are just text and a given to functions as a utf8 encoded
    string. But some are not. And these are those special keys.
 */
+
 typedef enum {
   KEY_none,
 
@@ -36,7 +38,6 @@ struct piece {
 #define SEQ_start  0
 #define SEQ_end    1
 
-
 struct sequence {
   struct piece *pieces;
   size_t plen, pmax;
@@ -53,8 +54,8 @@ typedef enum { SELECTION_left, SELECTION_right } selection_t;
 
 struct selection {
   struct textbox *textbox;
-  
   int32_t start, end;
+
   selection_t direction;
 
   struct selection *next;
@@ -64,9 +65,10 @@ struct textbox {
   struct tab *tab;
   
   struct sequence *text;
-
   int32_t cursor;
+
   struct selection *csel;
+  bool cselvalid;
   
   struct colour bg;
 
@@ -83,8 +85,6 @@ struct tab {
   int x, y, width, height;
   
   struct textbox *action, *main;
-
-  struct tab *next;
 };
 
 void
@@ -95,6 +95,9 @@ luainit(void);
 
 void
 fontinit(void);
+
+
+
 
 int
 fontset(const uint8_t *name, size_t size);
@@ -112,8 +115,14 @@ islinebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l);
 bool
 iswordbreak(int32_t code);
 
+
+
+
 void
 command(struct textbox *main, uint8_t *s);
+
+
+
 
 struct tab *
 tabnew(uint8_t *name, size_t len);
@@ -140,6 +149,9 @@ tabbuttonrelease(struct tab *t, int x, int y,
 
 void
 tabmotion(struct tab *t, int x, int y);
+
+
+
 
 struct textbox *
 textboxnew(struct tab *tab,
@@ -174,17 +186,8 @@ textboxkeypress(struct textbox *t, keycode_t k);
 void
 textboxkeyrelease(struct textbox *t, keycode_t k);
 
-struct selection *
-selectionnew(struct textbox *t, int32_t pos);
-
-void
-selectionfree(struct selection *s);
-
 bool
-selectionupdate(struct selection *s, int32_t pos);
-
-struct selection *
-inselections(struct textbox *t, int32_t pos);
+textboxpredraw(struct textbox *t);
 
 
 
@@ -196,7 +199,7 @@ sequencefree(struct sequence *s);
 
 bool
 sequenceinsert(struct sequence *s, size_t pos,
-	       uint8_t *data, size_t len);
+	       const uint8_t *data, size_t len);
 
 bool
 sequencedelete(struct sequence *s, size_t pos, size_t len);
@@ -205,9 +208,29 @@ bool
 sequencefindword(struct sequence *s, size_t pos,
 		 size_t *start, size_t *len);
 
+size_t
+sequenceget(struct sequence *s, size_t pos,
+	    uint8_t *buf, size_t len);
+
+
+
+struct selection *
+selectionadd(struct textbox *t, int32_t pos);
+
+/* Removes all previous selections */
+
+struct selection *
+selectionreplace(struct textbox *t, int32_t pos);
+
+/* Free's the selection */
+void
+selectionremove(struct selection *s);
+
 bool
-sequencecopytobuf(struct sequence *s, size_t pos,
-		  uint8_t *buf, size_t len);
+selectionupdate(struct selection *s, int32_t pos);
+
+struct selection *
+inselections(struct textbox *t, int32_t pos);
 
 
 
@@ -241,4 +264,5 @@ extern int baseline, lineheight;
 
 extern struct tab *tab;
 extern struct textbox *focus;
+
 extern struct selection *selections;

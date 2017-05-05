@@ -12,21 +12,20 @@
 #include "mace.h"
 
 int width, height;
-cairo_t *cr;
+cairo_t *cr = NULL;
 
 FT_Face face;
 int baseline, lineheight;
 
-struct tab *tab;
-struct textbox *focus;
-struct selection *selections;
+struct tab *tab = NULL;
+struct textbox *focus = NULL;
+
+struct selection *selections = NULL;
 
 void
 init(void)
 {
   uint8_t name[] = "Mace";
-  
-  selections = NULL;
   
   tab = tabnew(name, strlen(name));
   if (tab == NULL) {
