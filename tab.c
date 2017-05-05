@@ -20,7 +20,6 @@ struct tab *
 tabnew(uint8_t *name, size_t len)
 {
   uint8_t s[128] = ": save cut copy paste search";
-  struct piece *p;
   struct tab *t;
 
   t = malloc(sizeof(struct tab));
@@ -44,25 +43,24 @@ tabnew(uint8_t *name, size_t len)
     return NULL;
   }
 
-  t->main = textboxnew(t, &bg);
-  if (t->main == NULL) {
-    textboxfree(t->action);
-    free(t->name);
-    free(t);
-    return NULL;
-  }
-
-  p = pieceinsert(t->action->pieces->next, 0, name, len);
-  if (p == NULL) {
-    textboxfree(t->main);
+  if (!sequenceinsert(t->action->text, 0, name, len)) {
     textboxfree(t->action);
     free(t->name);
     free(t);
     return NULL;
   }    
-  
-  if (pieceinsert(p, len, s, strlen(s)) == NULL) {
-    textboxfree(t->main);
+
+  if (!sequenceinsert(t->action->text, len, s, strlen(s))) {
+    textboxfree(t->action);
+    free(t->name);
+    free(t);
+    return NULL;
+  }    
+
+  printf("make main\n");
+
+  t->main = textboxnew(t, &bg);
+  if (t->main == NULL) {
     textboxfree(t->action);
     free(t->name);
     free(t);
@@ -72,6 +70,7 @@ tabnew(uint8_t *name, size_t len)
   t->action->cursor = len + strlen(s);
 
   t->next = NULL;
+  printf("tab made\n");
 
   return t;
 } 

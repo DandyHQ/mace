@@ -27,17 +27,25 @@ typedef enum {
 } keycode_t;
 
 struct piece {
-  struct piece *prev, *next;
+  ssize_t prev, next;
+  size_t off, len;
+};
 
-  size_t rl; /* Allocated length of s. */
-  size_t pl; /* Currently populated length of s. */
-  uint8_t *s;
+#define SEQ_start  0
+#define SEQ_end    1
+
+
+struct sequence {
+  struct piece *pieces;
+  size_t plen, pmax;
+  
+  uint8_t *data;
+  size_t dlen, dmax;
 };
 
 struct colour {
   double r, g, b;
 };
-
 
 typedef enum { SELECTION_left, SELECTION_right } selection_t;
 
@@ -53,11 +61,9 @@ struct selection {
 struct textbox {
   struct tab *tab;
   
-  struct piece *pieces;
-  uint8_t *data;
+  struct sequence *text;
 
   int32_t cursor;
-  struct piece *cpiece;
   struct selection *csel;
   
   struct colour bg;
@@ -178,55 +184,29 @@ selectionupdate(struct selection *s, int32_t pos);
 struct selection *
 inselections(struct textbox *t, int32_t pos);
 
-/* Creates a new piece. Claims the string s as its own,
-   s should have a allocated length of rl and a used lenght of pl.
-*/
-struct piece *
-piecenewgive(uint8_t *s, size_t rl, size_t pl);
 
-/* Creates a new piece copying the string s of length l into it's own 
-   buffer.
-*/
-struct piece *
-piecenewcopy(uint8_t *s, size_t l);
 
-/* Creates a new tag piece. Tag pieces have no buffers. */
-struct piece *
-piecenewtag(void);
+struct sequence *
+sequencenew(void);
 
-/* Frees the piece and its buffer. */
 void
-piecefree(struct piece *p);
+sequencefree(struct sequence *s);
 
-/* Finds pos in list of pieces. Sets *i to index in piece returned. */
-struct piece *
-piecefind(struct piece *pieces, int pos, int *i);
-
-/* Finds the start and end of a word around pos. Returns false if pos
-   is not inside a word.
-*/
 bool
-piecefindword(struct piece *pieces, int pos, int *start, int *end);
+sequenceinsert(struct sequence *s, size_t pos,
+	       uint8_t *data, size_t len);
 
-/* Splits the piece p and position pos and sets lr and rr to point
-   to the newly created left and right pieces.
-*/
 bool
-piecesplit(struct piece *p, size_t pos,
-	   struct piece **lr, struct piece **rr);
+sequencedelete(struct sequence *s, size_t pos, size_t len);
 
-/* Splits old at position pos and inserts a new piece created by
-   copying the string s of lenght l. Returns the new piece.
-*/
-struct piece *
-pieceinsert(struct piece *old, size_t pos,
-	    uint8_t *s, size_t l);
-
-/* Appends string s of len l to the piece. Returns false if this was
-   not possible else true.
-*/
 bool
-pieceappend(struct piece *p, uint8_t *s, size_t l);
+sequencefindword(struct sequence *s, size_t pos,
+		 size_t *start, size_t *len);
+
+bool
+sequencecopytobuf(struct sequence *s, size_t pos,
+		  uint8_t *buf, size_t len);
+
 
 
 void

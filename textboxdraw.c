@@ -135,8 +135,8 @@ textboxpredraw(struct textbox *t)
   int32_t code, i, a, pos;
   struct selection *sel;
   struct colour *bg;
-  struct piece *p;
   int x, y, ww;
+  ssize_t p;
 
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
@@ -151,9 +151,10 @@ textboxpredraw(struct textbox *t)
     return false;
   }
   
-  for (p = t->pieces; p != NULL; p = p->next) {
-    for (a = 0, i = 0; i < p->pl; i += a, pos += a) {
-      a = utf8proc_iterate(p->s + i, p->pl - i, &code);
+  for (p = SEQ_start; p != SEQ_end; p = t->text->pieces[p].next) {
+    for (a = 0, i = 0; i < t->text->pieces[p].len; i += a, pos += a) {
+      a = utf8proc_iterate(t->text->data + t->text->pieces[p].off + i,
+			   t->text->pieces[p].len - i, &code);
       if (a <= 0) {
 	a = 1;
 	continue;
@@ -161,7 +162,9 @@ textboxpredraw(struct textbox *t)
 
       sel = inselections(t, pos);
       
-      if (islinebreak(code, p->s + i, p->pl - i, &a)) {
+      if (islinebreak(code, t->text->data + t->text->pieces[p].off + i,
+		      t->text->pieces[p].len - i, &a)) {
+
 	if (sel != NULL) {
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
 	  cairo_rectangle(t->cr, x, y, t->linewidth - x, lineheight);

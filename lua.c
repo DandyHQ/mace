@@ -45,86 +45,9 @@ ltextboxcursor(lua_State *L)
   return 1;
 }
 
-static int
-ltextboxpieces(lua_State *L)
-{
-  struct textbox *t = lua_checktextbox(L);
-
-  lua_pushlightuserdata(L, t->pieces);
-
-  return 1;
-}
-
-static int
-ltextboxdata(lua_State *L)
-{
-  struct textbox *t = lua_checktextbox(L);
-
-  lua_pushlightuserdata(L, t->data);
-
-  return 1;
-}
-
 static const struct luaL_Reg textbox_f[] = {
   { "tostring",   ltextboxtostring },
   { "cursor",     ltextboxcursor },
-  { "pieces",     ltextboxpieces },
-  { "data",       ltextboxdata },
-  { NULL, NULL },
-};
-
-static struct piece *
-lua_checkpiece(lua_State *L)
-{
-  luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
-  return (struct piece *) lua_touserdata(L, 1);
-}
-
-static int
-lpiecenext(lua_State *L)
-{
-  struct piece *p = lua_checkpiece(L);
-
-  lua_pushlightuserdata(L, p->next);
-
-  return 1;
-}
-
-static int
-lpieceprev(lua_State *L)
-{
-  struct piece *p = lua_checkpiece(L);
-
-  lua_pushlightuserdata(L, p->prev);
-
-  return 1;
-}
-
-static int
-lpiecelen(lua_State *L)
-{
-  struct piece *p = lua_checkpiece(L);
-
-  lua_pushnumber(L, p->pl);
-
-  return 1;
-}
-
-static int
-lpiecestart(lua_State *L)
-{
-  struct piece *p = lua_checkpiece(L);
-
-  lua_pushlstring(L, p->s, p->pl);
-
-  return 1;
-}
-
-static const struct luaL_Reg piece_f[] = {
-  { "prev",      lpieceprev },
-  { "next",      lpiecenext },
-  { "start",     lpiecestart },
-  { "len",       lpiecelen },
   { NULL, NULL },
 };
 
@@ -204,9 +127,6 @@ luainit(void)
 
   luaL_newlib(L, textbox_f);
   lua_setglobal(L, "textbox");
-
-  luaL_newlib(L, piece_f);
-  lua_setglobal(L, "piece");
 
   r = luaL_loadfile(L, "init.lua");
   if (r == LUA_ERRFILE) {

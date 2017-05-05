@@ -18,7 +18,6 @@ struct textbox *
 textboxnew(struct tab *tab,
 	   struct colour *bg)
 {
-  struct piece *b, *e;
   struct textbox *t;
 
   t = malloc(sizeof(struct textbox));
@@ -26,28 +25,15 @@ textboxnew(struct tab *tab,
     return NULL;
   }
 
-  b = piecenewtag();
-  if (b == NULL) {
+  t->text = sequencenew();
+  if (t->text == NULL) {
     free(t);
     return NULL;
   }
-
-  e = piecenewtag();
-  if (e == NULL) {
-    piecefree(b);
-    free(t);
-    return NULL;
-  }
-
-  b->prev = NULL;
-  b->next = e;
-  e->prev = b;
-  e->next = NULL;
-
-  t->cpiece = NULL;
-  t->pieces = b;
+  
   t->cursor = 0;
-
+  t->csel = NULL;
+  
   t->tab = tab;
 
   t->cr = NULL;
@@ -65,11 +51,7 @@ textboxnew(struct tab *tab,
 void
 textboxfree(struct textbox *t)
 {
-  struct piece *p;
-
-  /* TODO: Free removed pieces. */
-  for (p = t->pieces; p != NULL; p = p->next)
-    piecefree(p);
+  sequencefree(t->text);
 
   if (t->cr != NULL) {
     cairo_destroy(t->cr);
@@ -113,30 +95,34 @@ textboxresize(struct textbox *t, int lw)
    in the list of pieces.
 */
 
-static struct piece *
+static ssize_t
 findpos(struct textbox *t,
 	int x, int y,
-	int32_t *pos, int32_t *i)
+	size_t *pos, size_t *i)
 {
   int32_t code, a;
-  struct piece *p;
   int xx, yy, ww;
+  ssize_t p;
 
   xx = 0;
   yy = 0;
 
   *pos = 0;
 
-  for (p = t->pieces; p != NULL; p = p->next) {
-    for (*i = 0; *i < p->pl; *pos += a, *i += a) {
-      a = utf8proc_iterate(p->s + *i, p->pl - *i, &code);
+  for (p = SEQ_start; p != SEQ_end; p = t->text->pieces[p].next) {
+
+    for (*i = 0; *i < t->text->pieces[p].len; *pos += a, *i += a) {
+      a = utf8proc_iterate(t->text->data + t->text->pieces[p].off + *i,
+			   t->text->pieces[p].len - *i, &code);
       if (a <= 0) {
 	a = 1;
 	continue;
       }
 
       /* Line Break. */
-      if (islinebreak(code, p->s + *i, p->pl - *i, &a)) {
+      if (islinebreak(code, t->text->data + t->text->pieces[p].off + *i,
+		      t->text->pieces[p].len - *i, &a)) {
+
 	if (y < yy + lineheight - 1) {
 	  return p;
 	} else {
@@ -168,77 +154,27 @@ findpos(struct textbox *t,
 	return p;
       }
     }
-  
-    if (p->next == NULL || p->next->s == NULL) {
-      return p;
-    }
   }
 
-  return NULL;
-}
-
-static uint8_t *
-rangetostring(struct textbox *t,
-	      int32_t start, int32_t end,
-	      size_t *len)
-{
-  struct piece *p;
-  int pos, b, l;
-  uint8_t *buf;
-
-  *len = end - start + 1;
-  buf = malloc(*len);
-  if (buf == NULL) {
-    return NULL;
-  }
-  
-  pos = 0;
-  for (p = t->pieces; p != NULL; p = p->next) {
-    if (pos > end) {
-      break;
-    } else if (pos + p->pl < start) {
-      pos += p->pl;
-      continue;
-    }
-
-    if (pos < start) {
-      b = start - pos;
-    } else {
-      b = 0;
-    }
-
-    if (pos + p->pl > end + 1) {
-      l = end + 1 - pos - b;
-    } else {
-      l = p->pl - b;
-    }
-
-    memmove(buf + (pos + b - start), p->s + b, l);
-    pos += b + l;
-  }
-
-  buf[pos - start] = 0;
-  return buf;
+  return -1;
 }
 
 void
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
-  int32_t pos, i, start, end;
   struct selection *sel, *seln;
-  struct piece *p;
-  uint8_t *s;
-  size_t len;
+  size_t pos, start, len, i;
+  uint8_t *buf;
+  ssize_t p;
   
   p = findpos(t, x, y + t->yoff, &pos, &i);
-  if (p == NULL) {
+  if (p == -1) {
     return;
   }
   
   switch (button) {
   case 1:
-    t->cpiece = NULL;
     t->cursor = pos;
 
     /* In future there will be a way to have multiple selections */
@@ -267,19 +203,27 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     sel = inselections(t, pos);
     if (sel != NULL) {
       start = sel->start;
-      end = sel->end;
-    } else if (!piecefindword(t->pieces, pos, &start, &end)) {
+      len = sel->end - sel->start + 1;
+    } else if (!sequencefindword(t->text, pos, &start, &len)) {
       return;
     }
 
-    s = rangetostring(t, start, end, &len);
-    if (s == NULL) {
-      return;
-    }
+    printf("found word starting at %i, len %i\n", start, len);
     
-    command(t->tab->main, s);
+    buf = malloc(len + 1);
+    if (buf == NULL) {
+      return;
+    }
 
-    free(s);
+    if (!sequencecopytobuf(t->text, start, buf, len)) {
+      return;
+    }
+
+    buf[len] = 0;
+    
+    command(t->tab->main, buf);
+
+    free(buf);
 
     textboxpredraw(t);
     tabdraw(t->tab);
@@ -298,15 +242,13 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 void
 textboxmotion(struct textbox *t, int x, int y)
 {
-  struct piece *p;
-  int pos, i;
+  size_t pos, i;
   
   if (t->csel == NULL) {
     return;
   }
    
-  p = findpos(t, x, y + t->yoff, &pos, &i);
-  if (p == NULL) {
+  if (findpos(t, x, y + t->yoff, &pos, &i) == -1) {
     return;
   }
 
@@ -319,26 +261,11 @@ textboxmotion(struct textbox *t, int x, int y)
 void
 textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 {
-  struct piece *o, *n;
-  int i;
-
-  if (t->cpiece != NULL && pieceappend(t->cpiece, s, l)) {
-    t->cursor += l;
-  } else {
-    o = piecefind(t->pieces, t->cursor, &i);
-    if (o == NULL) {
-      return;
-    }
-
-    n = pieceinsert(o, i, s, l);
-    if (n == NULL) {
-      return;
-    }
-
-    t->cursor += l;
-    t->cpiece = n;
+  if (!sequenceinsert(t->text, t->cursor, s, l)) {
+    return;
   }
 
+  t->cursor += l;
   textboxpredraw(t);
   tabdraw(t->tab);
 }
@@ -346,10 +273,8 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 void
 textboxkeypress(struct textbox *t, keycode_t k)
 {
-  struct piece *o, *n;
   uint8_t s[16];
   size_t l;
-  int i;
    
   switch (k) {
   default: 
@@ -396,24 +321,11 @@ textboxkeypress(struct textbox *t, keycode_t k)
   case KEY_return:
     l = snprintf((char *) s, sizeof(s), "\n");
 
-    if (t->cpiece != NULL) {
-      o = t->cpiece;
-      i = o->pl;
-    } else {
-      o = piecefind(t->pieces, t->cursor, &i);
-      if (o == NULL) {
-	return;
-      }
-    }
-    
-    n = pieceinsert(o, i, s, l);
-    if (n == NULL) {
+    if (!sequenceinsert(t->text, t->cursor, s, l)) {
       return;
     }
 
     t->cursor += l;
-    t->cpiece = n;
-
     break;
     
   case KEY_tab:
