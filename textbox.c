@@ -95,36 +95,35 @@ textboxresize(struct textbox *t, int lw)
    in the list of pieces.
 */
 
-static ssize_t
+static size_t
 findpos(struct textbox *t,
-	int x, int y,
-	size_t *pos, size_t *i)
+	int x, int y)
 {
-  int32_t code, a;
+  int32_t code, a, i;
   int xx, yy, ww;
+  size_t pos;
   ssize_t p;
 
   xx = 0;
   yy = 0;
 
-  *pos = 0;
+  pos = 0;
 
   for (p = SEQ_start; p != SEQ_end; p = t->text->pieces[p].next) {
-
-    for (*i = 0; *i < t->text->pieces[p].len; *pos += a, *i += a) {
-      a = utf8proc_iterate(t->text->data + t->text->pieces[p].off + *i,
-			   t->text->pieces[p].len - *i, &code);
+    for (i = 0; i < t->text->pieces[p].len; pos += a, i += a) {
+      a = utf8proc_iterate(t->text->data + t->text->pieces[p].off + i,
+			   t->text->pieces[p].len - i, &code);
       if (a <= 0) {
 	a = 1;
 	continue;
       }
 
       /* Line Break. */
-      if (islinebreak(code, t->text->data + t->text->pieces[p].off + *i,
-		      t->text->pieces[p].len - *i, &a)) {
+      if (islinebreak(code, t->text->data + t->text->pieces[p].off + i,
+		      t->text->pieces[p].len - i, &a)) {
 
 	if (y < yy + lineheight - 1) {
-	  return p;
+	  return pos;
 	} else {
 	  xx = 0;
 	  yy += lineheight;
@@ -140,7 +139,7 @@ findpos(struct textbox *t,
       /* Wrap Line. */
       if (xx + ww >= t->linewidth) {
 	if (y < yy + lineheight - 1) {
-	  return p;
+	  return pos;
 	} else {
 	  xx = 0;
 	  yy += lineheight;
@@ -151,12 +150,12 @@ findpos(struct textbox *t,
       
       if (y < yy + lineheight - 1 && x < xx) {
 	/* Found position. */
-	return p;
+	return pos;
       }
     }
   }
 
-  return -1;
+  return pos;
 }
 
 void
@@ -164,14 +163,10 @@ textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
   struct selection *sel, *seln;
-  size_t pos, start, len, i;
+  size_t pos, start, len;
   uint8_t *buf;
-  ssize_t p;
   
-  p = findpos(t, x, y + t->yoff, &pos, &i);
-  if (p == -1) {
-    return;
-  }
+  pos = findpos(t, x, y + t->yoff);
   
   switch (button) {
   case 1:
@@ -208,8 +203,6 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       return;
     }
 
-    printf("found word starting at %i, len %i\n", start, len);
-    
     buf = malloc(len + 1);
     if (buf == NULL) {
       return;
@@ -242,15 +235,13 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 void
 textboxmotion(struct textbox *t, int x, int y)
 {
-  size_t pos, i;
+  size_t pos;
   
   if (t->csel == NULL) {
     return;
   }
    
-  if (findpos(t, x, y + t->yoff, &pos, &i) == -1) {
-    return;
-  }
+  pos = findpos(t, x, y + t->yoff);
 
   if (selectionupdate(t->csel, pos)) {
     textboxpredraw(t);

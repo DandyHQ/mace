@@ -29,12 +29,14 @@ sequencenew(void)
 
   s->plen = 1;
   s->pieces[SEQ_start].off = 0;
+  s->pieces[SEQ_start].pos = 0;
   s->pieces[SEQ_start].len = 0;
   s->pieces[SEQ_start].prev = 0;
   s->pieces[SEQ_start].next = SEQ_end;
 
   s->plen = 2;
   s->pieces[SEQ_end].off = 0;
+  s->pieces[SEQ_end].pos = 0;
   s->pieces[SEQ_end].len = 0;
   s->pieces[SEQ_end].prev = SEQ_start;
   s->pieces[SEQ_end].next = 0;
@@ -52,6 +54,16 @@ sequencefree(struct sequence *s)
   free(s->pieces);
   free(s->data);
   free(s);
+}
+
+static void
+shiftpieces(struct sequence *s, ssize_t p, size_t pos)
+{
+  while (p != SEQ_end) {
+    s->pieces[p].pos = pos;
+    pos += s->pieces[p].len;
+    p = s->pieces[p].next;
+  }
 }
 
 static ssize_t
@@ -76,7 +88,7 @@ piecefind(struct sequence *s, size_t pos, size_t *i)
 }
 
 static ssize_t
-pieceadd(struct sequence *s, size_t off, size_t len)
+pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 {
   if (s->plen + 1 >= s->pmax) {
     s->pieces = realloc(s->pieces,
@@ -90,21 +102,20 @@ pieceadd(struct sequence *s, size_t off, size_t len)
     s->pmax = s->plen + 10;
   }
 
+  s->pieces[s->plen].pos = pos;
   s->pieces[s->plen].off = off;
   s->pieces[s->plen].len = len;
 
   return s->plen++;
 }
 
-static ssize_t
+static bool
 appenddata(struct sequence *s, uint8_t *data, size_t len)
 {
-  size_t p;
-
   if (s->dlen + len >= s->dmax) {
     s->data = realloc(s->data, s->dlen + len);
     if (s->data == NULL) {
-      return -1;
+      return false;
     }
 
     s->dmax = s->dlen + len;
@@ -112,14 +123,9 @@ appenddata(struct sequence *s, uint8_t *data, size_t len)
 
   memmove(s->data + s->dlen, data, len);
 
-  p = pieceadd(s, s->dlen, len);
-  if (p == -1) {
-    return -1;
-  }
-  
   s->dlen += len;
 
-  return p;
+  return true;
 }
 
 /* TODO: allow last added piece to grow */
@@ -136,34 +142,63 @@ sequenceinsert(struct sequence *s, size_t pos,
     return false;
   }
 
+  if (p != SEQ_start && p != SEQ_end
+      && s->pieces[p].pos + s->pieces[p].len == pos
+      && s->pieces[p].off + s->pieces[p].len == s->dlen) {
+
+    /* Append to end of last piece. */
+
+    if (!appenddata(s, data, len)) {
+      return false;
+    }
+
+    s->pieces[p].len += len;
+
+    shiftpieces(s, s->pieces[p].next, pos + len);
+    
+    return true;
+  }
+  
   pprev = s->pieces[p].prev;
   pnext = s->pieces[p].next;
+
+  n = pieceadd(s, pos, s->dlen, len);
+  if (p == -1) {
+    return -1;
+  }
   
-  n = appenddata(s, data, len);
-  if (n == -1) {
+  if (!appenddata(s, data, len)) {
+    s->plen--; /* Free n */
     return false;
   }
 
   if (i == s->pieces[p].len) {
     /* New goes after p. */
-    
+
     s->pieces[p].next = n;
     s->pieces[n].prev = p;
     s->pieces[n].next = pnext;
     s->pieces[pnext].prev = n;
-    
+
   } else {
     /* Split p and put new in the middle. */
 
-    l = pieceadd(s, s->pieces[p].off, i);
+    l = pieceadd(s, s->pieces[p].pos,
+		 s->pieces[p].off,
+		 i);
+
     if (l == -1) {
-      /* Free n? */
+      s->plen--; /* Free n */
       return false;
     }
     
-    r = pieceadd(s, s->pieces[p].off + i, s->pieces[p].len - i);
+    r = pieceadd(s, pos + len,
+		 s->pieces[p].off + i,
+		 s->pieces[p].len - i);
+
     if (r == -1) {
-      /* Free n and l? */
+      s->plen--; /* Free n */
+      s->plen--; /* Free l */
       return false;
     }
 
@@ -175,6 +210,8 @@ sequenceinsert(struct sequence *s, size_t pos,
     s->pieces[r].prev = n;
     s->pieces[r].next = pnext;
   }
+
+  shiftpieces(s, n, pos);
 
   return true;
 }

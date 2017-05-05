@@ -28,7 +28,9 @@ typedef enum {
 
 struct piece {
   ssize_t prev, next;
-  size_t off, len;
+  size_t len;
+  size_t pos; /* In sequence */
+  size_t off; /* In data buffer */
 };
 
 #define SEQ_start  0
