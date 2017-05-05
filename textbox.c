@@ -91,10 +91,6 @@ textboxresize(struct textbox *t, int lw)
   return textboxpredraw(t);
 }
 
-/* Returns the piece that was clicked on and sets *pos to the position
-   in the list of pieces.
-*/
-
 static size_t
 findpos(struct textbox *t,
 	int x, int y)
@@ -102,7 +98,7 @@ findpos(struct textbox *t,
   int32_t code, a, i;
   int xx, yy, ww;
   size_t pos;
-  ssize_t p;
+  size_t p;
 
   xx = 0;
   yy = 0;
@@ -119,7 +115,8 @@ findpos(struct textbox *t,
       }
 
       /* Line Break. */
-      if (islinebreak(code, t->text->data + t->text->pieces[p].off + i,
+      if (islinebreak(code,
+		      t->text->data + t->text->pieces[p].off + i,
 		      t->text->pieces[p].len - i, &a)) {
 
 	if (y < yy + lineheight - 1) {

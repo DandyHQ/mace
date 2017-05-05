@@ -27,7 +27,7 @@ typedef enum {
 } keycode_t;
 
 struct piece {
-  ssize_t prev, next;
+  size_t prev, next;
   size_t len;
   size_t pos; /* In sequence */
   size_t off; /* In data buffer */

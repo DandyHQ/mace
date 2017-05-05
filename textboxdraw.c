@@ -136,7 +136,7 @@ textboxpredraw(struct textbox *t)
   struct selection *sel;
   struct colour *bg;
   int x, y, ww;
-  ssize_t p;
+  size_t p;
 
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
@@ -162,7 +162,8 @@ textboxpredraw(struct textbox *t)
 
       sel = inselections(t, pos);
       
-      if (islinebreak(code, t->text->data + t->text->pieces[p].off + i,
+      if (islinebreak(code,
+		      t->text->data + t->text->pieces[p].off + i,
 		      t->text->pieces[p].len - i, &a)) {
 
 	if (sel != NULL) {
