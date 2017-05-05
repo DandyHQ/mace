@@ -57,7 +57,7 @@ sequencefree(struct sequence *s)
 }
 
 static void
-shiftpieces(struct sequence *s, size_t p, size_t pos)
+shiftpieces(struct sequence *s, ssize_t p, size_t pos)
 {
   while (p != SEQ_end) {
     s->pieces[p].pos = pos;
@@ -66,22 +66,22 @@ shiftpieces(struct sequence *s, size_t p, size_t pos)
   }
 }
 
-static size_t
-piecefind(struct sequence *s, size_t pos, size_t *i)
+static ssize_t
+piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
 {
-  size_t p;
-
-  for (p = SEQ_start; p != SEQ_end; p = s->pieces[p].next) {
+  while (p != SEQ_end) {
     if (s->pieces[p].pos + s->pieces[p].len >= pos) {
       *i = pos - s->pieces[p].pos;
       return p;
-    } 
+    }
+
+    p = s->pieces[p].next;
   }
 
   return -1;
 }
 
-static size_t
+static ssize_t
 pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 {
   if (s->plen + 1 >= s->pmax) {
@@ -122,25 +122,13 @@ appenddata(struct sequence *s, uint8_t *data, size_t len)
   return true;
 }
 
-/* TODO: allow last added piece to grow */
-
-bool
-sequenceinsert(struct sequence *s, size_t pos,
+static bool
+sequenceappend(struct sequence *s, ssize_t p, size_t pos,
 	       uint8_t *data, size_t len)
 {
-  size_t p, pprev, pnext, n, l, r;
-  size_t i;
-
-  p = piecefind(s, pos, &i);
-  if (p == -1) {
-    return false;
-  }
-
   if (p != SEQ_start && p != SEQ_end
       && s->pieces[p].pos + s->pieces[p].len == pos
       && s->pieces[p].off + s->pieces[p].len == s->dlen) {
-
-    /* Append to end of last piece. */
 
     if (!appenddata(s, data, len)) {
       return false;
@@ -151,6 +139,25 @@ sequenceinsert(struct sequence *s, size_t pos,
     shiftpieces(s, s->pieces[p].next, pos + len);
     
     return true;
+  } else {
+    return false;
+  }
+}
+
+bool
+sequenceinsert(struct sequence *s, size_t pos,
+	       uint8_t *data, size_t len)
+{
+  ssize_t p, pprev, pnext, n, l, r;
+  size_t i;
+
+  p = piecefind(s, SEQ_start, pos, &i);
+  if (p == -1) {
+    return false;
+  }
+
+  if (sequenceappend(s, p, pos, data, len)) {
+    return true;
   }
   
   pprev = s->pieces[p].prev;
@@ -158,7 +165,7 @@ sequenceinsert(struct sequence *s, size_t pos,
 
   n = pieceadd(s, pos, s->dlen, len);
   if (p == -1) {
-    return -1;
+    return false;
   }
   
   if (!appenddata(s, data, len)) {
@@ -182,7 +189,7 @@ sequenceinsert(struct sequence *s, size_t pos,
 		 i);
 
     if (l == -1) {
-      s->plen--; /* Free n */
+      /* Should free n */
       return false;
     }
     
@@ -191,8 +198,7 @@ sequenceinsert(struct sequence *s, size_t pos,
 		 s->pieces[p].len - i);
 
     if (r == -1) {
-      s->plen--; /* Free n */
-      s->plen--; /* Free l */
+      /* Should free n and l */
       return false;
     }
 
@@ -213,11 +219,56 @@ sequenceinsert(struct sequence *s, size_t pos,
 bool
 sequencedelete(struct sequence *s, size_t pos, size_t len)
 {
-  return false;
+  ssize_t start, end, starti, endi, nstart, nend;
+  ssize_t startprev, endnext;
+
+  start = piecefind(s, SEQ_start, pos, &starti);
+  if (start == -1) {
+    return false;
+  }
+
+  end = piecefind(s, start, pos + len, &endi);
+  if (end == -1) {
+    return false;
+  }
+
+  nstart = pieceadd(s,
+		    s->pieces[start].pos,
+		    s->pieces[start].off,
+		    starti);
+
+  if (nstart == -1) {
+    return false;
+  }
+
+  nend = pieceadd(s,
+		  pos,
+		  s->pieces[end].off + endi,
+		  s->pieces[end].len - endi);
+
+  if (nend == -1) {
+    return false;
+  }
+
+  startprev = s->pieces[start].prev;
+  endnext   = s->pieces[end].next;
+
+  s->pieces[startprev].next = nstart;
+  s->pieces[nstart].prev = startprev;
+
+  s->pieces[nstart].next = nend;
+  s->pieces[nend].prev = nstart;
+
+  s->pieces[nend].next = endnext;
+  s->pieces[endnext].prev = nend;
+
+  shiftpieces(s, nend, pos);
+  
+  return true;
 }
 
 static size_t
-findwordend(struct sequence *s, size_t p, size_t i)
+findwordend(struct sequence *s, ssize_t p, size_t i)
 {
   int32_t code, a;
   size_t end;
@@ -251,7 +302,7 @@ findwordend(struct sequence *s, size_t p, size_t i)
 }
 
 static size_t
-findwordstart(struct sequence *s, size_t p, size_t ii)
+findwordstart(struct sequence *s, ssize_t p, size_t ii)
 {
   size_t piecedist, i;
   int32_t code, a;
@@ -300,7 +351,7 @@ sequencefindword(struct sequence *s, size_t pos,
   size_t start, end, i;
   size_t p;
 
-  p = piecefind(s, pos, &i);
+  p = piecefind(s, SEQ_start, pos, &i);
   if (p == -1) {
     return false;
   }

@@ -172,14 +172,18 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     /* In future there will be a way to have multiple selections */
     
     sel = selections;
+    selections = NULL;
+
     while (sel != NULL) {
       seln = sel->next;
+
+      textboxpredraw(sel->textbox);
+      tabdraw(sel->textbox->tab);
+
       selectionfree(sel);
       sel = seln;
     }
 
-    selections = NULL;
-    
     t->csel = selectionnew(t, pos);
     if (t->csel != NULL) {
       t->csel->next = selections;
@@ -261,49 +265,50 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 void
 textboxkeypress(struct textbox *t, keycode_t k)
 {
+  struct selection *sel, *nsel;
   uint8_t s[16];
   size_t l;
    
   switch (k) {
-  default: 
-    return;
+  default:
+    break;
     
   case KEY_shift:
-    return;
+    break;
     
   case KEY_alt:
-    return;
+    break;
     
   case KEY_super:
-    return;
+    break;
     
   case KEY_control:
-    return;
+    break;
     
 
   case KEY_left:
-    return;
+    break;
     
   case KEY_right:
-    return;
+    break;
     
   case KEY_up:
-    return;
+    break;
     
   case KEY_down:
-    return;
+    break;
     
   case KEY_pageup:
-    return;
+    break;
     
   case KEY_pagedown:
-    return;
+    break;
     
   case KEY_home:
-    return;
+    break;
     
   case KEY_end:
-    return;
+    break;
     
 
   case KEY_return:
@@ -314,24 +319,65 @@ textboxkeypress(struct textbox *t, keycode_t k)
     }
 
     t->cursor += l;
+ 
+    textboxpredraw(t);
+    tabdraw(t->tab);
+
     break;
     
   case KEY_tab:
-    return;
+    break;
+    
+
+  case KEY_delete:
+    if (selections == NULL) {
+      if (sequencedelete(t->text, t->cursor, 1)) {
+	textboxpredraw(t);
+	tabdraw(t->tab);
+      }
+
+      break;
+    } 
+
+    /* Fall through to delete selections */
     
   case KEY_backspace:
-    return;
+    if (selections == NULL && t->cursor > 0) {
+      if (sequencedelete(t->text, t->cursor - 1, 1)) {
+	t->cursor--;
+	textboxpredraw(t);
+	tabdraw(t->tab);
+      }
+
+      break;
+    } 
+
+    /* Delete selections */
     
-  case KEY_delete:
-    return;
-    
+    sel = selections;
+    selections = NULL;
+
+    while (sel != NULL) {
+      nsel = sel->next;
+
+      if (sequencedelete(sel->textbox->text,
+			 sel->start,
+			 sel->end - sel->start + 1)) {
+
+	textboxpredraw(sel->textbox);
+	tabdraw(sel->textbox->tab);
+      }
+      
+      selectionfree(sel);
+
+      sel = nsel;
+    }
+
+    break;
 
   case KEY_escape:
-    return;
+    break;
   }
-
-  textboxpredraw(t);
-  tabdraw(t->tab);
 }
 
 void
