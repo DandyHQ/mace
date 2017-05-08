@@ -43,14 +43,14 @@ tabnew(uint8_t *name, size_t len)
     return NULL;
   }
 
-  if (!sequenceinsert(t->action->text, 0, name, len)) {
+  if (!sequenceinsert(t->action->sequence, 0, name, len)) {
     textboxfree(t->action);
     free(t->name);
     free(t);
     return NULL;
   }    
 
-  if (!sequenceinsert(t->action->text, len, s, strlen(s))) {
+  if (!sequenceinsert(t->action->sequence, len, s, strlen(s))) {
     textboxfree(t->action);
     free(t->name);
     free(t);

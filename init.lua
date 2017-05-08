@@ -4,7 +4,7 @@ fonts = {
 }
 
 for key, value in pairs(fonts) do
-   e = mace.setfont(value, 15)
+   e = setfont(value, 15)
    if e == 0 then
       break
    end
@@ -14,18 +14,24 @@ if e ~= 0 then
    error("Failed to load a font!")
 end
 
-function test(main, selections)
-   print("lua function test called")
+function test(tab, selections)
+   print("lua function test called with tab", tab,
+	 "and selections", selections)
 
-   seq = textbox.sequence(main)
-
+   main = tab.main
+   print("main textbox is", main);
+   print("has cursor at", main.cursor);
    
-   str = sequence.get(seq, 10, 10)
-   print("got ", str)
+   seq = main.sequence
+   print("main sequence is", seq);
+   
+   str = seq:get(10, 10)
+
+   print("got", str:len(), ":", str)
 
    print("insert message")
 
-   sequence.insert(seq, 0, "\nhello there\n")
+   seq:insert(0, "\nhello there\n")
 
    print("go through selections")
 
@@ -33,7 +39,16 @@ function test(main, selections)
       print("start = ", sel.start)
       print("len   = ", sel.len)
       print("tb = ", sel.textbox)
+
+      seq = sel.textbox.sequence
+      str = seq:get(sel.start, sel.len)
+
+      print("str = ", str)
    end
 
    print("test finished")
+end
+
+function hello(main, selections)
+   print("hello, world")
 end

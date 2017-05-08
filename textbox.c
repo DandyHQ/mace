@@ -22,8 +22,8 @@ textboxnew(struct tab *tab,
     return NULL;
   }
 
-  t->text = sequencenew();
-  if (t->text == NULL) {
+  t->sequence = sequencenew();
+  if (t->sequence == NULL) {
     free(t);
     return NULL;
   }
@@ -48,7 +48,7 @@ textboxnew(struct tab *tab,
 void
 textboxfree(struct textbox *t)
 {
-  sequencefree(t->text);
+  sequencefree(t->sequence);
 
   if (t->cr != NULL) {
     cairo_destroy(t->cr);
@@ -102,10 +102,10 @@ findpos(struct textbox *t,
 
   pos = 0;
 
-  for (p = SEQ_start; p != SEQ_end; p = t->text->pieces[p].next) {
-    for (i = 0; i < t->text->pieces[p].len; pos += a, i += a) {
-      a = utf8proc_iterate(t->text->data + t->text->pieces[p].off + i,
-			   t->text->pieces[p].len - i, &code);
+  for (p = SEQ_start; p != SEQ_end; p = t->sequence->pieces[p].next) {
+    for (i = 0; i < t->sequence->pieces[p].len; pos += a, i += a) {
+      a = utf8proc_iterate(t->sequence->data + t->sequence->pieces[p].off + i,
+			   t->sequence->pieces[p].len - i, &code);
       if (a <= 0) {
 	a = 1;
 	continue;
@@ -113,8 +113,8 @@ findpos(struct textbox *t,
 
       /* Line Break. */
       if (islinebreak(code,
-		      t->text->data + t->text->pieces[p].off + i,
-		      t->text->pieces[p].len - i, &a)) {
+		      t->sequence->data + t->sequence->pieces[p].off + i,
+		      t->sequence->pieces[p].len - i, &a)) {
 
 	if (y < yy + lineheight - 1) {
 	  return pos;
@@ -179,7 +179,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     if (sel != NULL) {
       start = sel->start;
       len = sel->end - sel->start + 1;
-    } else if (!sequencefindword(t->text, pos, &start, &len)) {
+    } else if (!sequencefindword(t->sequence, pos, &start, &len)) {
       return;
     }
 
@@ -188,13 +188,13 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       return;
     }
 
-    if (!sequenceget(t->text, start, buf, len)) {
+    if (!sequenceget(t->sequence, start, buf, len)) {
       return;
     }
 
     buf[len] = 0;
     
-    command(t->tab->main, buf);
+    command(t->tab, buf);
 
     free(buf);
 
@@ -240,7 +240,7 @@ textboxmotion(struct textbox *t, int x, int y)
 void
 textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 {
-  if (!sequenceinsert(t->text, t->cursor, s, l)) {
+  if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
     return;
   }
 
@@ -301,7 +301,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
   case KEY_return:
     l = snprintf((char *) s, sizeof(s), "\n");
 
-    if (!sequenceinsert(t->text, t->cursor, s, l)) {
+    if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
       return;
     }
 
@@ -320,7 +320,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
   case KEY_delete:
     if (selections == NULL) {
-      if (sequencedelete(t->text, t->cursor, 1)) {
+      if (sequencedelete(t->sequence, t->cursor, 1)) {
 	textboxpredraw(t);
 	tabdraw(t->tab);
       }
@@ -332,7 +332,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     
   case KEY_backspace:
     if (selections == NULL && t->cursor > 0) {
-      if (sequencedelete(t->text, t->cursor - 1, 1)) {
+      if (sequencedelete(t->sequence, t->cursor - 1, 1)) {
 	t->cursor--;
 	textboxpredraw(t);
 	tabdraw(t->tab);
@@ -354,7 +354,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
 	t->cursor = sel->start;
       }
       
-      sequencedelete(t->text, sel->start, sel->end - sel->start + 1);
+      sequencedelete(t->sequence, sel->start, sel->end - sel->start + 1);
       selectionremove(sel);
     }
 

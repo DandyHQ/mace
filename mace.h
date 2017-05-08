@@ -1,6 +1,6 @@
 
-/* Most keys are just text and a given to functions as a utf8 encoded
-   string. But some are not. And these are those special keys.
+/* Most keys are just text and are given to functions as a utf8 
+   encoded string. But some are not. And these are those special keys.
 */
 
 typedef enum {
@@ -27,6 +27,16 @@ typedef enum {
 
   KEY_escape
 } keycode_t;
+
+/* A sequence is a collection of pieces that manages a string of text.
+   Text can be added to a sequence at any position, text can be
+   removed at any position, and text can be retreived from the
+   sequence.
+ 
+   The sequence is managed in such as way that no text is ever lost,
+   so undo's should be easy to manage. We will just need a way of
+   tracking the pieces that have been replaced.
+*/
 
 struct piece {
   ssize_t prev, next;
@@ -64,7 +74,7 @@ struct selection {
 struct textbox {
   struct tab *tab;
   
-  struct sequence *text;
+  struct sequence *sequence;
   int32_t cursor;
 
   struct selection *csel;
@@ -119,7 +129,7 @@ iswordbreak(int32_t code);
 
 
 void
-command(struct textbox *main, uint8_t *s);
+command(struct tab *tab, uint8_t *s);
 
 
 
@@ -191,28 +201,43 @@ textboxpredraw(struct textbox *t);
 
 
 
+/* Creates a new empty sequence */
+
 struct sequence *
 sequencenew(void);
 
+/* Frees a sequence and all it's pieces, does not remove any
+   selections that point to it. */
+
 void
 sequencefree(struct sequence *s);
+
+/* Inserts data into the sequence at position pos. */
 
 bool
 sequenceinsert(struct sequence *s, size_t pos,
 	       const uint8_t *data, size_t len);
 
+/* Deletes from the sequence at pos a string of length len */
+
 bool
 sequencedelete(struct sequence *s, size_t pos, size_t len);
+
+/* Finds the start and end of a word around pos. */
 
 bool
 sequencefindword(struct sequence *s, size_t pos,
 		 size_t *start, size_t *len);
+
+/* Fulls out buf with the contentes of the sequence starting at pos
+   and going for at most len bytes */
 
 size_t
 sequenceget(struct sequence *s, size_t pos,
 	    uint8_t *buf, size_t len);
 
 
+/* Adds a new selection to the selection list */
 
 struct selection *
 selectionadd(struct textbox *t, int32_t pos);
@@ -226,13 +251,21 @@ selectionreplace(struct textbox *t, int32_t pos);
 void
 selectionremove(struct selection *s);
 
+/* Updates the selection to include pos, returns true if something
+   changed, false otherwise. */
+
 bool
 selectionupdate(struct selection *s, int32_t pos);
+
+/* Checks if the position pos in the textbox t is in a selection,
+   returns the selection if it is. */
 
 struct selection *
 inselections(struct textbox *t, int32_t pos);
 
 
+
+/* Handle UI events */
 
 void
 handletyping(uint8_t *s, size_t n);

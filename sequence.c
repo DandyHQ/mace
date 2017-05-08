@@ -400,6 +400,10 @@ sequenceget(struct sequence *s, size_t pos,
 
     i += b + l;
   }
-  
-  return i - pos;
+
+  if (i > pos) {
+    return i - pos;
+  } else {
+    return 0;
+  }
 }

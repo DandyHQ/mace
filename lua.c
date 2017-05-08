@@ -15,43 +15,176 @@
 
 #include "mace.h"
 
+/* Using
+   [vis/vis-lua.c](https://github.com/martanne/vis/blob/945db2ed898d4feb55ca9e690dd859503f49c231/vis-lua.c)
+   as a reference */
+
 static lua_State *L = NULL;
 
-static struct textbox *
-lua_checktextbox(lua_State *L)
+static void
+obj_type_new(lua_State *l, const char *type)
 {
-  luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
-  return (struct textbox *) lua_touserdata(L, 1);
+  luaL_newmetatable(L, type);
+  lua_getfield(L, LUA_REGISTRYINDEX, "mace.types");
+  lua_pushvalue(L, -2);
+  lua_pushstring(L, type);
+  lua_settable(L, -3);
+  lua_pop(L, 1);
+}
+
+static void *
+obj_ref_new(lua_State *L, void *addr, const char *type)
+{
+  void **handle;
+  
+  lua_getfield(L, LUA_REGISTRYINDEX, "mace.objects");
+  lua_pushlightuserdata(L, addr);
+  lua_gettable(L, -2);
+  lua_remove(L, -2);
+
+  if (lua_type(L, -1) == LUA_TUSERDATA) {
+    handle = luaL_checkudata(L, -1, type);
+
+    if (*handle != addr) {
+      fprintf(stderr, "lua handle for %p points to %p!\n",
+	      addr, *handle);
+
+      return NULL;
+    } else {
+      return addr;
+    }
+    
+  } else {
+    /* Pop the invalid value */
+    lua_pop(L, 1); 
+
+    handle = (void **) lua_newuserdata(L, sizeof(addr));
+
+    luaL_getmetatable(L, type);
+    lua_setmetatable(L, -2);
+
+    /* Adds the new object to the mace.objects table */
+    lua_getfield(L, LUA_REGISTRYINDEX, "mace.objects");
+    lua_pushlightuserdata(L, addr);
+    lua_pushvalue(L, -3);
+    lua_settable(L, -3);
+    lua_pop(L, 1);
+
+    *handle = addr;
+
+    return addr;
+  }
+}
+
+static void *
+obj_ref_check(lua_State *L, int index, const char *type)
+{
+  void **handle = luaL_checkudata(L, index, type);
+  return *handle;
 }
 
 static int
-ltextboxcursor(lua_State *L)
+indexcommon(lua_State *L)
 {
-  struct textbox *t = lua_checktextbox(L);
-  lua_pushnumber(L, t->cursor);
+  lua_getmetatable(L, 1);
+  lua_pushvalue(L, 2);
+  lua_gettable(L, -2);
+
   return 1;
 }
 
 static int
-ltextboxsequence(lua_State *L)
+ltabtostring(lua_State *L)
 {
-  struct textbox *t = lua_checktextbox(L);
-  lua_pushlightuserdata(L, t->text);
+  struct tab *t;
+
+  t = obj_ref_check(L, 1, "mace.tab");
+
+  lua_pushfstring(L, "[tab %s]", t->name);
+
   return 1;
 }
 
+static int
+ltabindex(lua_State *L)
+{
+  struct tab *t = obj_ref_check(L, 1, "mace.tab");
+  const char *key;
 
-static const struct luaL_Reg textbox_f[] = {
-  { "cursor",     ltextboxcursor },
-  { "sequence",   ltextboxsequence },
-  { NULL, NULL },
+  if (lua_isstring(L, 2)) {
+    key = lua_tostring(L, 2);
+
+    if (strcmp(key, "main") == 0) {
+      obj_ref_new(L, t->main, "mace.textbox");
+      return 1;
+    }
+
+    if (strcmp(key, "action") == 0) {
+      obj_ref_new(L, t->action, "mace.textbox");
+      return 1;
+    }
+  }
+
+  return indexcommon(L);
+}
+
+static const struct luaL_Reg tab_funcs[] = {
+  { "__tostring", ltabtostring },
+  { "__index",    ltabindex },
+  { NULL,         NULL },
 };
 
-static struct sequence *
-lua_checksequence(lua_State *L)
+static int
+ltextboxtostring(lua_State *L)
 {
-  luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
-  return (struct sequence *) lua_touserdata(L, 1);
+  struct textbox *t;
+
+  t = obj_ref_check(L, 1, "mace.textbox");
+  
+  lua_pushfstring(L, "[textbox %d]", t->cursor);
+
+  return 1;
+}
+
+static int
+ltextboxindex(lua_State *L)
+{
+  struct textbox *t = obj_ref_check(L, 1, "mace.textbox");
+  const char *key;
+
+  if (lua_isstring(L, 2)) {
+    key = lua_tostring(L, 2);
+
+    if (strcmp(key, "sequence") == 0) {
+      obj_ref_new(L, t->sequence, "mace.sequence");
+      return 1;
+    }
+
+    if (strcmp(key, "cursor") == 0) {
+      lua_pushnumber(L, t->cursor);
+      return 1;
+    }
+  }
+
+  return indexcommon(L);
+}
+
+static const struct luaL_Reg textbox_funcs[] = {
+  { "__tostring", ltextboxtostring },
+  { "__index",    ltextboxindex },
+  { NULL,         NULL },
+};
+
+static int
+lsequencetostring(lua_State *L)
+{
+  struct sequence *s;
+  
+  s = obj_ref_check(L, 1, "mace.sequence");
+
+  lua_pushfstring(L, "[sequence plen %d, dlen %d]", s->plen, s->dlen);
+
+  return 1;
 }
 
 static int
@@ -62,7 +195,7 @@ lsequenceinsert(lua_State *L)
   size_t pos, len;
   bool r;
   
-  s = lua_checksequence(L);
+  s = obj_ref_check(L, 1, "mace.sequence");
   pos = luaL_checknumber(L, 2);
   data = luaL_checklstring(L, 3, &len);
 
@@ -80,7 +213,7 @@ lsequencedelete(lua_State *L)
   size_t start, len;
   bool r;
   
-  s = lua_checksequence(L);
+  s = obj_ref_check(L, 1, "mace.sequence");
   start = luaL_checknumber(L, 2);
   len = luaL_checknumber(L, 3);
 
@@ -99,16 +232,19 @@ lsequenceget(lua_State *L)
   uint8_t buf[512];
   luaL_Buffer b;
 
-  s = lua_checksequence(L);
+  s = obj_ref_check(L, 1, "mace.sequence");
   start = luaL_checknumber(L, 2);
   len = luaL_checknumber(L, 3);
 
   luaL_buffinit(L, &b);
-  
+
   i = 0;
   while (i < len) {
     l = sequenceget(s, start + i, buf,
 		    sizeof(buf) > len - i ? len - i : sizeof(buf));
+    if (l == 0) {
+      break;
+    }
 
     luaL_addlstring(&b, buf, l);
     i += l;
@@ -119,22 +255,25 @@ lsequenceget(lua_State *L)
   return 1;
 }
 
-
-static const struct luaL_Reg sequence_f[] = {
+static const struct luaL_Reg sequence_funcs[] = {
+  { "__tostring", lsequencetostring },
+  { "__index",    indexcommon },
   { "insert",     lsequenceinsert },
   { "delete",     lsequencedelete },
   { "get",        lsequenceget },
+  { NULL,         NULL },
 };
 
+
 void
-command(struct textbox *main, uint8_t *s)
+command(struct tab *tab, uint8_t *s)
 {
   struct selection *sel;
   int index;
   
   lua_getglobal(L, s);
 
-  lua_pushlightuserdata(L, main);
+  obj_ref_new(L, tab, "mace.tab");
 
   lua_newtable(L);
   index = 0;
@@ -151,7 +290,7 @@ command(struct textbox *main, uint8_t *s)
     lua_settable(L, -3);
 
     lua_pushstring(L, "textbox");
-    lua_pushlightuserdata(L, sel->textbox);
+    obj_ref_new(L, sel->textbox, "mace.textbox");
     lua_settable(L, -3);
 
     lua_settable(L, -3);
@@ -180,7 +319,7 @@ lsetfont(lua_State *L)
   return 1; 
 }
 
-static const struct luaL_Reg funcs[] = {
+static const struct luaL_Reg global_funcs[] = {
   { "setfont", lsetfont },
   { NULL, NULL }
 };
@@ -188,6 +327,7 @@ static const struct luaL_Reg funcs[] = {
 void
 luainit(void)
 {
+  const struct luaL_Reg *f;
   int r;
 
   L = luaL_newstate();
@@ -197,15 +337,30 @@ luainit(void)
 
   luaL_openlibs(L);
 
-  luaL_newlib(L, funcs);
-  lua_setglobal(L, "mace");
+  /* Set global funcs */
+  
+  for (f = global_funcs; f->func != NULL; f++) {
+    lua_pushcfunction(L, f->func);
+    lua_setglobal(L, f->name);
+  }
+ 
+  lua_newtable(L);
+  lua_setfield(L, LUA_REGISTRYINDEX, "mace.types");
 
-  luaL_newlib(L, textbox_f);
-  lua_setglobal(L, "textbox");
+  lua_newtable(L);
+  lua_setfield(L, LUA_REGISTRYINDEX, "mace.objects");
 
-  luaL_newlib(L, sequence_f);
-  lua_setglobal(L, "sequence");
+  obj_type_new(L, "mace.tab");
+  luaL_setfuncs(L, tab_funcs, 0);
 
+  obj_type_new(L, "mace.textbox");
+  luaL_setfuncs(L, textbox_funcs, 0);
+
+  obj_type_new(L, "mace.sequence");
+  luaL_setfuncs(L, sequence_funcs, 0);
+
+  /* Load init file */
+  
   r = luaL_loadfile(L, "init.lua");
   if (r == LUA_ERRFILE) {
     errx(1, "Failed to open init.lua");

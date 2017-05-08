@@ -151,10 +151,10 @@ textboxpredraw(struct textbox *t)
     return false;
   }
   
-  for (p = SEQ_start; p != SEQ_end; p = t->text->pieces[p].next) {
-    for (a = 0, i = 0; i < t->text->pieces[p].len; i += a, pos += a) {
-      a = utf8proc_iterate(t->text->data + t->text->pieces[p].off + i,
-			   t->text->pieces[p].len - i, &code);
+  for (p = SEQ_start; p != SEQ_end; p = t->sequence->pieces[p].next) {
+    for (a = 0, i = 0; i < t->sequence->pieces[p].len; i += a, pos += a) {
+      a = utf8proc_iterate(t->sequence->data + t->sequence->pieces[p].off + i,
+			   t->sequence->pieces[p].len - i, &code);
       if (a <= 0) {
 	a = 1;
 	continue;
@@ -163,8 +163,8 @@ textboxpredraw(struct textbox *t)
       sel = inselections(t, pos);
       
       if (islinebreak(code,
-		      t->text->data + t->text->pieces[p].off + i,
-		      t->text->pieces[p].len - i, &a)) {
+		      t->sequence->data + t->sequence->pieces[p].off + i,
+		      t->sequence->pieces[p].len - i, &a)) {
 
 	if (sel != NULL) {
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
