@@ -51,6 +51,8 @@ sequencenew(void)
 void
 sequencefree(struct sequence *s)
 {
+  luafree(s);
+  
   free(s->pieces);
   free(s->data);
   free(s);

@@ -100,8 +100,14 @@ struct tab {
 void
 init(void);
 
+
 void
 luainit(void);
+
+/* Structs that lua uses must call this before freeing themselves. */
+/* Currently tabs, textboxs, and sequences */
+void
+luafree(void *addr);
 
 void
 fontinit(void);

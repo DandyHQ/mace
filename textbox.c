@@ -48,6 +48,8 @@ textboxnew(struct tab *tab,
 void
 textboxfree(struct textbox *t)
 {
+  luafree(t);
+  
   sequencefree(t->sequence);
 
   if (t->cr != NULL) {
@@ -57,6 +59,8 @@ textboxfree(struct textbox *t)
   if (t->sfc != NULL) {
     cairo_surface_destroy(t->sfc);
   }
+
+  free(t);
 }
 
 bool

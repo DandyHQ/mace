@@ -73,6 +73,7 @@ tabnew(uint8_t *name, size_t len)
 void
 tabfree(struct tab *t)
 {
+  luafree(t);
   textboxfree(t->action);
   textboxfree(t->main);
   free(t->name);

@@ -22,7 +22,17 @@
 static lua_State *L = NULL;
 
 static void
-obj_type_new(lua_State *l, const char *type)
+obj_ref_set(lua_State *L, void *addr)
+{
+  lua_getfield(L, LUA_REGISTRYINDEX, "mace.objects");
+  lua_pushlightuserdata(L, addr);
+  lua_pushvalue(L, -3);
+  lua_settable(L, -3);
+  lua_pop(L, 1);
+}
+
+static void
+obj_type_new(lua_State *L, const char *type)
 {
   luaL_newmetatable(L, type);
   lua_getfield(L, LUA_REGISTRYINDEX, "mace.types");
@@ -63,12 +73,7 @@ obj_ref_new(lua_State *L, void *addr, const char *type)
     luaL_getmetatable(L, type);
     lua_setmetatable(L, -2);
 
-    /* Adds the new object to the mace.objects table */
-    lua_getfield(L, LUA_REGISTRYINDEX, "mace.objects");
-    lua_pushlightuserdata(L, addr);
-    lua_pushvalue(L, -3);
-    lua_settable(L, -3);
-    lua_pop(L, 1);
+    obj_ref_set(L, addr);
 
     *handle = addr;
 
@@ -264,6 +269,12 @@ static const struct luaL_Reg sequence_funcs[] = {
   { NULL,         NULL },
 };
 
+void
+luafree(void *addr)
+{
+  lua_pushnil(L);
+  obj_ref_set(L, addr);
+}
 
 void
 command(struct tab *tab, uint8_t *s)
