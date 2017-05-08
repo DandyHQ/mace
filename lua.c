@@ -82,10 +82,31 @@ obj_ref_new(lua_State *L, void *addr, const char *type)
 }
 
 static void *
+obj_ref_get(lua_State *L, void *addr, const char *type)
+{
+  lua_getfield(L, LUA_REGISTRYINDEX, "mace.objects");
+  lua_pushlightuserdata(L, addr);
+  lua_gettable(L, -2);
+  lua_remove(L, -2);
+  if (lua_isnil(L, -1)) {
+    lua_pop(L, 1);
+    return NULL;
+  } else {
+    return luaL_checkudata(L, -1, type);
+  }
+}
+
+static void *
 obj_ref_check(lua_State *L, int index, const char *type)
 {
   void **handle = luaL_checkudata(L, index, type);
-  return *handle;
+  /* Need to check the object is still in the registry before using
+     it. */
+  if (!obj_ref_get(L, *handle, type)) {
+    return NULL;
+  } else {
+    return *handle;
+  }
 }
 
 static int
