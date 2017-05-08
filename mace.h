@@ -113,10 +113,8 @@ void
 fontinit(void);
 
 
-
-
-int
-fontset(const uint8_t *name, size_t size);
+bool
+fontset(const uint8_t *pattern);
 
 bool
 loadglyph(int32_t code);

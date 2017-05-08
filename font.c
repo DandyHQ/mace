@@ -11,6 +11,8 @@
 
 #include "mace.h"
 
+#include <fontconfig/fontconfig.h>
+
 static FT_Library library;
 
 void
@@ -23,25 +25,53 @@ fontinit(void)
     err(e, "Failed to initialize freetype2 library");
   }
 
-  /* TODO: Load a default font. */
-  fontset("/usr/X11R6/lib/X11/fonts/TTF/DejaVuSans.ttf", 15);
+  fontset("-15");
 }
 
-int
-fontset(const uint8_t *name, size_t size)
+bool
+fontset(const uint8_t *spattern)
 {
+  FcPattern *pat, *font;
+  FcConfig *config;
+  FcResult result;
+  FcChar8 *file;
+  double size;
   int e;
 
-  e = FT_New_Face(library, (const char *) name, 0, &face);
+  config = FcInitLoadConfigAndFonts();
+  if (config == NULL) {
+    goto err0;
+  }
+  
+  pat = FcNameParse(spattern);
+  if (pat == NULL) {
+    goto err0;
+  }
+  
+  FcConfigSubstitute(config, pat, FcMatchPattern);
+  FcDefaultSubstitute(pat);
+
+  font = FcFontMatch(config, pat, &result);
+  if (font == NULL) {
+    goto err1;
+  }
+  
+  if (FcPatternGetString(font, FC_FILE, 0, &file) != FcResultMatch) {
+    goto err2;
+  }
+
+  if (FcPatternGetDouble(font, FC_SIZE, 0, &size) != FcResultMatch) {
+    goto err2;
+  }
+
+  e = FT_New_Face(library, file, 0, &face);
   if (e != 0) {
-    /* TODO: Load default font. */
-    return e;
+    goto err2;
   }
 
   e = FT_Set_Pixel_Sizes(face, 0, size);
   if (e != 0) {
-    /* TODO: Load default font. */
-    return e;
+    goto err2;
   }
 
   baseline = 1 + ((face->size->metrics.height
@@ -49,7 +79,14 @@ fontset(const uint8_t *name, size_t size)
 
   lineheight = 2 + (face->size->metrics.height >> 6);
 
-  return 0;
+  return true;
+
+ err2:
+  FcPatternDestroy(font);
+ err1:
+  FcPatternDestroy(pat);
+ err0:
+  return false; 
 }
 
 bool

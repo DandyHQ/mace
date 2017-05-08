@@ -337,16 +337,15 @@ command(struct tab *tab, uint8_t *s)
 static int
 lsetfont(lua_State *L)
 {
-  const uint8_t *name;
-  size_t size, len;
-  int r;
+  const uint8_t *pattern;
+  size_t len;
+  bool r;
 
-  name = (const uint8_t *) luaL_checklstring(L, -2, &len);
-  size = luaL_checknumber(L, -1);
+  pattern = (const uint8_t *) luaL_checklstring(L, -2, &len);
 
-  r = fontset(name, size);
+  r = fontset(pattern);
   
-  lua_pushnumber(L, r);
+  lua_pushboolean(L, r);
 
   return 1; 
 }

@@ -1,19 +1,3 @@
-fonts = {
-   "/usr/X11R6/lib/X11/fonts/TTF/DejaVuSans.ttf",
-   "/usr/share/fonts/dejavu/DejaVuSans.ttf"
-}
-
-for key, value in pairs(fonts) do
-   e = setfont(value, 15)
-   if e == 0 then
-      break
-   end
-end
-
-if e ~= 0 then
-   error("Failed to load a font!")
-end
-
 function test(tab, selections)
    print("lua function test called with tab", tab,
 	 "and selections", selections)
@@ -49,6 +33,22 @@ function test(tab, selections)
    print("test finished")
 end
 
-function hello(main, selections)
-   print("hello, world")
+function save(main, selections)
+   print("should save")
+end
+
+function cut(main, selections)
+   print("should cut")
+end
+
+function copy(main, selections)
+   print("should copy")
+end
+
+function paste(main, selections)
+   print("should paste")
+end
+
+function search(main, selections)
+   print("should search")
 end
