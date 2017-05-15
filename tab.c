@@ -8,6 +8,9 @@
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include "mace.h"
 
@@ -17,7 +20,7 @@ static struct colour bg   = { 1, 1, 1 };
 static struct colour abg  = { 0.86, 0.94, 1 };
 
 struct tab *
-tabnew(uint8_t *name, size_t len)
+tabnew(const uint8_t *name, size_t len)
 {
   uint8_t s[128] = ": save cut copy paste search";
   struct tab *t;
@@ -114,10 +117,10 @@ tabbuttonpress(struct tab *t, int x, int y,
 	       unsigned int button)
 {
   if (y < t->action->height) {
-    focus = t->action;
+    mace->focus = t->action;
     textboxbuttonpress(t->action, x, y, button);
   } else {
-    focus = t->main;
+    mace->focus = t->main;
     textboxbuttonpress(t->main, x, y - t->action->height - 1,
 			      button);
   }
@@ -127,7 +130,7 @@ void
 tabbuttonrelease(struct tab *t, int x, int y,
 	   unsigned int button)
 {
-  if (focus == t->action) {
+  if (mace->focus == t->action) {
     textboxbuttonrelease(t->action, x, y, button);
   } else {
     textboxbuttonrelease(t->main, x, y - t->action->height - 1,
@@ -138,7 +141,7 @@ tabbuttonrelease(struct tab *t, int x, int y,
 void
 tabmotion(struct tab *t, int x, int y)
 {
-  if (focus == t->action) {
+  if (mace->focus == t->action) {
     textboxmotion(t->action, x, y);
   } else {
     textboxmotion(t->main, x, y - t->action->height - 1);
@@ -155,9 +158,11 @@ tabdrawaction(struct tab *t, int y)
     h = t->action->height;
   }
   
-  cairo_set_source_surface(cr, t->action->sfc, t->x, t->y + y);
-  cairo_rectangle(cr, t->x, t->y + y, t->width, h);
-  cairo_fill(cr);
+  cairo_set_source_surface(mace->cr,
+			   t->action->sfc, t->x, t->y + y);
+
+  cairo_rectangle(mace->cr, t->x, t->y + y, t->width, h);
+  cairo_fill(mace->cr);
 
   return y + h;
 }
@@ -174,61 +179,69 @@ tabdrawmain(struct tab *t, int y)
     h = t->main->height - t->main->yoff;
   }
 
-  cairo_set_source_surface(cr, t->main->sfc,
+  cairo_set_source_surface(mace->cr, t->main->sfc,
 			   t->x,
 			   t->y + y - t->main->yoff);
 
-  cairo_rectangle(cr,
+  cairo_rectangle(mace->cr,
 		  t->x, t->y + y,
 		  t->main->linewidth, h);
-  cairo_fill(cr);
+
+  cairo_fill(mace->cr);
 
   /* Fill rest of main block */
   
-  cairo_set_source_rgb(cr, 
+  cairo_set_source_rgb(mace->cr, 
 		       t->main->bg.r,
 		       t->main->bg.g,
 		       t->main->bg.b);
 
-  cairo_rectangle(cr,
+  cairo_rectangle(mace->cr,
 		  t->x, t->y + y + h,
 		  t->main->linewidth, t->height - h - y);
-  cairo_fill(cr);
+
+  cairo_fill(mace->cr);
 
   /* Draw scroll bar */
 
   pos = t->main->yoff * (t->height - y) / t->main->height;
   size = h * (t->height - y) / t->main->height;
 
-  cairo_set_source_rgb(cr, 0, 0, 0);
-  cairo_move_to(cr, t->x + t->main->linewidth, t->y + y);
-  cairo_line_to(cr, t->x + t->main->linewidth, t->y + t->height);
-  cairo_set_line_width (cr, 1.0);
-  cairo_stroke(cr);
+  cairo_set_source_rgb(mace->cr, 0, 0, 0);
+  cairo_move_to(mace->cr, t->x + t->main->linewidth, t->y + y);
+
+  cairo_line_to(mace->cr,
+		t->x + t->main->linewidth,
+		t->y + t->height);
+
+  cairo_set_line_width(mace->cr, 1.0);
+  cairo_stroke(mace->cr);
   
-  cairo_set_source_rgb(cr, 1, 1, 1);
-  cairo_rectangle(cr,
+  cairo_set_source_rgb(mace->cr, 1, 1, 1);
+  cairo_rectangle(mace->cr,
 		  t->x + t->main->linewidth + 1,
 		  t->y + y,
 		  SCROLL_WIDTH - 1,
 		  pos);
-  cairo_fill(cr);
 
-  cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
-  cairo_rectangle(cr,
+  cairo_fill(mace->cr);
+
+  cairo_set_source_rgb(mace->cr, 0.3, 0.3, 0.3);
+  cairo_rectangle(mace->cr,
 		  t->x + t->main->linewidth + 1,
 		  t->y + y + pos,
 		  SCROLL_WIDTH - 1,
 		  size);
-  cairo_fill(cr);
 
-  cairo_set_source_rgb(cr, 1, 1, 1);
-  cairo_rectangle(cr,
+  cairo_fill(mace->cr);
+
+  cairo_set_source_rgb(mace->cr, 1, 1, 1);
+  cairo_rectangle(mace->cr,
 		  t->x + t->main->linewidth + 1,
 		  t->y + y + pos + size,
 		  SCROLL_WIDTH - 1,
 		  t->height - y - pos - size);
-  cairo_fill(cr);
+  cairo_fill(mace->cr);
 
 
   return y + h;
@@ -243,10 +256,10 @@ tabdraw(struct tab *t)
 
   y = tabdrawaction(t, y);
 
-  cairo_set_source_rgb(cr, 0, 0, 0);
-  cairo_move_to(cr, 0, y);
-  cairo_line_to(cr, t->width, y);
-  cairo_stroke(cr);
+  cairo_set_source_rgb(mace->cr, 0, 0, 0);
+  cairo_move_to(mace->cr, 0, y);
+  cairo_line_to(mace->cr, t->width, y);
+  cairo_stroke(mace->cr);
 
   y += 1;
 

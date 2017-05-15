@@ -8,6 +8,9 @@
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include "mace.h"
 
@@ -79,7 +82,7 @@ textboxresize(struct textbox *t, int lw)
   }
 
   t->sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
-				      lw, lineheight * 30);
+				      lw, mace->lineheight * 30);
   if (t->sfc == NULL) {
     return false;
   }
@@ -120,11 +123,11 @@ findpos(struct textbox *t,
 		      t->sequence->data + t->sequence->pieces[p].off + i,
 		      t->sequence->pieces[p].len - i, &a)) {
 
-	if (y < yy + lineheight - 1) {
+	if (y < yy + mace->lineheight - 1) {
 	  return pos;
 	} else {
 	  xx = 0;
-	  yy += lineheight;
+	  yy += mace->lineheight;
 	}
       }
      
@@ -132,21 +135,21 @@ findpos(struct textbox *t,
 	continue;
       }
 
-      ww = face->glyph->advance.x >> 6;
+      ww = mace->fontface->glyph->advance.x >> 6;
 
       /* Wrap Line. */
       if (xx + ww >= t->linewidth) {
-	if (y < yy + lineheight - 1) {
+	if (y < yy + mace->lineheight - 1) {
 	  return pos;
 	} else {
 	  xx = 0;
-	  yy += lineheight;
+	  yy += mace->lineheight;
 	}
       }
 
       xx += ww;
       
-      if (y < yy + lineheight - 1 && x < xx) {
+      if (y < yy + mace->lineheight - 1 && x < xx) {
 	/* Found position. */
 	return pos;
       }
@@ -192,12 +195,10 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       return;
     }
 
-    if (!sequenceget(t->sequence, start, buf, len)) {
+    if (sequenceget(t->sequence, start, buf, len) == 0) {
       return;
     }
 
-    buf[len] = 0;
-    
     command(t->tab, buf);
 
     free(buf);
@@ -323,7 +324,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     /* TODO: improve significantly */
 
   case KEY_delete:
-    if (selections == NULL) {
+    if (mace->selections == NULL) {
       if (sequencedelete(t->sequence, t->cursor, 1)) {
 	textboxpredraw(t);
 	tabdraw(t->tab);
@@ -335,7 +336,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     /* Fall through to delete selections */
     
   case KEY_backspace:
-    if (selections == NULL && t->cursor > 0) {
+    if (mace->selections == NULL && t->cursor > 0) {
       if (sequencedelete(t->sequence, t->cursor - 1, 1)) {
 	t->cursor--;
 	textboxpredraw(t);
@@ -347,7 +348,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     /* Delete selections */
 
-    for (sel = selections; sel != NULL; sel = nsel) {
+    for (sel = mace->selections; sel != NULL; sel = nsel) {
       nsel = sel->next;
 
       if (sel->textbox != t) {
@@ -358,7 +359,10 @@ textboxkeypress(struct textbox *t, keycode_t k)
 	t->cursor = sel->start;
       }
       
-      sequencedelete(t->sequence, sel->start, sel->end - sel->start + 1);
+      sequencedelete(t->sequence,
+		     sel->start,
+		     sel->end - sel->start + 1);
+
       selectionremove(sel);
     }
 
@@ -384,8 +388,8 @@ textboxscroll(struct textbox *t, int x, int y, int dy)
   t->yoff += dy;
   if (t->yoff < 0) {
     t->yoff = 0;
-  } else if (t->yoff > t->height - lineheight) {
-    t->yoff = t->height - lineheight;
+  } else if (t->yoff > t->height - mace->lineheight) {
+    t->yoff = t->height - mace->lineheight;
   }
 
   tabdraw(t->tab);

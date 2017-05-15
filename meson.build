@@ -13,7 +13,7 @@ utf8proc   = cc.find_library('utf8proc', dirs : ['/usr/local/lib'])
 
 executable('mace',
 	sources: [
-		  'main.c',
+		  'mace.c',
 		  'font.c',
 		  'utf8.c',
 		  'keys.c',

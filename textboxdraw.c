@@ -8,6 +8,9 @@
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include "mace.h"
 
@@ -59,10 +62,10 @@ static bool
 nextline(struct textbox *t, int *x, int *y)
 {
   *x = 0;
-  *y += lineheight;
+  *y += mace->lineheight;
 
-  if (buffergrow(t, *y + lineheight * 10)) {
-    t->height = *y + lineheight;
+  if (buffergrow(t, *y + mace->lineheight * 10)) {
+    t->height = *y + mace->lineheight;
     return true;
   } else {
     return false;
@@ -74,7 +77,7 @@ drawglyph(struct textbox *t, int x, int y, int32_t pos,
 	  struct colour *fg, struct colour *bg)
 {
   uint8_t buf[1024]; /* Hopefully this is big enough */
-  FT_Bitmap *map = &face->glyph->bitmap;
+  FT_Bitmap *map = &mace->fontface->glyph->bitmap;
   cairo_surface_t *s;
   int stride, h;
 
@@ -98,14 +101,16 @@ drawglyph(struct textbox *t, int x, int y, int32_t pos,
 
   cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
   cairo_rectangle(t->cr, x, y, 
-		  face->glyph->advance.x >> 6, lineheight);
+		  mace->fontface->glyph->advance.x >> 6,
+		  mace->lineheight);
 
   cairo_fill(t->cr);
   
   cairo_set_source_rgb(t->cr, fg->r, fg->g, fg->b);
 
-  cairo_mask_surface(t->cr, s, x + face->glyph->bitmap_left,
-		     y + baseline - face->glyph->bitmap_top);
+  cairo_mask_surface(t->cr, s, x + mace->fontface->glyph->bitmap_left,
+		     y + mace->baseline
+		     - mace->fontface->glyph->bitmap_top);
 
   cairo_surface_destroy(s);
 }
@@ -114,18 +119,18 @@ static void
 drawcursor(struct textbox *t, int x, int y)
 {
   cairo_set_source_rgb(t->cr, 0, 0, 0);
-  cairo_set_line_width (cr, 1.0);
+  cairo_set_line_width (t->cr, 1.0);
 
   cairo_move_to(t->cr, x, y);
-  cairo_line_to(t->cr, x, y + lineheight - 1);
+  cairo_line_to(t->cr, x, y + mace->lineheight - 1);
   cairo_stroke(t->cr);
 
   cairo_move_to(t->cr, x - 2, y);
   cairo_line_to(t->cr, x + 2, y);
   cairo_stroke(t->cr);
 
-  cairo_move_to(t->cr, x - 2, y + lineheight - 1);
-  cairo_line_to(t->cr, x + 2, y + lineheight - 1);
+  cairo_move_to(t->cr, x - 2, y + mace->lineheight - 1);
+  cairo_line_to(t->cr, x + 2, y + mace->lineheight - 1);
   cairo_stroke(t->cr);
 }
 
@@ -134,10 +139,13 @@ textboxpredraw(struct textbox *t)
 {
   int32_t code, i, a, pos;
   struct selection *sel;
+  struct sequence *s;
   struct colour *bg;
   int x, y, ww;
   size_t p;
 
+  s = t->sequence;
+  
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
  
@@ -145,16 +153,16 @@ textboxpredraw(struct textbox *t)
   x = 0;
   y = 0;
   
-  if (buffergrow(t, lineheight * 10)) {
-    t->height = lineheight;
+  if (buffergrow(t, mace->lineheight * 10)) {
+    t->height = mace->lineheight;
   } else {
     return false;
   }
   
-  for (p = SEQ_start; p != SEQ_end; p = t->sequence->pieces[p].next) {
-    for (a = 0, i = 0; i < t->sequence->pieces[p].len; i += a, pos += a) {
-      a = utf8proc_iterate(t->sequence->data + t->sequence->pieces[p].off + i,
-			   t->sequence->pieces[p].len - i, &code);
+  for (p = SEQ_start; p != SEQ_end; p = s->pieces[p].next) {
+    for (a = 0, i = 0; i < s->pieces[p].len; i += a, pos += a) {
+      a = utf8proc_iterate(s->data + s->pieces[p].off + i,
+			   s->pieces[p].len - i, &code);
       if (a <= 0) {
 	a = 1;
 	continue;
@@ -163,12 +171,13 @@ textboxpredraw(struct textbox *t)
       sel = inselections(t, pos);
       
       if (islinebreak(code,
-		      t->sequence->data + t->sequence->pieces[p].off + i,
-		      t->sequence->pieces[p].len - i, &a)) {
+		      s->data + s->pieces[p].off + i,
+		      s->pieces[p].len - i, &a)) {
 
 	if (sel != NULL) {
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
-	  cairo_rectangle(t->cr, x, y, t->linewidth - x, lineheight);
+	  cairo_rectangle(t->cr, x, y, t->linewidth - x,
+			  mace->lineheight);
 	  cairo_fill(t->cr);
 	}
 	    
@@ -185,12 +194,16 @@ textboxpredraw(struct textbox *t)
 	continue;
       }
 
-      ww = face->glyph->advance.x >> 6;
+      ww = mace->fontface->glyph->advance.x >> 6;
 
       if (x + ww >= t->linewidth) {
 	if (sel != NULL) {
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
-	  cairo_rectangle(t->cr, x, y, t->linewidth - x, lineheight);
+
+	  cairo_rectangle(t->cr, x, y,
+			  t->linewidth - x,
+			  mace->lineheight);
+
 	  cairo_fill(t->cr);
 	}
 
@@ -215,6 +228,14 @@ textboxpredraw(struct textbox *t)
     }
   }
 
+  sel = inselections(t, pos);
+  if (sel != NULL) {
+    cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
+    cairo_rectangle(t->cr, x, y, t->linewidth - x,
+		    mace->lineheight);
+    cairo_fill(t->cr);
+  }
+  
   if (pos == t->cursor) {
     drawcursor(t, x, y);
   }

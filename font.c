@@ -8,28 +8,32 @@
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include "mace.h"
 
 #include <fontconfig/fontconfig.h>
 
-static FT_Library library;
-
-void
-fontinit(void)
+bool
+fontinit(struct mace *mace)
 {
-  int e;
-  
-  e = FT_Init_FreeType(&library);
-  if (e != 0) {
-    err(e, "Failed to initialize freetype2 library");
+  if (FT_Init_FreeType(&mace->fontlibrary) != 0) {
+    fprintf(stderr, "Failed to initialize freetype2 library");
+    return false;
   }
 
-  fontset("-15");
+  if (!fontset(mace, "-15")) {
+    fprintf(stderr, "Failed to load default font!\n");
+    return false;
+  }
+
+  return true;
 }
 
 bool
-fontset(const uint8_t *spattern)
+fontset(struct mace *mace, const uint8_t *spattern)
 {
   FcPattern *pat, *font;
   FcConfig *config;
@@ -64,20 +68,22 @@ fontset(const uint8_t *spattern)
     goto err2;
   }
 
-  e = FT_New_Face(library, file, 0, &face);
+  printf("use fontlib in mace %p\n", mace);
+  e = FT_New_Face(mace->fontlibrary, file, 0, &mace->fontface);
   if (e != 0) {
     goto err2;
   }
 
-  e = FT_Set_Pixel_Sizes(face, 0, size);
+  printf("use fontface\n");
+  e = FT_Set_Pixel_Sizes(mace->fontface, 0, size);
   if (e != 0) {
     goto err2;
   }
 
-  baseline = 1 + ((face->size->metrics.height
-		   + face->size->metrics.descender) >> 6);
+  mace->baseline = 1 + ((mace->fontface->size->metrics.height
+			 + mace->fontface->size->metrics.descender) >> 6);
 
-  lineheight = 2 + (face->size->metrics.height >> 6);
+  mace->lineheight = 2 + (mace->fontface->size->metrics.height >> 6);
 
   return true;
 
@@ -95,17 +101,18 @@ loadglyph(int32_t code)
   FT_UInt i;
   int e;
 
-  i = FT_Get_Char_Index(face, code);
+  i = FT_Get_Char_Index(mace->fontface, code);
   if (i == 0) {
     return false;
   }
 
-  e = FT_Load_Glyph(face, i, FT_LOAD_DEFAULT);
+  e = FT_Load_Glyph(mace->fontface, i, FT_LOAD_DEFAULT);
   if (e != 0) {
     return false;
   }
 
-  if (FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0) {
+  if (FT_Render_Glyph(mace->fontface->glyph,
+		      FT_RENDER_MODE_NORMAL) != 0) {
     return false;
   }
 

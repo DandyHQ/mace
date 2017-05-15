@@ -7,6 +7,9 @@
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include "mace.h"
 
@@ -20,6 +23,7 @@ static Display *display;
 static Window win;
 static int screen;
 
+static int width, height;
 static cairo_surface_t *sfc;
 
 static void
@@ -27,19 +31,19 @@ xresize(int w, int h)
 {
   width = w;
   height = h;
-
-  if (!tabresize(tab, 0, 0, w, h)) {
+  
+  if (!tabresize(mace->tab, 0, 0, w, h)) {
     errx(1, "Failed to resize panes!");
   }
 
   cairo_xlib_surface_set_size(sfc, w, h);
 
-  cairo_push_group(cr);
+  cairo_push_group(mace->cr);
 
-  tabdraw(tab);
+  tabdraw(mace->tab);
 
-  cairo_pop_group_to_source(cr);
-  cairo_paint(cr);
+  cairo_pop_group_to_source(mace->cr);
+  cairo_paint(mace->cr);
   cairo_surface_flush(sfc);
 }
 
@@ -98,7 +102,7 @@ xhandlekeypress(XKeyEvent *e)
 
   c = symtocode(sym);
 
-  cairo_push_group(cr);
+  cairo_push_group(mace->cr);
 
   if (c == KEY_none) {
     n = utf8proc_encode_char(sym, s);
@@ -109,8 +113,8 @@ xhandlekeypress(XKeyEvent *e)
     handlekeypress(c);
   }
 
-  cairo_pop_group_to_source(cr);
-  cairo_paint(cr);
+  cairo_pop_group_to_source(mace->cr);
+  cairo_paint(mace->cr);
   cairo_surface_flush(sfc);
 }
 
@@ -126,12 +130,12 @@ xhandlekeyrelease(XKeyEvent *e)
   c = symtocode(sym);
 
   if (c != KEY_none) {
-    cairo_push_group(cr);
+    cairo_push_group(mace->cr);
     
     handlekeyrelease(c);
 
-    cairo_pop_group_to_source(cr);
-    cairo_paint(cr);
+    cairo_pop_group_to_source(mace->cr);
+    cairo_paint(mace->cr);
     cairo_surface_flush(sfc);
   }
 }
@@ -139,7 +143,7 @@ xhandlekeyrelease(XKeyEvent *e)
 static void
 xhandlebuttonpress(XButtonEvent *e)
 {
-  cairo_push_group(cr);
+  cairo_push_group(mace->cr);
 
   switch (e->button) {
   case 1:
@@ -157,15 +161,15 @@ xhandlebuttonpress(XButtonEvent *e)
     break;
   }
 
-  cairo_pop_group_to_source(cr);
-  cairo_paint(cr);
+  cairo_pop_group_to_source(mace->cr);
+  cairo_paint(mace->cr);
   cairo_surface_flush(sfc);
 }
 
 static void
 xhandlebuttonrelease(XButtonEvent *e)
 {
-  cairo_push_group(cr);
+  cairo_push_group(mace->cr);
 
   switch (e->button) {
   case 1:
@@ -175,20 +179,20 @@ xhandlebuttonrelease(XButtonEvent *e)
     break;
   }
 
-  cairo_pop_group_to_source(cr);
-  cairo_paint(cr);
+  cairo_pop_group_to_source(mace->cr);
+  cairo_paint(mace->cr);
   cairo_surface_flush(sfc);
 }
 
 static void
 xhandlemotion(XMotionEvent *e)
 {
-  cairo_push_group(cr);
+  cairo_push_group(mace->cr);
 
   handlemotion(e->x, e->y);
 
-  cairo_pop_group_to_source(cr);
-  cairo_paint(cr);
+  cairo_pop_group_to_source(mace->cr);
+  cairo_paint(mace->cr);
   cairo_surface_flush(sfc);
 } 
 
@@ -197,7 +201,7 @@ eventLoop(void)
 {
   XEvent e;
 
-  while (true) {
+  while (mace->running) {
     XNextEvent(display, &e);
 
     switch (e.type) {
@@ -212,12 +216,12 @@ eventLoop(void)
       break;
 
     case Expose:
-      cairo_push_group(cr);
+      cairo_push_group(mace->cr);
 
-      tabdraw(tab);
+      tabdraw(mace->tab);
 
-      cairo_pop_group_to_source(cr);
-      cairo_paint(cr);
+      cairo_pop_group_to_source(mace->cr);
+      cairo_paint(mace->cr);
       cairo_surface_flush(sfc);
       break;
 
@@ -250,6 +254,9 @@ eventLoop(void)
 int
 main(int argc, char **argv)
 {
+  int width, height;
+  cairo_t *cr;
+  
   width = 800;
   height = 500;
   
@@ -278,15 +285,18 @@ main(int argc, char **argv)
 
   cr = cairo_create(sfc);
 
-  init();
-  fontinit();
-  luainit();
+  printf("create mace\n");
+  mace = macenew(cr);
+  if (mace == NULL) {
+    errx(1, "Failed to initalize mace!");
+  }
 
-  tabresize(tab, 0, 0, width, height);
+  printf("use mace\n");
+  tabresize(mace->tab, 0, 0, width, height);
 
   cairo_push_group(cr);
 
-  tabdraw(tab);
+  tabdraw(mace->tab);
 
   cairo_pop_group_to_source(cr);
   cairo_paint(cr);
@@ -294,6 +304,8 @@ main(int argc, char **argv)
 
   eventLoop();
 
+  macefree(mace);
+  
   cairo_destroy(cr);
   cairo_surface_destroy(sfc);
   

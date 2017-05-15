@@ -64,6 +64,7 @@ typedef enum { SELECTION_left, SELECTION_right } selection_t;
 
 struct selection {
   struct textbox *textbox;
+
   int32_t start, end;
 
   selection_t direction;
@@ -97,24 +98,46 @@ struct tab {
   struct textbox *action, *main;
 };
 
-void
-init(void);
+struct mace {
+  bool running;
+  
+  cairo_t *cr;
 
+  FT_Library fontlibrary;
+  FT_Face fontface;
+  int baseline, lineheight;
+
+  lua_State *lua;
+  
+  struct tab *tab;
+  struct textbox *focus;
+
+  struct selection *selections;
+};
+
+struct mace *
+macenew(cairo_t *cr);
 
 void
-luainit(void);
+macefree(struct mace *);
+
+void
+macequit(struct mace *);
+
+bool
+luainit(struct mace *);
 
 /* Structs that lua uses must call this before freeing themselves. */
 /* Currently tabs, textboxs, and sequences */
 void
 luafree(void *addr);
 
-void
-fontinit(void);
-
 
 bool
-fontset(const uint8_t *pattern);
+fontinit(struct mace *);
+
+bool
+fontset(struct mace *m, const uint8_t *pattern);
 
 bool
 loadglyph(int32_t code);
@@ -139,7 +162,7 @@ command(struct tab *tab, uint8_t *s);
 
 
 struct tab *
-tabnew(uint8_t *name, size_t len);
+tabnew(const uint8_t *name, size_t len);
 
 void
 tabfree(struct tab *t);
@@ -234,7 +257,8 @@ sequencefindword(struct sequence *s, size_t pos,
 		 size_t *start, size_t *len);
 
 /* Fulls out buf with the contentes of the sequence starting at pos
-   and going for at most len bytes */
+   and going for at most len bytes, buf must be of at least len + 1
+   bytes and will be null terminated. */
 
 size_t
 sequenceget(struct sequence *s, size_t pos,
@@ -293,13 +317,8 @@ void
 handlescroll(int x, int y, int dy);
 
 
-extern int width, height;
-extern cairo_t *cr;
+/* This is not as seperated as I would like. In future we should be
+   able to have multiple instances of mace. Why this is good I'm not
+   sure but global variables tend to be messy. */
 
-extern FT_Face face;
-extern int baseline, lineheight;
-
-extern struct tab *tab;
-extern struct textbox *focus;
-
-extern struct selection *selections;
+extern struct mace *mace;

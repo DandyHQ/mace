@@ -8,6 +8,9 @@
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include "mace.h"
 
@@ -371,8 +374,7 @@ size_t
 sequenceget(struct sequence *s, size_t pos,
 	    uint8_t *buf, size_t len)
 {
-  size_t i, l, b;
-  size_t p;
+  size_t i, l, b, p, ret;
 
   i = 0;
   for (p = SEQ_start; p != SEQ_end; p = s->pieces[p].next) {
@@ -390,7 +392,7 @@ sequenceget(struct sequence *s, size_t pos,
       b = 0;
     }
 
-    if (i + s->pieces[p].len > pos + len) {
+    if (i + s->pieces[p].len - pos >= len) {
       l = pos + len - i - b;
     } else {
       l = s->pieces[p].len - b;
@@ -403,9 +405,14 @@ sequenceget(struct sequence *s, size_t pos,
     i += b + l;
   }
 
-  if (i > pos) {
-    return i - pos;
+  if (i <= pos) {
+    ret = 0;
+    i = pos;
   } else {
-    return 0;
+    ret = i - pos;
   }
+
+  memset(buf + (i - pos), 0, len + 1 - (i - pos));
+
+  return ret;
 }

@@ -8,23 +8,26 @@
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include "mace.h"
 
 void
 handletyping(uint8_t *s, size_t n)
 {
-  textboxtyping(focus, s, n);
+  textboxtyping(mace->focus, s, n);
 }
 
 void
 handlekeypress(keycode_t k)
 {
-  textboxkeypress(focus, k);
+  textboxkeypress(mace->focus, k);
 }
 
 void
 handlekeyrelease(keycode_t k)
 {
-  textboxkeyrelease(focus, k);
+  textboxkeyrelease(mace->focus, k);
 }

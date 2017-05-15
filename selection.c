@@ -8,6 +8,9 @@
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <utf8proc.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include "mace.h"
 
@@ -39,8 +42,8 @@ selectionadd(struct textbox *t, int32_t pos)
     return NULL;
   }
 
-  s->next = selections;
-  selections = s;
+  s->next = mace->selections;
+  mace->selections = s;
 
   return s;
 }
@@ -50,7 +53,7 @@ selectionreplace(struct textbox *t, int32_t pos)
 {
   struct selection *s, *o;
 
-  s = selections;
+  s = mace->selections;
   while (s != NULL) {
     o = s->next;
     selectionremove(s);
@@ -63,7 +66,7 @@ selectionreplace(struct textbox *t, int32_t pos)
   }
   
   s->next = NULL;
-  selections = s;
+  mace->selections = s;
 
   return s;
 }
@@ -73,10 +76,10 @@ selectionremove(struct selection *s)
 {
   struct selection *o;
 
-  if (selections == s) {
-    selections = s->next;
+  if (mace->selections == s) {
+    mace->selections = s->next;
   } else {
-    for (o = selections; o->next != s; o = o->next)
+    for (o = mace->selections; o->next != s; o = o->next)
       ;
 
     o->next = s->next;
@@ -123,7 +126,7 @@ inselections(struct textbox *t, int32_t pos)
 {
   struct selection *s;
 
-  for (s = selections; s != NULL; s = s->next) {
+  for (s = mace->selections; s != NULL; s = s->next) {
     if (s->textbox == t && s->start <= pos && pos <= s->end) {
       return s;
     }
