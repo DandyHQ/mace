@@ -47,6 +47,7 @@ struct piece {
 
 #define SEQ_start  0
 #define SEQ_end    1
+#define SEQ_first  2
 
 struct sequence {
   struct piece *pieces;
@@ -59,6 +60,12 @@ struct sequence {
 struct colour {
   double r, g, b;
 };
+
+/* Selections are handled horrible. They are a linked list that is
+   global to a mace instance (effectively global at this point). There
+   is no nice way to traverse them, nor to use them from lua. Some
+   redeisgn is needed here. Especially with how they interact with
+   text boxes. */
 
 typedef enum { SELECTION_left, SELECTION_right } selection_t;
 
@@ -79,7 +86,7 @@ struct textbox {
   int32_t cursor;
 
   struct selection *csel;
-  bool cselvalid;
+  bool cselisvalid;
   
   struct colour bg;
 
@@ -96,6 +103,7 @@ struct tab {
   int x, y, width, height;
   
   struct textbox *action, *main;
+  struct tab *next;
 };
 
 struct mace {
@@ -109,35 +117,49 @@ struct mace {
 
   lua_State *lua;
   
-  struct tab *tab;
+  struct tab *tabs;
   struct textbox *focus;
 
   struct selection *selections;
 };
 
+
+
 struct mace *
 macenew(cairo_t *cr);
 
 void
-macefree(struct mace *);
+macefree(struct mace *mace);
 
 void
-macequit(struct mace *);
+macequit(struct mace *mace);
 
-bool
-luainit(struct mace *);
+
+
+int
+luainit(struct mace *mace);
+
+void
+luaend(struct mace *mace);
 
 /* Structs that lua uses must call this before freeing themselves. */
-/* Currently tabs, textboxs, and sequences */
+/* Currently tabs, textboxs, sequences, and selections */
 void
-luafree(void *addr);
+luaremove(void *addr);
+
+void
+command(uint8_t *s);
 
 
-bool
-fontinit(struct mace *);
 
-bool
-fontset(struct mace *m, const uint8_t *pattern);
+int
+fontinit(struct mace *mace);
+
+void
+fontend(struct mace *mace);
+
+int
+fontset(struct mace *mace, const uint8_t *pattern);
 
 bool
 loadglyph(int32_t code);
@@ -154,15 +176,14 @@ iswordbreak(int32_t code);
 
 
 
-
-void
-command(struct tab *tab, uint8_t *s);
-
-
-
+struct tab *
+tabnewempty(struct mace *mace,
+	    const uint8_t *name, size_t nlen);
 
 struct tab *
-tabnew(const uint8_t *name, size_t len);
+tabnewfromfile(struct mace *mace,
+	       const uint8_t *name, size_t nlen,
+	       const uint8_t *filename, size_t flen);
 
 void
 tabfree(struct tab *t);
@@ -191,8 +212,8 @@ tabmotion(struct tab *t, int x, int y);
 
 
 struct textbox *
-textboxnew(struct tab *tab,
-	   struct colour *bg);
+textboxnew(struct tab *tab, struct colour *bg,
+	   uint8_t *data, size_t dlen, size_t dmax);
 
 void
 textboxfree(struct textbox *t);
@@ -228,10 +249,12 @@ textboxpredraw(struct textbox *t);
 
 
 
-/* Creates a new empty sequence */
+/* Creates a new empty sequence around data, data may be NULL.
+   dlen is the number of set bytes in data, dmax is the size of the
+   allocation for data. */
 
 struct sequence *
-sequencenew(void);
+sequencenew(uint8_t *data, size_t dlen, size_t dmax);
 
 /* Frees a sequence and all it's pieces, does not remove any
    selections that point to it. */

@@ -15,17 +15,17 @@
 #include "mace.h"
 
 struct textbox *
-textboxnew(struct tab *tab,
-	   struct colour *bg)
+textboxnew(struct tab *tab, struct colour *bg,
+	   uint8_t *data, size_t dlen, size_t dmax)
 {
   struct textbox *t;
 
-  t = malloc(sizeof(struct textbox));
+  t = calloc(1, sizeof(struct textbox));
   if (t == NULL) {
     return NULL;
   }
 
-  t->sequence = sequencenew();
+  t->sequence = sequencenew(data, dlen, dmax);
   if (t->sequence == NULL) {
     free(t);
     return NULL;
@@ -51,7 +51,7 @@ textboxnew(struct tab *tab,
 void
 textboxfree(struct textbox *t)
 {
-  luafree(t);
+  luaremove(t);
   
   sequencefree(t->sequence);
 
@@ -174,11 +174,9 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     t->cursor = pos;
 
     t->csel = selectionreplace(t, pos);
-    t->cselvalid = false;
+    t->cselisvalid = false;
     
     textboxpredraw(t);
-    tabdraw(t->tab);
-    
     break;
 
   case 3:
@@ -199,12 +197,11 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       return;
     }
 
-    command(t->tab, buf);
+    command(buf);
 
     free(buf);
 
     textboxpredraw(t);
-    tabdraw(t->tab);
 
     break;
   }
@@ -214,11 +211,9 @@ void
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
-  if (!t->cselvalid && t->csel != NULL) {
+  if (!t->cselisvalid && t->csel != NULL) {
     selectionremove(t->csel);
-
     textboxpredraw(t);
-    tabdraw(t->tab);
   }
   
   t->csel = NULL;
@@ -236,9 +231,8 @@ textboxmotion(struct textbox *t, int x, int y)
   pos = findpos(t, x, y + t->yoff);
 
   if (selectionupdate(t->csel, pos)) {
-    t->cselvalid = true;
+    t->cselisvalid = true;
     textboxpredraw(t);
-    tabdraw(t->tab);
   }
 }
 
@@ -251,7 +245,6 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 
   t->cursor += l;
   textboxpredraw(t);
-  tabdraw(t->tab);
 }
 
 void
@@ -313,7 +306,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
     t->cursor += l;
  
     textboxpredraw(t);
-    tabdraw(t->tab);
 
     break;
     
@@ -327,7 +319,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
     if (mace->selections == NULL) {
       if (sequencedelete(t->sequence, t->cursor, 1)) {
 	textboxpredraw(t);
-	tabdraw(t->tab);
       }
 
       break;
@@ -340,7 +331,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
       if (sequencedelete(t->sequence, t->cursor - 1, 1)) {
 	t->cursor--;
 	textboxpredraw(t);
-	tabdraw(t->tab);
       }
 
       break;
@@ -367,7 +357,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
     }
 
     textboxpredraw(t);
-    tabdraw(t->tab);
  
     break;
 
@@ -391,6 +380,4 @@ textboxscroll(struct textbox *t, int x, int y, int dy)
   } else if (t->yoff > t->height - mace->lineheight) {
     t->yoff = t->height - mace->lineheight;
   }
-
-  tabdraw(t->tab);
 }

@@ -111,11 +111,11 @@ function save()
 end
 
 function openfile(filename)
-   file = assert(io.open(filename, "r"))
+   tab = mace:newfiletab(filename, filename)
 
-   
-   
-   assert(file:close())
+   tab.next = mace.tabs
+   mace.tabs = tab
+   mace.focus = tab.main
 end
 
 function open()

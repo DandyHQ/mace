@@ -4,6 +4,11 @@
 #include <string.h>
 #include <err.h>
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+
 #include <cairo.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
@@ -19,67 +24,126 @@
 static struct colour bg   = { 1, 1, 1 };
 static struct colour abg  = { 0.86, 0.94, 1 };
 
+static const uint8_t actionstart[] = ": save cut copy paste search";
+
 struct tab *
-tabnew(const uint8_t *name, size_t len)
+tabnew(struct mace *mace,
+       const uint8_t *name, size_t nlen,
+       uint8_t *data, size_t dlen, size_t dmax)
 {
-  uint8_t s[128] = ": save cut copy paste search";
   struct tab *t;
-
-  t = malloc(sizeof(struct tab));
-  if (t == NULL) {
-    return NULL;
-  }
-
-  t->name = malloc(len + 1);
-  if (t->name == NULL) {
-    free(t);
-    return NULL;
-  }
-
-  strncpy(t->name, name, len);
-  t->name[len] = 0;
+  uint8_t *s;
+  size_t al;
   
-  t->action = textboxnew(t, &abg);
+  al = nlen + sizeof(actionstart);
+  s = malloc(al);
+  if (s == NULL) {
+    return NULL;
+  }
+
+  memmove(s, name, nlen);
+  memmove(s + nlen, actionstart, sizeof(actionstart));
+  
+  t = calloc(1, sizeof(struct tab));
+  if (t == NULL) {
+    free(s);
+    return NULL;
+  }
+
+  t->name = malloc(nlen + 1);
+  if (t->name == NULL) {
+    tabfree(t);
+    free(s);
+    return NULL;
+  }
+
+  strncpy(t->name, name, nlen);
+  t->name[nlen] = 0;
+
+  t->action = textboxnew(t, &abg, s, al, al);
   if (t->action == NULL) {
-    free(t->name);
-    free(t);
+    tabfree(t);
+    free(s);
     return NULL;
   }
 
-  if (!sequenceinsert(t->action->sequence, 0, name, len)) {
-    textboxfree(t->action);
-    free(t->name);
-    free(t);
-    return NULL;
-  }    
+  t->action->cursor = al;
 
-  if (!sequenceinsert(t->action->sequence, len, s, strlen(s))) {
-    textboxfree(t->action);
-    free(t->name);
-    free(t);
-    return NULL;
-  }    
-
-  t->main = textboxnew(t, &bg);
+  t->main = textboxnew(t, &bg, data, dlen, dmax);
   if (t->main == NULL) {
-    textboxfree(t->action);
-    free(t->name);
-    free(t);
+    tabfree(t);
     return NULL;
   }
-
-  t->action->cursor = len + strlen(s);
 
   return t;
 } 
 
+struct tab *
+tabnewempty(struct mace *mace, const uint8_t *name, size_t nlen)
+{
+  return tabnew(mace, name, nlen, NULL, 0, 0);
+}
+
+struct tab *
+tabnewfromfile(struct mace *mace,
+	       const uint8_t *name, size_t nlen,
+	       const uint8_t *filename, size_t flen)
+{
+  uint8_t *data, *map;
+  struct stat st;
+  size_t dlen;
+  int fd;
+
+  fd = open(filename, O_RDONLY);
+  if (fd < 0) {
+    return NULL;
+  }
+
+  if (fstat(fd, &st) != 0) {
+    close(fd);
+    return NULL;
+  }
+
+  dlen = st.st_size;
+  
+  map = mmap(NULL, dlen, PROT_READ, MAP_PRIVATE, fd, 0);
+
+  close(fd);
+
+  if (map == MAP_FAILED) {
+    return NULL;
+  }
+  
+  data = malloc(dlen);
+  if (data == NULL) {
+    munmap(map, dlen);
+    return NULL;
+  }
+
+  memmove(data, map, dlen);
+  
+  munmap(map, dlen);
+
+  return tabnew(mace, name, nlen, data, dlen, dlen);
+}
+
 void
 tabfree(struct tab *t)
 {
-  luafree(t);
-  textboxfree(t->action);
-  textboxfree(t->main);
-  free(t->name);
+  luaremove(t);
+
+  if (t->action != NULL) {
+    textboxfree(t->action);
+  }
+
+  if (t->main != NULL) {
+    textboxfree(t->main);
+  }
+
+  if (t->name != NULL) {
+    free(t->name);
+  }
+  
   free(t);
 }
 
@@ -251,14 +315,14 @@ void
 tabdraw(struct tab *t)
 {
   int y;
-  
+
   y = 0;
 
   y = tabdrawaction(t, y);
 
   cairo_set_source_rgb(mace->cr, 0, 0, 0);
-  cairo_move_to(mace->cr, 0, y);
-  cairo_line_to(mace->cr, t->width, y);
+  cairo_move_to(mace->cr, t->x, t->y + y);
+  cairo_line_to(mace->cr, t->x + t->width, t->y + y);
   cairo_stroke(mace->cr);
 
   y += 1;

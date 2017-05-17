@@ -22,7 +22,7 @@ macenew(cairo_t *cr)
   const uint8_t name[] = "Mace";
   struct mace *m;
 
-  m = malloc(sizeof(struct mace));
+  m = calloc(1, sizeof(struct mace));
   if (m == NULL) {
     return NULL;
   }
@@ -34,27 +34,25 @@ macenew(cairo_t *cr)
   m->baseline = 0;
   m->lineheight = 0;
   
-  m->tab = tabnew(name, strlen(name));
-  if (m->tab == NULL) {
+  m->tabs = tabnewempty(m, name, strlen(name));
+  if (m->tabs == NULL) {
     free(m);
     return NULL;
   }
-  
-  m->focus = m->tab->main;
+
+  m->focus = m->tabs->main;
   m->running = true;
 
-  printf("init font\n");
-  if (!fontinit(m)) {
+  if (fontinit(m) != 0) {
     macefree(m);
     return NULL;
   }
   
-  printf("init lua\n");
-  if (!luainit(m)) {
+  if (luainit(m) != 0) {
     macefree(m);
     return NULL;
   }
-  
+
   return m;
 }
 
@@ -67,9 +65,24 @@ macequit(struct mace *m)
 void
 macefree(struct mace *m)
 {
-  tabfree(m->tab);
+  struct tab *t, *tn;
 
-  /* Free the rest of the stuff */
+  while (m->selections != NULL) {
+    selectionremove(m->selections);
+  } 
+
+  t = m->tabs;
+  while (t != NULL) {
+    tn = t->next;
+    tabfree(t);
+    t = tn;
+  }
+
+  /* Thing that created the mace instance deals with m->cr as it
+     wishes. */
+
+  luaend(m);
+  fontend(m);
 
   free(m);
 }

@@ -86,8 +86,8 @@ selectionremove(struct selection *s)
   }
   
   textboxpredraw(s->textbox);
-  tabdraw(s->textbox->tab);
 
+  luaremove(s);
   free(s);
 }
 

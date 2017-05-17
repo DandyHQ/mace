@@ -29,18 +29,22 @@ static cairo_surface_t *sfc;
 static void
 xresize(int w, int h)
 {
+  struct tab *t;
+  
   width = w;
   height = h;
-  
-  if (!tabresize(mace->tab, 0, 0, w, h)) {
-    errx(1, "Failed to resize panes!");
+
+  for (t = mace->tabs; t != NULL; t = t->next) {
+    if (!tabresize(t, 0, 0, w, h)) {
+      errx(1, "Failed to resize panes!");
+    }
   }
 
   cairo_xlib_surface_set_size(sfc, w, h);
 
   cairo_push_group(mace->cr);
 
-  tabdraw(mace->tab);
+  tabdraw(mace->focus->tab);
 
   cairo_pop_group_to_source(mace->cr);
   cairo_paint(mace->cr);
@@ -216,14 +220,7 @@ eventLoop(void)
       break;
 
     case Expose:
-      cairo_push_group(mace->cr);
-
-      tabdraw(mace->tab);
-
-      cairo_pop_group_to_source(mace->cr);
-      cairo_paint(mace->cr);
-      cairo_surface_flush(sfc);
-      break;
+     break;
 
     case KeyPress:
       xhandlekeypress(&e.xkey);
@@ -248,6 +245,14 @@ eventLoop(void)
     default:
       printf("unknown event %i\n", e.type);
     }
+
+    cairo_push_group(mace->cr);
+
+    tabdraw(mace->focus->tab);
+
+    cairo_pop_group_to_source(mace->cr);
+    cairo_paint(mace->cr);
+    cairo_surface_flush(sfc);
   }
 }
 
@@ -285,22 +290,12 @@ main(int argc, char **argv)
 
   cr = cairo_create(sfc);
 
-  printf("create mace\n");
   mace = macenew(cr);
   if (mace == NULL) {
     errx(1, "Failed to initalize mace!");
   }
 
-  printf("use mace\n");
-  tabresize(mace->tab, 0, 0, width, height);
-
-  cairo_push_group(cr);
-
-  tabdraw(mace->tab);
-
-  cairo_pop_group_to_source(cr);
-  cairo_paint(cr);
-  cairo_surface_flush(sfc);
+  xresize(width, height);
 
   eventLoop();
 

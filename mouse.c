@@ -17,24 +17,32 @@
 void
 handlebuttonpress(int x, int y, int button)
 {
-  tabbuttonpress(mace->tab, x - mace->tab->x, y - mace->tab->y, button);
+  struct tab *f = mace->focus->tab;
+  
+  tabbuttonpress(f, x - f->x, y - f->y, button);
 }
 
 void
 handlebuttonrelease(int x, int y, int button)
 {
-  tabbuttonrelease(mace->tab, x - mace->tab->x, y - mace->tab->y, button);
+  struct tab *f = mace->focus->tab;
+
+  tabbuttonrelease(f, x - f->x, y - f->y, button);
 }
 
 void
 handlemotion(int x, int y)
 {
-  tabmotion(mace->tab, x - mace->tab->x, y - mace->tab->y);
+  struct tab *f = mace->focus->tab;
+
+  tabmotion(f, x - f->x, y - f->y);
 }
 
 void
 handlescroll(int x, int y, int dy)
 {
-  tabscroll(mace->tab, x - mace->tab->x, y - mace->tab->y, dy);
+  struct tab *f = mace->focus->tab;
+
+  tabscroll(f, x - f->x, y - f->y, dy);
 }
 

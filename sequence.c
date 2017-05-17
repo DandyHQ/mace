@@ -15,17 +15,17 @@
 #include "mace.h"
 
 struct sequence *
-sequencenew(void)
+sequencenew(uint8_t *data, size_t dlen, size_t dmax)
 {
   struct sequence *s;
 
-  s = malloc(sizeof(struct sequence));
+  s = calloc(1, sizeof(struct sequence));
   if (s == NULL) {
     return NULL;
   }
 
   s->pmax = 10;
-  s->pieces = malloc(sizeof(struct piece) * s->pmax);
+  s->pieces = calloc(s->pmax, sizeof(struct piece));
   if (s->pieces == NULL) {
     return NULL;
   }
@@ -35,18 +35,25 @@ sequencenew(void)
   s->pieces[SEQ_start].pos = 0;
   s->pieces[SEQ_start].len = 0;
   s->pieces[SEQ_start].prev = SEQ_start;
-  s->pieces[SEQ_start].next = SEQ_end;
+  s->pieces[SEQ_start].next = SEQ_first;
 
   s->plen = 2;
   s->pieces[SEQ_end].off = 0;
   s->pieces[SEQ_end].pos = 0;
   s->pieces[SEQ_end].len = 0;
-  s->pieces[SEQ_end].prev = SEQ_start;
+  s->pieces[SEQ_end].prev = SEQ_first;
   s->pieces[SEQ_end].next = SEQ_end;
 
-  s->data = NULL;
-  s->dlen = 0;
-  s->dmax = 0;
+  s->plen = 3;
+  s->pieces[SEQ_first].off = 0;
+  s->pieces[SEQ_first].pos = 0;
+  s->pieces[SEQ_first].len = dlen;
+  s->pieces[SEQ_first].prev = SEQ_start;
+  s->pieces[SEQ_first].next = SEQ_end;
+  
+  s->data = data;
+  s->dlen = dlen;
+  s->dmax = dmax;
 
   return s;
 }
@@ -54,7 +61,7 @@ sequencenew(void)
 void
 sequencefree(struct sequence *s)
 {
-  luafree(s);
+  luaremove(s);
   
   free(s->pieces);
   free(s->data);
