@@ -3,6 +3,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 
 #include <cairo.h>
 #include <freetype2/ft2build.h>
@@ -15,46 +18,62 @@
 #include "mace.h"
 
 struct sequence *
-sequencenew(uint8_t *data, size_t dlen, size_t dmax)
+sequencenew(uint8_t *data, size_t len, size_t max)
 {
   struct sequence *s;
 
-  s = calloc(1, sizeof(struct sequence));
+  s = malloc(sizeof(struct sequence));
   if (s == NULL) {
     return NULL;
   }
 
   s->pmax = 10;
-  s->pieces = calloc(s->pmax, sizeof(struct piece));
+  s->pieces = malloc(sizeof(struct piece) * s->pmax);
   if (s->pieces == NULL) {
     return NULL;
   }
 
-  s->plen = 1;
+  s->plen = 3;
+
   s->pieces[SEQ_start].off = 0;
   s->pieces[SEQ_start].pos = 0;
   s->pieces[SEQ_start].len = 0;
   s->pieces[SEQ_start].prev = SEQ_start;
-  s->pieces[SEQ_start].next = SEQ_first;
+  s->pieces[SEQ_start].next = SEQ_end;
 
-  s->plen = 2;
   s->pieces[SEQ_end].off = 0;
   s->pieces[SEQ_end].pos = 0;
   s->pieces[SEQ_end].len = 0;
-  s->pieces[SEQ_end].prev = SEQ_first;
+  s->pieces[SEQ_end].prev = SEQ_start;
   s->pieces[SEQ_end].next = SEQ_end;
+ 
+  if (data != NULL) {
+    s->pieces[SEQ_first].off = 0;
+    s->pieces[SEQ_first].pos = 0;
+    s->pieces[SEQ_first].len = len;
+    s->pieces[SEQ_first].prev = SEQ_start;
+    s->pieces[SEQ_first].next = SEQ_end;
 
-  s->plen = 3;
-  s->pieces[SEQ_first].off = 0;
-  s->pieces[SEQ_first].pos = 0;
-  s->pieces[SEQ_first].len = dlen;
-  s->pieces[SEQ_first].prev = SEQ_start;
-  s->pieces[SEQ_first].next = SEQ_end;
-  
-  s->data = data;
-  s->dlen = dlen;
-  s->dmax = dmax;
+    s->pieces[SEQ_start].next = SEQ_first;
+    s->pieces[SEQ_end].prev = SEQ_first;
 
+    s->data = data;
+    s->dlen = len;
+    s->dmax = max;
+
+  } else {
+    s->dlen = 0;
+    s->dmax = sysconf(_SC_PAGESIZE);
+
+    s->data = mmap(NULL, s->dmax, PROT_READ|PROT_WRITE,
+		   MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+
+    if (s->data == MAP_FAILED) {
+      sequencefree(s);
+      return NULL;
+    }
+  }
+ 
   return s;
 }
 
@@ -64,7 +83,11 @@ sequencefree(struct sequence *s)
   luaremove(s);
   
   free(s->pieces);
-  free(s->data);
+
+  if (s->data != NULL) {
+    munmap(s->data, s->dmax);
+  }
+
   free(s);
 }
 
@@ -118,13 +141,23 @@ pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 static bool
 appenddata(struct sequence *s, const uint8_t *data, size_t len)
 {
-  if (s->dlen + len >= s->dmax) {
-    s->data = realloc(s->data, s->dlen + len);
-    if (s->data == NULL) {
-      return false;
-    }
+  uint8_t *ndata;
+  size_t pg;
 
-    s->dmax = s->dlen + len;
+  pg = sysconf(_SC_PAGESIZE);
+
+  while (s->dlen + len >= s->dmax) {
+    /* Leave this here, need to make sure this actually works. */
+    printf("growing sequence data to %u\n", s->dmax + pg);
+    ndata = mmap(s->data + s->dmax, pg, PROT_READ|PROT_WRITE,
+		   MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED, -1, 0);
+
+    if (ndata == MAP_FAILED) {
+      printf("failed to grow sequence data\n");
+      return false;
+    } else {
+      s->dmax += pg;
+    }
   }
 
   memmove(s->data + s->dlen, data, len);

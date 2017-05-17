@@ -111,11 +111,16 @@ function save()
 end
 
 function openfile(filename)
-   tab = mace:newfiletab(filename, filename)
-
-   tab.next = mace.tabs
-   mace.tabs = tab
-   mace.focus = tab.main
+   local t = mace:newfiletab(filename, filename)
+   if t == nil then
+      print("newfiletab failed")
+      return
+   end
+   
+   print("open file has tab", t)
+   t.next = mace.tabs
+   mace.tabs = t
+   mace.focus = t.main
 end
 
 function open()

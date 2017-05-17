@@ -1,4 +1,8 @@
 
+/* Rounds X up to nearest multiple of M, M must be a power of 2. */
+#define RDUP(X, M) ((X + M - 1) & ~(M - 1))
+
+
 /* Most keys are just text and are given to functions as a utf8 
    encoded string. But some are not. And these are those special keys.
 */
@@ -46,13 +50,13 @@ struct piece {
 };
 
 #define SEQ_start  0
-#define SEQ_end    1
+#define SEQ_end    1 
 #define SEQ_first  2
 
 struct sequence {
   struct piece *pieces;
   size_t plen, pmax;
-  
+
   uint8_t *data;
   size_t dlen, dmax;
 };
@@ -95,6 +99,7 @@ struct textbox {
 
   int yoff;
   int linewidth, height;
+  int maxheight;
 };
 
 struct tab {
@@ -210,16 +215,17 @@ tabmotion(struct tab *t, int x, int y);
 
 
 
+/* Takes ownership of seq */
 
 struct textbox *
 textboxnew(struct tab *tab, struct colour *bg,
-	   uint8_t *data, size_t dlen, size_t dmax);
+	   struct sequence *seq);
 
 void
 textboxfree(struct textbox *t);
 
 bool
-textboxresize(struct textbox *t, int w);
+textboxresize(struct textbox *t, int width, int maxheight);
 
 void
 textboxscroll(struct textbox *t, int x, int y, int dy);
@@ -244,7 +250,7 @@ textboxkeypress(struct textbox *t, keycode_t k);
 void
 textboxkeyrelease(struct textbox *t, keycode_t k);
 
-bool
+void
 textboxpredraw(struct textbox *t);
 
 
@@ -254,7 +260,7 @@ textboxpredraw(struct textbox *t);
    allocation for data. */
 
 struct sequence *
-sequencenew(uint8_t *data, size_t dlen, size_t dmax);
+sequencenew(uint8_t *data, size_t len, size_t max);
 
 /* Frees a sequence and all it's pieces, does not remove any
    selections that point to it. */

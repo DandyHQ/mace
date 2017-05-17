@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <err.h>
-
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -29,47 +28,52 @@ static const uint8_t actionstart[] = ": save cut copy paste search";
 struct tab *
 tabnew(struct mace *mace,
        const uint8_t *name, size_t nlen,
-       uint8_t *data, size_t dlen, size_t dmax)
+       struct sequence *mainseq)
 {
+  struct sequence *actionseq;
   struct tab *t;
-  uint8_t *s;
-  size_t al;
-  
-  al = nlen + sizeof(actionstart);
-  s = malloc(al);
-  if (s == NULL) {
-    return NULL;
-  }
-
-  memmove(s, name, nlen);
-  memmove(s + nlen, actionstart, sizeof(actionstart));
   
   t = calloc(1, sizeof(struct tab));
   if (t == NULL) {
-    free(s);
     return NULL;
   }
 
   t->name = malloc(nlen + 1);
   if (t->name == NULL) {
     tabfree(t);
-    free(s);
     return NULL;
   }
 
   strncpy(t->name, name, nlen);
   t->name[nlen] = 0;
 
-  t->action = textboxnew(t, &abg, s, al, al);
-  if (t->action == NULL) {
+  actionseq = sequencenew(NULL, 0, 0);
+  if (actionseq == NULL) {
     tabfree(t);
-    free(s);
     return NULL;
   }
 
-  t->action->cursor = al;
+  if (!sequenceinsert(actionseq, 0, name, nlen)) {
+    tabfree(t);
+    return NULL;
+  }
+  
+  if (!sequenceinsert(actionseq, nlen,
+		      actionstart, strlen(actionstart))) {
+    tabfree(t);
+    return NULL;
+  }
+  
+  t->action = textboxnew(t, &abg, actionseq);
+  if (t->action == NULL) {
+    sequencefree(actionseq);
+    tabfree(t);
+    return NULL;
+  }
 
-  t->main = textboxnew(t, &bg, data, dlen, dmax);
+  t->action->cursor = nlen + strlen(actionstart);
+
+  t->main = textboxnew(t, &bg, mainseq);
   if (t->main == NULL) {
     tabfree(t);
     return NULL;
@@ -81,7 +85,21 @@ tabnew(struct mace *mace,
 struct tab *
 tabnewempty(struct mace *mace, const uint8_t *name, size_t nlen)
 {
-  return tabnew(mace, name, nlen, NULL, 0, 0);
+  struct sequence *seq;
+  struct tab *t;
+
+  seq = sequencenew(NULL, 0, 0);
+  if (seq == NULL) {
+    return NULL;
+  }
+
+  t = tabnew(mace, name, nlen, seq);
+  if (t == NULL) {
+    sequencefree(seq);
+    return NULL;
+  } else {
+    return t;
+  }
 }
 
 struct tab *
@@ -89,9 +107,11 @@ tabnewfromfile(struct mace *mace,
 	       const uint8_t *name, size_t nlen,
 	       const uint8_t *filename, size_t flen)
 {
-  uint8_t *data, *map;
+  struct sequence *seq;
+  size_t dlen, dmax;
   struct stat st;
-  size_t dlen;
+  uint8_t *data;
+  struct tab *t;
   int fd;
 
   fd = open(filename, O_RDONLY);
@@ -105,26 +125,31 @@ tabnewfromfile(struct mace *mace,
   }
 
   dlen = st.st_size;
-  
-  map = mmap(NULL, dlen, PROT_READ, MAP_PRIVATE, fd, 0);
+
+  dmax = RDUP(dlen, sysconf(_SC_PAGESIZE));
+
+  data = mmap(NULL, dmax, PROT_READ|PROT_WRITE,
+	      MAP_PRIVATE|MAP_COPY,
+	      fd, 0);
 
   close(fd);
 
-  if (map == MAP_FAILED) {
-    return NULL;
-  }
-  
-  data = malloc(dlen);
-  if (data == NULL) {
-    munmap(map, dlen);
+  if (data == MAP_FAILED) {
     return NULL;
   }
 
-  memmove(data, map, dlen);
-  
-  munmap(map, dlen);
+  seq = sequencenew(data, dlen, dmax);
+  if (seq == NULL) {
+    return NULL;
+  }
 
-  return tabnew(mace, name, nlen, data, dlen, dlen);
+  t = tabnew(mace, name, nlen, seq);
+  if (t == NULL) {
+    sequencefree(seq);
+    return NULL;
+  } else {
+    return t;
+  }
 }
 
 void
@@ -155,11 +180,11 @@ tabresize(struct tab *t, int x, int y, int w, int h)
   t->width = w;
   t->height = h;
   
-  if (!textboxresize(t->action, w)) {
+  if (!textboxresize(t->action, w, h)) {
     return false;
   }
 
-  if (!textboxresize(t->main, w - SCROLL_WIDTH)) {
+  if (!textboxresize(t->main, w - SCROLL_WIDTH, h)) {
     return false;
   }
 
@@ -245,7 +270,7 @@ tabdrawmain(struct tab *t, int y)
 
   cairo_set_source_surface(mace->cr, t->main->sfc,
 			   t->x,
-			   t->y + y - t->main->yoff);
+			   t->y + y);
 
   cairo_rectangle(mace->cr,
 		  t->x, t->y + y,

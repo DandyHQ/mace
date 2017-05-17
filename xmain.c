@@ -36,7 +36,8 @@ xresize(int w, int h)
 
   for (t = mace->tabs; t != NULL; t = t->next) {
     if (!tabresize(t, 0, 0, w, h)) {
-      errx(1, "Failed to resize panes!");
+      /* What should actually happen here? */
+      errx(1, "Failed to resize!");
     }
   }
 

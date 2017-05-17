@@ -17,61 +17,6 @@
 static struct colour nfg = { 0, 0, 0 };
 static struct colour sbg = { 0.5, 0.8, 0.7 };
 
-static bool
-buffergrow(struct textbox *t, int hn)
-{
-  cairo_surface_t *sfc, *osfc;
-  cairo_t *cr, *ocr;
-  int h;
-  
-  h = cairo_image_surface_get_height(t->sfc);
-  
-  if (h > hn) {
-    return true;
-  }
-
-  osfc = t->sfc;
-  ocr = t->cr;
-  
-  sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
-				   t->linewidth, hn);
-  if (sfc == NULL) {
-    return false;
-  }
-
-  cr = cairo_create(sfc);
-  if (cr == NULL) {
-    cairo_surface_destroy(sfc);
-    return false;
-  }
-
-  cairo_set_source_surface(cr, osfc, 0, 0);
-  cairo_rectangle(cr, 0, 0, t->linewidth, h);
-  cairo_fill(cr);
-
-  t->sfc = sfc;
-  t->cr = cr;
-
-  cairo_destroy(ocr);
-  cairo_surface_destroy(osfc);
-
-  return true;
-}
-
-static bool
-nextline(struct textbox *t, int *x, int *y)
-{
-  *x = 0;
-  *y += mace->lineheight;
-
-  if (buffergrow(t, *y + mace->lineheight * 10)) {
-    t->height = *y + mace->lineheight;
-    return true;
-  } else {
-    return false;
-  }
-}
-
 static void 
 drawglyph(struct textbox *t, int x, int y, int32_t pos,
 	  struct colour *fg, struct colour *bg)
@@ -134,7 +79,7 @@ drawcursor(struct textbox *t, int x, int y)
   cairo_stroke(t->cr);
 }
 
-bool
+void
 textboxpredraw(struct textbox *t)
 {
   int32_t code, i, a, pos;
@@ -151,14 +96,8 @@ textboxpredraw(struct textbox *t)
  
   pos = 0;
   x = 0;
-  y = 0;
-  
-  if (buffergrow(t, mace->lineheight * 10)) {
-    t->height = mace->lineheight;
-  } else {
-    return false;
-  }
-  
+  y = -t->yoff;
+
   for (p = SEQ_start; p != SEQ_end; p = s->pieces[p].next) {
     for (a = 0, i = 0; i < s->pieces[p].len; i += a, pos += a) {
       a = utf8proc_iterate(s->data + s->pieces[p].off + i,
@@ -174,7 +113,10 @@ textboxpredraw(struct textbox *t)
 		      s->data + s->pieces[p].off + i,
 		      s->pieces[p].len - i, &a)) {
 
-	if (sel != NULL) {
+	if (sel != NULL
+	    && y + mace->lineheight >= 0
+	    && y < t->maxheight) {
+
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
 	  cairo_rectangle(t->cr, x, y, t->linewidth - x,
 			  mace->lineheight);
@@ -185,9 +127,8 @@ textboxpredraw(struct textbox *t)
 	  drawcursor(t, x, y);
 	}
 
-	if (!nextline(t, &x, &y)) {
-	  return false;
-	}
+	x = 0;
+	y += mace->lineheight;
       }
       
       if (!loadglyph(code)) {
@@ -197,7 +138,10 @@ textboxpredraw(struct textbox *t)
       ww = mace->fontface->glyph->advance.x >> 6;
 
       if (x + ww >= t->linewidth) {
-	if (sel != NULL) {
+	if (sel != NULL
+	    && y + mace->lineheight >= 0
+	    && y < t->maxheight) {
+
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
 
 	  cairo_rectangle(t->cr, x, y,
@@ -207,21 +151,22 @@ textboxpredraw(struct textbox *t)
 	  cairo_fill(t->cr);
 	}
 
-	if (!nextline(t, &x, &y)) {
-	  return false;
+	x = 0;
+	y += mace->lineheight;
+      }
+
+      if (y + mace->lineheight >= 0 && y < t->maxheight) {
+	if (sel != NULL) {
+	  bg = &sbg;
+	} else {
+	  bg = &t->bg;
 	}
-      }
-
-      if (sel != NULL) {
-	bg = &sbg;
-      } else {
-	bg = &t->bg;
-      }
       
-      drawglyph(t, x, y, pos, &nfg, bg);
+	drawglyph(t, x, y, pos, &nfg, bg);
 
-      if (pos == t->cursor) {
-	drawcursor(t, x, y);
+	if (pos == t->cursor) {
+	  drawcursor(t, x, y);
+	}
       }
 
       x += ww;
@@ -229,7 +174,10 @@ textboxpredraw(struct textbox *t)
   }
 
   sel = inselections(t, pos);
-  if (sel != NULL) {
+  if (sel != NULL
+      && y + mace->lineheight >= 0
+      && y < t->maxheight) {
+
     cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
     cairo_rectangle(t->cr, x, y, t->linewidth - x,
 		    mace->lineheight);
@@ -240,5 +188,5 @@ textboxpredraw(struct textbox *t)
     drawcursor(t, x, y);
   }
 
-  return true;
+  t->height = t->yoff + y + mace->lineheight;
 } 

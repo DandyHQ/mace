@@ -16,7 +16,7 @@
 
 struct textbox *
 textboxnew(struct tab *tab, struct colour *bg,
-	   uint8_t *data, size_t dlen, size_t dmax)
+	   struct sequence *seq)
 {
   struct textbox *t;
 
@@ -25,11 +25,7 @@ textboxnew(struct tab *tab, struct colour *bg,
     return NULL;
   }
 
-  t->sequence = sequencenew(data, dlen, dmax);
-  if (t->sequence == NULL) {
-    free(t);
-    return NULL;
-  }
+  t->sequence = seq;
   
   t->cursor = 0;
   t->csel = NULL;
@@ -42,6 +38,7 @@ textboxnew(struct tab *tab, struct colour *bg,
   t->yoff = 0;
   t->linewidth = 0;
   t->height = 0;
+  t->maxheight = 0;
   
   memmove(&t->bg, bg, sizeof(struct colour));
 
@@ -67,32 +64,41 @@ textboxfree(struct textbox *t)
 }
 
 bool
-textboxresize(struct textbox *t, int lw)
+textboxresize(struct textbox *t, int lw, int maxheight)
 {
-  t->linewidth = lw;
+  cairo_surface_t *sfc;
+  cairo_t *cr;
+
+  sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
+				   lw, maxheight);
+
+  if (sfc == NULL) {
+    return false;
+  }
+
+  cr = cairo_create(sfc);
+  if (cr == NULL) {
+    cairo_surface_destroy(sfc);
+    return false;
+  }
   
   if (t->cr != NULL) {
     cairo_destroy(t->cr);
-    t->cr = NULL;
   }
 
   if (t->sfc != NULL) {
     cairo_surface_destroy(t->sfc);
-    t->sfc = NULL;
   }
 
-  t->sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
-				      lw, mace->lineheight * 30);
-  if (t->sfc == NULL) {
-    return false;
-  }
+  t->cr = cr;
+  t->sfc = sfc;
 
-  t->cr = cairo_create(t->sfc);
-  if (t->cr == NULL) {
-    return false;
-  }
+  t->linewidth = lw;
+  t->maxheight = maxheight;
 
-  return textboxpredraw(t);
+  textboxpredraw(t);
+
+  return true;
 }
 
 static size_t
@@ -380,4 +386,6 @@ textboxscroll(struct textbox *t, int x, int y, int dy)
   } else if (t->yoff > t->height - mace->lineheight) {
     t->yoff = t->height - mace->lineheight;
   }
+
+  textboxpredraw(t);
 }
