@@ -14,20 +14,20 @@
 
 #include "mace.h"
 
-void
+bool
 handletyping(uint8_t *s, size_t n)
 {
-  textboxtyping(mace->focus, s, n);
+  return textboxtyping(mace->focus, s, n);
 }
 
-void
+bool
 handlekeypress(keycode_t k)
 {
-  textboxkeypress(mace->focus, k);
+  return textboxkeypress(mace->focus, k);
 }
 
-void
+bool
 handlekeyrelease(keycode_t k)
 {
-  textboxkeyrelease(mace->focus, k);
+  return textboxkeyrelease(mace->focus, k);
 }

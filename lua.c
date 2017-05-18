@@ -241,6 +241,11 @@ ltextboxindex(lua_State *L)
       return 1;
     }
 
+    if (strcmp(key, "yoff") == 0) {
+      lua_pushnumber(L, t->yoff);
+      return 1;
+    }
+
     if (strcmp(key, "tab") == 0) {
       obj_ref_new(L, t->tab, "mace.tab");
       return 1;
@@ -255,12 +260,22 @@ ltextboxnewindex(lua_State *L)
 {
   struct textbox *t = obj_ref_check(L, 1, "mace.textbox");
   const char *key;
+  int i;
 
   if (lua_isstring(L, 2)) {
     key = lua_tostring(L, 2);
 
     if (strcmp(key, "cursor") == 0) {
-      t->cursor = luaL_checknumber(L, 3);
+      i = luaL_checknumber(L, 3);
+      t->cursor = i;
+      textboxpredraw(t, false, false);
+      return 0;
+    }
+
+    if (strcmp(key, "yoff") == 0) {
+      i = luaL_checknumber(L, 3);
+      t->yoff = i;
+      textboxpredraw(t, true, false);
       return 0;
     }
   }

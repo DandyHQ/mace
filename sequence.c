@@ -116,6 +116,12 @@ piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
   return -1;
 }
 
+ssize_t
+sequencefindpiece(struct sequence *s, size_t pos, size_t *i)
+{
+  return piecefind(s, SEQ_start, pos, i);
+}
+
 static ssize_t
 pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 {
@@ -147,13 +153,10 @@ appenddata(struct sequence *s, const uint8_t *data, size_t len)
   pg = sysconf(_SC_PAGESIZE);
 
   while (s->dlen + len >= s->dmax) {
-    /* Leave this here, need to make sure this actually works. */
-    printf("growing sequence data to %u\n", s->dmax + pg);
     ndata = mmap(s->data + s->dmax, pg, PROT_READ|PROT_WRITE,
 		   MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED, -1, 0);
 
     if (ndata == MAP_FAILED) {
-      printf("failed to grow sequence data\n");
       return false;
     } else {
       s->dmax += pg;

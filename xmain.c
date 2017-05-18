@@ -40,16 +40,6 @@ xresize(int w, int h)
       errx(1, "Failed to resize!");
     }
   }
-
-  cairo_xlib_surface_set_size(sfc, w, h);
-
-  cairo_push_group(mace->cr);
-
-  tabdraw(mace->focus->tab);
-
-  cairo_pop_group_to_source(mace->cr);
-  cairo_paint(mace->cr);
-  cairo_surface_flush(sfc);
 }
 
 static keycode_t
@@ -94,7 +84,7 @@ symtocode(KeySym sym)
   }
 }
 
-static void
+static bool
 xhandlekeypress(XKeyEvent *e)
 {
   uint8_t s[16];
@@ -107,23 +97,17 @@ xhandlekeypress(XKeyEvent *e)
 
   c = symtocode(sym);
 
-  cairo_push_group(mace->cr);
-
   if (c == KEY_none) {
     n = utf8proc_encode_char(sym, s);
     if (n > 0) {
-      handletyping(s, n);
+      return handletyping(s, n);
     }
-  } else {
-    handlekeypress(c);
-  }
+  } 
 
-  cairo_pop_group_to_source(mace->cr);
-  cairo_paint(mace->cr);
-  cairo_surface_flush(sfc);
+  return handlekeypress(c);
 }
 
-static void
+static bool
 xhandlekeyrelease(XKeyEvent *e)
 {
   keycode_t c;
@@ -135,80 +119,62 @@ xhandlekeyrelease(XKeyEvent *e)
   c = symtocode(sym);
 
   if (c != KEY_none) {
-    cairo_push_group(mace->cr);
-    
-    handlekeyrelease(c);
-
-    cairo_pop_group_to_source(mace->cr);
-    cairo_paint(mace->cr);
-    cairo_surface_flush(sfc);
+    return handlekeyrelease(c);
+  } else {
+    return false;
   }
 }
 
-static void
+static bool
 xhandlebuttonpress(XButtonEvent *e)
 {
-  cairo_push_group(mace->cr);
-
   switch (e->button) {
   case 1:
   case 2:
   case 3:
-    handlebuttonpress(e->x, e->y, e->button);
-    break;
+    return handlebuttonpress(e->x, e->y, e->button);
 
   case 4:
-    handlescroll(e->x, e->y, -5);
-    break;
+    return handlescroll(e->x, e->y, -5);
     
   case 5:
-    handlescroll(e->x, e->y, 5);
-    break;
-  }
+    return handlescroll(e->x, e->y, 5);
 
-  cairo_pop_group_to_source(mace->cr);
-  cairo_paint(mace->cr);
-  cairo_surface_flush(sfc);
+  default:
+    return false;
+  }
 }
 
-static void
+static bool
 xhandlebuttonrelease(XButtonEvent *e)
 {
-  cairo_push_group(mace->cr);
-
   switch (e->button) {
   case 1:
   case 2:
   case 3:
-    handlebuttonrelease(e->x, e->y, e->button);
-    break;
+    return handlebuttonrelease(e->x, e->y, e->button);
+  default:
+    return false;
   }
-
-  cairo_pop_group_to_source(mace->cr);
-  cairo_paint(mace->cr);
-  cairo_surface_flush(sfc);
 }
 
-static void
+static bool
 xhandlemotion(XMotionEvent *e)
 {
-  cairo_push_group(mace->cr);
-
-  handlemotion(e->x, e->y);
-
-  cairo_pop_group_to_source(mace->cr);
-  cairo_paint(mace->cr);
-  cairo_surface_flush(sfc);
+  return handlemotion(e->x, e->y);
 } 
 
 static void
 eventLoop(void)
 {
+  bool redraw;
   XEvent e;
 
   while (mace->running) {
     XNextEvent(display, &e);
 
+    redraw = false;
+    
     switch (e.type) {
 
     case ConfigureNotify:
@@ -216,44 +182,48 @@ eventLoop(void)
 	  || e.xconfigure.height != height) {
 
 	xresize(e.xconfigure.width, e.xconfigure.height);
+	redraw = true;
       }
       
       break;
 
     case Expose:
+      redraw = true;
      break;
 
     case KeyPress:
-      xhandlekeypress(&e.xkey);
+      redraw = xhandlekeypress(&e.xkey);
       break;
 
     case KeyRelease:
-      xhandlekeyrelease(&e.xkey);
+      redraw = xhandlekeyrelease(&e.xkey);
       break;
 
     case ButtonPress:
-      xhandlebuttonpress(&e.xbutton);
+      redraw = xhandlebuttonpress(&e.xbutton);
       break;
 
     case ButtonRelease:
-      xhandlebuttonrelease(&e.xbutton);
+      redraw = xhandlebuttonrelease(&e.xbutton);
       break;
 
     case MotionNotify:
-      xhandlemotion(&e.xmotion);     
+      redraw = xhandlemotion(&e.xmotion);     
       break;
 
     default:
       printf("unknown event %i\n", e.type);
     }
 
-    cairo_push_group(mace->cr);
+    if (redraw) {
+      cairo_push_group(mace->cr);
 
-    tabdraw(mace->focus->tab);
+      tabdraw(mace->focus->tab);
 
-    cairo_pop_group_to_source(mace->cr);
-    cairo_paint(mace->cr);
-    cairo_surface_flush(sfc);
+      cairo_pop_group_to_source(mace->cr);
+      cairo_paint(mace->cr);
+      cairo_surface_flush(sfc);
+    }
   }
 }
 
@@ -297,6 +267,14 @@ main(int argc, char **argv)
   }
 
   xresize(width, height);
+
+  cairo_push_group(mace->cr);
+
+  tabdraw(mace->focus->tab);
+
+  cairo_pop_group_to_source(mace->cr);
+  cairo_paint(mace->cr);
+  cairo_surface_flush(sfc);
 
   eventLoop();
 

@@ -99,7 +99,11 @@ struct textbox {
 
   int yoff;
   int linewidth, height;
+
   int maxheight;
+
+  size_t startpos;
+  int starty;
 };
 
 struct tab {
@@ -199,18 +203,18 @@ tabresize(struct tab *t, int x, int y, int w, int h);
 void
 tabdraw(struct tab *t);
 
-void
+bool
 tabscroll(struct tab *t, int x, int y, int dy);
 
-void
+bool
 tabbuttonpress(struct tab *t, int x, int y,
 	       unsigned int button);
 
-void
+bool
 tabbuttonrelease(struct tab *t, int x, int y,
 		 unsigned int button);
 
-void
+bool
 tabmotion(struct tab *t, int x, int y);
 
 
@@ -227,31 +231,33 @@ textboxfree(struct textbox *t);
 bool
 textboxresize(struct textbox *t, int width, int maxheight);
 
-void
+bool
 textboxscroll(struct textbox *t, int x, int y, int dy);
 
-void
+bool
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button);
 
-void
+bool
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button);
 
-void
+bool
 textboxmotion(struct textbox *t, int x, int y);
 
-void
+bool
 textboxtyping(struct textbox *t, uint8_t *s, size_t l);
 
-void
+bool
 textboxkeypress(struct textbox *t, keycode_t k);
 
-void
+bool
 textboxkeyrelease(struct textbox *t, keycode_t k);
 
 void
-textboxpredraw(struct textbox *t);
+textboxpredraw(struct textbox *t,
+	       bool startchanged,
+	       bool heightchanged);
 
 
 
@@ -293,6 +299,8 @@ size_t
 sequenceget(struct sequence *s, size_t pos,
 	    uint8_t *buf, size_t len);
 
+ssize_t
+sequencefindpiece(struct sequence *s, size_t pos, size_t *i);
 
 /* Adds a new selection to the selection list */
 
@@ -322,27 +330,27 @@ inselections(struct textbox *t, int32_t pos);
 
 
 
-/* Handle UI events */
+/* Handle UI events. Return true if mace needs to be redrawn */
 
-void
+bool
 handletyping(uint8_t *s, size_t n);
 
-void
+bool
 handlekeypress(keycode_t k);
 
-void
+bool
 handlekeyrelease(keycode_t k);
 
-void
+bool
 handlebuttonpress(int x, int y, int b);
 
-void
+bool
 handlebuttonrelease(int x, int y, int b);
 
-void
+bool
 handlemotion(int x, int y);
 
-void
+bool
 handlescroll(int x, int y, int dy);
 
 

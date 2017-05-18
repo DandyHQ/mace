@@ -38,7 +38,10 @@ textboxnew(struct tab *tab, struct colour *bg,
   t->yoff = 0;
   t->linewidth = 0;
   t->height = 0;
+
   t->maxheight = 0;
+  t->startpos = 0;
+  t->starty = 0;
   
   memmove(&t->bg, bg, sizeof(struct colour));
 
@@ -96,7 +99,7 @@ textboxresize(struct textbox *t, int lw, int maxheight)
   t->linewidth = lw;
   t->maxheight = maxheight;
 
-  textboxpredraw(t);
+  textboxpredraw(t, true, true);
 
   return true;
 }
@@ -105,32 +108,36 @@ static size_t
 findpos(struct textbox *t,
 	int x, int y)
 {
-  int32_t code, a, i;
+  struct sequence *s;
+  size_t pos, p, i;
+  int32_t code, a;
   int xx, yy, ww;
-  size_t pos;
-  size_t p;
+
+  s = t->sequence;
 
   xx = 0;
-  yy = 0;
 
-  pos = 0;
+  p = sequencefindpiece(s, t->startpos, &i);
+  yy = t->starty;
 
-  for (p = SEQ_start; p != SEQ_end; p = t->sequence->pieces[p].next) {
-    for (i = 0; i < t->sequence->pieces[p].len; pos += a, i += a) {
-      a = utf8proc_iterate(t->sequence->data + t->sequence->pieces[p].off + i,
-			   t->sequence->pieces[p].len - i, &code);
+  pos = s->pieces[p].pos;
+
+  while (p != SEQ_end) {
+    while (i < s->pieces[p].len) {
+      a = utf8proc_iterate(s->data + s->pieces[p].off + i,
+			   s->pieces[p].len - i, &code);
       if (a <= 0) {
-	a = 1;
+	i++;
 	continue;
       }
 
       /* Line Break. */
       if (islinebreak(code,
-		      t->sequence->data + t->sequence->pieces[p].off + i,
-		      t->sequence->pieces[p].len - i, &a)) {
+		      s->data + s->pieces[p].off + i,
+		      s->pieces[p].len - i, &a)) {
 
 	if (y < yy + mace->lineheight - 1) {
-	  return pos;
+	  return pos + i;
 	} else {
 	  xx = 0;
 	  yy += mace->lineheight;
@@ -138,6 +145,7 @@ findpos(struct textbox *t,
       }
      
       if (!loadglyph(code)) {
+	i += a;
 	continue;
       }
 
@@ -146,7 +154,7 @@ findpos(struct textbox *t,
       /* Wrap Line. */
       if (xx + ww >= t->linewidth) {
 	if (y < yy + mace->lineheight - 1) {
-	  return pos;
+	  return pos + i;
 	} else {
 	  xx = 0;
 	  yy += mace->lineheight;
@@ -157,15 +165,21 @@ findpos(struct textbox *t,
       
       if (y < yy + mace->lineheight - 1 && x < xx) {
 	/* Found position. */
-	return pos;
+	return pos + i;
       }
+
+      i += a;
     }
+
+    pos += i;
+    i = 0;
+    p = s->pieces[p].next;
   }
 
-  return pos;
+  return pos + i;
 }
 
-void
+bool
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
@@ -173,7 +187,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   struct selection *sel;
   uint8_t *buf;
   
-  pos = findpos(t, x, y + t->yoff);
+  pos = findpos(t, x, y);
   
   switch (button) {
   case 1:
@@ -182,8 +196,8 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     t->csel = selectionreplace(t, pos);
     t->cselisvalid = false;
     
-    textboxpredraw(t);
-    break;
+    textboxpredraw(t, false, false);
+    return true;
 
   case 3:
     sel = inselections(t, pos);
@@ -191,69 +205,76 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       start = sel->start;
       len = sel->end - sel->start + 1;
     } else if (!sequencefindword(t->sequence, pos, &start, &len)) {
-      return;
+      return false;
     }
 
     buf = malloc(len + 1);
     if (buf == NULL) {
-      return;
+      return false;
     }
 
     if (sequenceget(t->sequence, start, buf, len) == 0) {
-      return;
+      return false;
     }
 
     command(buf);
 
     free(buf);
 
-    textboxpredraw(t);
-
-    break;
+    return true;
   }
+
+  return false;
 }
 
-void
+bool
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
   if (!t->cselisvalid && t->csel != NULL) {
     selectionremove(t->csel);
-    textboxpredraw(t);
+    t->csel = NULL;
+    textboxpredraw(t, false, false);
+    return true;
+  } else {
+    t->csel = NULL;
+    return false;
   }
-  
-  t->csel = NULL;
 }
 
-void
+bool
 textboxmotion(struct textbox *t, int x, int y)
 {
   size_t pos;
   
   if (t->csel == NULL) {
-    return;
+    return false;
   }
    
-  pos = findpos(t, x, y + t->yoff);
+  pos = findpos(t, x, y);
 
   if (selectionupdate(t->csel, pos)) {
     t->cselisvalid = true;
-    textboxpredraw(t);
+    textboxpredraw(t, false, false);
+    return true;
+  } else {
+    return false;
   }
 }
 
-void
+bool
 textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 {
   if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
-    return;
+    return false;
   }
 
   t->cursor += l;
-  textboxpredraw(t);
+  textboxpredraw(t, false, true);
+  return true;
 }
 
-void
+bool
 textboxkeypress(struct textbox *t, keycode_t k)
 {
   struct selection *sel, *nsel;
@@ -306,14 +327,14 @@ textboxkeypress(struct textbox *t, keycode_t k)
     l = snprintf((char *) s, sizeof(s), "\n");
 
     if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
-      return;
+      return false;
     }
 
     t->cursor += l;
  
-    textboxpredraw(t);
+    textboxpredraw(t, false, true);
 
-    break;
+    return true;
     
   case KEY_tab:
     break;
@@ -324,10 +345,11 @@ textboxkeypress(struct textbox *t, keycode_t k)
   case KEY_delete:
     if (mace->selections == NULL) {
       if (sequencedelete(t->sequence, t->cursor, 1)) {
-	textboxpredraw(t);
+	textboxpredraw(t, true, true);
+	return true;
+      } else {
+	return false;
       }
-
-      break;
     } 
 
     /* Fall through to delete selections */
@@ -336,10 +358,11 @@ textboxkeypress(struct textbox *t, keycode_t k)
     if (mace->selections == NULL && t->cursor > 0) {
       if (sequencedelete(t->sequence, t->cursor - 1, 1)) {
 	t->cursor--;
-	textboxpredraw(t);
+	textboxpredraw(t, true, true);
+	return true;
+      } else {
+	return false;
       }
-
-      break;
     } 
 
     /* Delete selections */
@@ -362,22 +385,24 @@ textboxkeypress(struct textbox *t, keycode_t k)
       selectionremove(sel);
     }
 
-    textboxpredraw(t);
+    textboxpredraw(t, true, true);
  
-    break;
+    return true;
 
   case KEY_escape:
     break;
   }
+
+  return false;
 }
 
-void
+bool
 textboxkeyrelease(struct textbox *t, keycode_t k)
 {
-
+  return false;
 }
 
-void
+bool
 textboxscroll(struct textbox *t, int x, int y, int dy)
 {
   t->yoff += dy;
@@ -387,5 +412,7 @@ textboxscroll(struct textbox *t, int x, int y, int dy)
     t->yoff = t->height - mace->lineheight;
   }
 
-  textboxpredraw(t);
+  textboxpredraw(t, true, false);
+
+  return true;
 }

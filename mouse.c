@@ -14,35 +14,35 @@
 
 #include "mace.h"
 
-void
+bool
 handlebuttonpress(int x, int y, int button)
 {
   struct tab *f = mace->focus->tab;
   
-  tabbuttonpress(f, x - f->x, y - f->y, button);
+  return tabbuttonpress(f, x - f->x, y - f->y, button);
 }
 
-void
+bool
 handlebuttonrelease(int x, int y, int button)
 {
   struct tab *f = mace->focus->tab;
 
-  tabbuttonrelease(f, x - f->x, y - f->y, button);
+  return tabbuttonrelease(f, x - f->x, y - f->y, button);
 }
 
-void
+bool
 handlemotion(int x, int y)
 {
   struct tab *f = mace->focus->tab;
 
-  tabmotion(f, x - f->x, y - f->y);
+  return tabmotion(f, x - f->x, y - f->y);
 }
 
-void
+bool
 handlescroll(int x, int y, int dy)
 {
   struct tab *f = mace->focus->tab;
 
-  tabscroll(f, x - f->x, y - f->y, dy);
+  return tabscroll(f, x - f->x, y - f->y, dy);
 }
 

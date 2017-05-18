@@ -18,7 +18,7 @@ static struct colour nfg = { 0, 0, 0 };
 static struct colour sbg = { 0.5, 0.8, 0.7 };
 
 static void 
-drawglyph(struct textbox *t, int x, int y, int32_t pos,
+drawglyph(struct textbox *t, int x, int y,
 	  struct colour *fg, struct colour *bg)
 {
   uint8_t buf[1024]; /* Hopefully this is big enough */
@@ -80,34 +80,49 @@ drawcursor(struct textbox *t, int x, int y)
 }
 
 void
-textboxpredraw(struct textbox *t)
+textboxpredraw(struct textbox *t,
+	       bool startchanged, bool heightchanged)
 {
-  int32_t code, i, a, pos;
+  int32_t code, a, pos;
   struct selection *sel;
   struct sequence *s;
   struct colour *bg;
+  bool startfound;
   int x, y, ww;
-  size_t p;
+  size_t p, i;
 
   s = t->sequence;
   
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
  
-  pos = 0;
   x = 0;
-  y = -t->yoff;
 
-  for (p = SEQ_start; p != SEQ_end; p = s->pieces[p].next) {
-    for (a = 0, i = 0; i < s->pieces[p].len; i += a, pos += a) {
+  if (startchanged) {
+    t->startpos = 0;
+    t->starty = -t->yoff;
+
+    if (t->yoff < mace->lineheight) {
+      startfound = true;
+    } else {
+      startfound = false;
+    }
+  } 
+
+  p = sequencefindpiece(s, t->startpos, &i);
+  y = t->starty;
+  pos = s->pieces[p].pos;
+
+  while (p != SEQ_end) {
+    while (i < s->pieces[p].len) {
       a = utf8proc_iterate(s->data + s->pieces[p].off + i,
 			   s->pieces[p].len - i, &code);
       if (a <= 0) {
-	a = 1;
+	i++;
 	continue;
       }
 
-      sel = inselections(t, pos);
+      sel = inselections(t, pos + i);
       
       if (islinebreak(code,
 		      s->data + s->pieces[p].off + i,
@@ -123,15 +138,27 @@ textboxpredraw(struct textbox *t)
 	  cairo_fill(t->cr);
 	}
 	    
-	if (pos == t->cursor) {
+	if (pos + i == t->cursor) {
 	  drawcursor(t, x, y);
 	}
 
 	x = 0;
 	y += mace->lineheight;
+
+	if (!heightchanged && y >= t->maxheight) {
+	  return;
+	} else if (startchanged
+		   && y + mace->lineheight >= 0
+		   && !startfound) {
+
+	  startfound = true;
+	  t->startpos = pos + i + a;
+	  t->starty = y;
+	}
       }
       
       if (!loadglyph(code)) {
+	i += a;
 	continue;
       }
 
@@ -153,24 +180,32 @@ textboxpredraw(struct textbox *t)
 
 	x = 0;
 	y += mace->lineheight;
+	/* TODO: add in code from line break */
       }
 
-      if (y + mace->lineheight >= 0 && y < t->maxheight) {
+      if (y + mace->lineheight >= 0
+	  && y < t->maxheight) {
+
 	if (sel != NULL) {
 	  bg = &sbg;
 	} else {
 	  bg = &t->bg;
 	}
       
-	drawglyph(t, x, y, pos, &nfg, bg);
+	drawglyph(t, x, y, &nfg, bg);
 
-	if (pos == t->cursor) {
+	if (pos + i == t->cursor) {
 	  drawcursor(t, x, y);
 	}
       }
 
+      i += a;
       x += ww;
     }
+
+    pos += i;
+    p = s->pieces[p].next;
+    i = 0;
   }
 
   sel = inselections(t, pos);

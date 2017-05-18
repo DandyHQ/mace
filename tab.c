@@ -191,49 +191,49 @@ tabresize(struct tab *t, int x, int y, int w, int h)
   return true;
 }
 
-void
+bool
 tabscroll(struct tab *t, int x, int y, int dy)
 {
   if (y < t->action->height) {
-    /* Do nothing */
+    return false;
   } else {
-    textboxscroll(t->main, x, y - t->action->height - 1, dy);
+    return textboxscroll(t->main, x, y - t->action->height - 1, dy);
   }
 }
 
-void
+bool
 tabbuttonpress(struct tab *t, int x, int y,
 	       unsigned int button)
 {
   if (y < t->action->height) {
     mace->focus = t->action;
-    textboxbuttonpress(t->action, x, y, button);
+    return textboxbuttonpress(t->action, x, y, button);
   } else {
     mace->focus = t->main;
-    textboxbuttonpress(t->main, x, y - t->action->height - 1,
+    return textboxbuttonpress(t->main, x, y - t->action->height - 1,
 			      button);
   }
 }
 
-void
+bool
 tabbuttonrelease(struct tab *t, int x, int y,
 	   unsigned int button)
 {
   if (mace->focus == t->action) {
-    textboxbuttonrelease(t->action, x, y, button);
+    return textboxbuttonrelease(t->action, x, y, button);
   } else {
-    textboxbuttonrelease(t->main, x, y - t->action->height - 1,
+    return textboxbuttonrelease(t->main, x, y - t->action->height - 1,
 				button);
   }
 }
 
-void
+bool
 tabmotion(struct tab *t, int x, int y)
 {
   if (mace->focus == t->action) {
-    textboxmotion(t->action, x, y);
+    return textboxmotion(t->action, x, y);
   } else {
-    textboxmotion(t->main, x, y - t->action->height - 1);
+    return textboxmotion(t->main, x, y - t->action->height - 1);
   }
 }
 
