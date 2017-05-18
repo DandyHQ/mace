@@ -54,6 +54,8 @@ struct piece {
 #define SEQ_first  2
 
 struct sequence {
+  struct mace *mace;
+  
   struct piece *pieces;
   size_t plen, pmax;
 
@@ -65,31 +67,45 @@ struct colour {
   double r, g, b;
 };
 
-/* Selections are handled horrible. They are a linked list that is
-   global to a mace instance (effectively global at this point). There
-   is no nice way to traverse them, nor to use them from lua. Some
-   redeisgn is needed here. Especially with how they interact with
-   text boxes. */
-
 typedef enum { SELECTION_left, SELECTION_right } selection_t;
+
+/* Note: There is a memory leak if lua code changes the linked list
+   structure to skip a selection. Should probably turn them into
+   tables or have some more structured way of talking to them. This
+   applies for all linked lists that lua can see (selections and
+   tabs). */
 
 struct selection {
   struct textbox *textbox;
 
   int32_t start, end;
-
   selection_t direction;
 
   struct selection *next;
 };
 
+
+/* This is done horribly. There can only be one instance for every
+   instance of mace. I would like to be able to have each textbox have
+   its own instance, if not of library then at least of face. */
+
+struct font {
+  FT_Library library;
+  FT_Face face;
+
+  int baseline, lineheight;
+};
+
 struct textbox {
   struct tab *tab;
   
+  struct font *font;
+
   struct sequence *sequence;
+
   int32_t cursor;
 
-  struct selection *csel;
+  struct selection *csel, *selections;
   bool cselisvalid;
   
   struct colour bg;
@@ -107,6 +123,8 @@ struct textbox {
 };
 
 struct tab {
+  struct mace *mace;
+  
   uint8_t *name;
 
   int x, y, width, height;
@@ -117,25 +135,18 @@ struct tab {
 
 struct mace {
   bool running;
-  
-  cairo_t *cr;
 
-  FT_Library fontlibrary;
-  FT_Face fontface;
-  int baseline, lineheight;
-
+  struct font *font;
   lua_State *lua;
   
   struct tab *tabs;
   struct textbox *focus;
-
-  struct selection *selections;
 };
 
 
 
 struct mace *
-macenew(cairo_t *cr);
+macenew(void);
 
 void
 macefree(struct mace *mace);
@@ -144,34 +155,36 @@ void
 macequit(struct mace *mace);
 
 
-
-int
-luainit(struct mace *mace);
+lua_State *
+luanew(struct mace *mace);
 
 void
-luaend(struct mace *mace);
+luafree(lua_State *L);
 
 /* Structs that lua uses must call this before freeing themselves. */
 /* Currently tabs, textboxs, sequences, and selections */
 void
-luaremove(void *addr);
+luaremove(lua_State *L, void *addr);
 
 void
-command(uint8_t *s);
-
-
-
-int
-fontinit(struct mace *mace);
+luaruninit(lua_State *L);
 
 void
-fontend(struct mace *mace);
+command(lua_State *L, uint8_t *s);
+
+
+
+struct font *
+fontnew(void);
+
+void
+fontfree(struct font *font);
 
 int
-fontset(struct mace *mace, const uint8_t *pattern);
+fontset(struct font *font, const uint8_t *pattern);
 
 bool
-loadglyph(int32_t code);
+loadglyph(FT_Face face, int32_t code);
 
 /* Checks if code warrents a line break.
    May update l if code requires consuming more code points such as a 
@@ -201,7 +214,7 @@ bool
 tabresize(struct tab *t, int x, int y, int w, int h);
 
 void
-tabdraw(struct tab *t);
+tabdraw(struct tab *t, cairo_t *cr);
 
 bool
 tabscroll(struct tab *t, int x, int y, int dy);
@@ -261,15 +274,15 @@ textboxpredraw(struct textbox *t,
 
 
 
-/* Creates a new empty sequence around data, data may be NULL.
-   dlen is the number of set bytes in data, dmax is the size of the
+/* Creates a new sequence around data, data may be NULL.
+   len is the number of set bytes in data, max is the size of the
    allocation for data. */
 
 struct sequence *
-sequencenew(uint8_t *data, size_t len, size_t max);
+sequencenew(struct mace *mace, uint8_t *data,
+	    size_t len, size_t max);
 
-/* Frees a sequence and all it's pieces, does not remove any
-   selections that point to it. */
+/* Frees a sequence and all it's pieces. */
 
 void
 sequencefree(struct sequence *s);
@@ -302,19 +315,12 @@ sequenceget(struct sequence *s, size_t pos,
 ssize_t
 sequencefindpiece(struct sequence *s, size_t pos, size_t *i);
 
-/* Adds a new selection to the selection list */
 
 struct selection *
-selectionadd(struct textbox *t, int32_t pos);
+selectionnew(struct textbox *t, int32_t pos);
 
-/* Removes all previous selections */
-
-struct selection *
-selectionreplace(struct textbox *t, int32_t pos);
-
-/* Free's the selection */
 void
-selectionremove(struct selection *s);
+selectionfree(struct selection *s);
 
 /* Updates the selection to include pos, returns true if something
    changed, false otherwise. */
@@ -333,29 +339,22 @@ inselections(struct textbox *t, int32_t pos);
 /* Handle UI events. Return true if mace needs to be redrawn */
 
 bool
-handletyping(uint8_t *s, size_t n);
+handletyping(struct mace *mace, uint8_t *s, size_t n);
 
 bool
-handlekeypress(keycode_t k);
+handlekeypress(struct mace *mace, keycode_t k);
 
 bool
-handlekeyrelease(keycode_t k);
+handlekeyrelease(struct mace *mace, keycode_t k);
 
 bool
-handlebuttonpress(int x, int y, int b);
+handlebuttonpress(struct mace *mace, int x, int y, int b);
 
 bool
-handlebuttonrelease(int x, int y, int b);
+handlebuttonrelease(struct mace *mace, int x, int y, int b);
 
 bool
-handlemotion(int x, int y);
+handlemotion(struct mace *mace, int x, int y);
 
 bool
-handlescroll(int x, int y, int dy);
-
-
-/* This is not as seperated as I would like. In future we should be
-   able to have multiple instances of mace. Why this is good I'm not
-   sure but global variables tend to be messy. */
-
-extern struct mace *mace;
+handlescroll(struct mace *mace, int x, int y, int dy);

@@ -24,9 +24,9 @@ function test()
 
    main.cursor = main.cursor + str:len()
    
-   print("go through selections")
+   print("go through selections in main")
 
-   sel = mace.selections
+   sel = main.selections
    print("sel = ", sel)
    while sel ~= nil do
       print("have selection", sel)
@@ -43,6 +43,25 @@ function test()
       sel = sel.next
    end
 
+   print("go through selecitons in action")
+   sel = mace.focus.tab.action.selections
+   print("sel = ", sel)
+   while sel ~= nil do
+      print("have selection", sel)
+
+      print("start = ", sel.start)
+      print("len   = ", sel.len)
+      print("tb = ", sel.textbox)
+
+      seq = sel.textbox.sequence
+      str = seq:get(sel.start, sel.len)
+
+      print("str = ", str)
+
+      sel = sel.next
+   end
+
+
    print("test finished")
 end
 
@@ -51,7 +70,7 @@ function quit()
 end
 
 function eval()
-   sel = mace.selections
+   sel = mace.focus.selections
    while sel ~= nil do
       seq = sel.textbox.sequence
       str = seq:get(sel.start, sel.len)
@@ -124,7 +143,7 @@ function openfile(filename)
 end
 
 function open()
-   sel = mace.selections
+   sel = mace.focus.selections
    while sel ~= nil do
       seq = sel.textbox.sequence
 

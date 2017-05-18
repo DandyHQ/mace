@@ -25,12 +25,14 @@ textboxnew(struct tab *tab, struct colour *bg,
     return NULL;
   }
 
+  t->font = tab->mace->font;
   t->sequence = seq;
+  t->tab = tab;
   
   t->cursor = 0;
+
   t->csel = NULL;
-  
-  t->tab = tab;
+  t->selections = NULL;
 
   t->cr = NULL;
   t->sfc = NULL;
@@ -51,8 +53,17 @@ textboxnew(struct tab *tab, struct colour *bg,
 void
 textboxfree(struct textbox *t)
 {
-  luaremove(t);
-  
+  struct selection *sel, *nsel;
+
+  luaremove(t->tab->mace->lua, t);
+
+  sel = t->selections;
+  while (sel != NULL) {
+    nsel = sel->next;
+    selectionfree(sel);
+    sel = nsel;
+  }
+
   sequencefree(t->sequence);
 
   if (t->cr != NULL) {
@@ -136,34 +147,34 @@ findpos(struct textbox *t,
 		      s->data + s->pieces[p].off + i,
 		      s->pieces[p].len - i, &a)) {
 
-	if (y < yy + mace->lineheight - 1) {
+	if (y < yy + t->font->lineheight - 1) {
 	  return pos + i;
 	} else {
 	  xx = 0;
-	  yy += mace->lineheight;
+	  yy += t->font->lineheight;
 	}
       }
      
-      if (!loadglyph(code)) {
+      if (!loadglyph(t->font->face, code)) {
 	i += a;
 	continue;
       }
 
-      ww = mace->fontface->glyph->advance.x >> 6;
+      ww = t->font->face->glyph->advance.x >> 6;
 
       /* Wrap Line. */
       if (xx + ww >= t->linewidth) {
-	if (y < yy + mace->lineheight - 1) {
+	if (y < yy + t->font->lineheight - 1) {
 	  return pos + i;
 	} else {
 	  xx = 0;
-	  yy += mace->lineheight;
+	  yy += t->font->lineheight;
 	}
       }
 
       xx += ww;
       
-      if (y < yy + mace->lineheight - 1 && x < xx) {
+      if (y < yy + t->font->lineheight - 1 && x < xx) {
 	/* Found position. */
 	return pos + i;
       }
@@ -183,8 +194,8 @@ bool
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
+  struct selection *sel, *nsel;
   size_t pos, start, len;
-  struct selection *sel;
   uint8_t *buf;
   
   pos = findpos(t, x, y);
@@ -193,7 +204,16 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   case 1:
     t->cursor = pos;
 
-    t->csel = selectionreplace(t, pos);
+    sel = t->selections;
+    t->selections = NULL;
+
+    while (sel != NULL) {
+      nsel = sel->next;
+      selectionfree(sel);
+      sel = nsel;
+    }
+    
+    t->csel = t->selections = selectionnew(t, pos);
     t->cselisvalid = false;
     
     textboxpredraw(t, false, false);
@@ -217,7 +237,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       return false;
     }
 
-    command(buf);
+    command(t->tab->mace->lua, buf);
 
     free(buf);
 
@@ -232,9 +252,13 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
   if (!t->cselisvalid && t->csel != NULL) {
-    selectionremove(t->csel);
+
+    t->selections = t->selections->next;
+    selectionfree(t->csel);
     t->csel = NULL;
+
     textboxpredraw(t, false, false);
+
     return true;
   } else {
     t->csel = NULL;
@@ -280,7 +304,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
   struct selection *sel, *nsel;
   uint8_t s[16];
   size_t l;
-   
+
   switch (k) {
   default:
     break;
@@ -343,7 +367,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     /* TODO: improve significantly */
 
   case KEY_delete:
-    if (mace->selections == NULL) {
+    if (t->selections == NULL) {
       if (sequencedelete(t->sequence, t->cursor, 1)) {
 	textboxpredraw(t, true, true);
 	return true;
@@ -355,7 +379,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     /* Fall through to delete selections */
     
   case KEY_backspace:
-    if (mace->selections == NULL && t->cursor > 0) {
+    if (t->selections == NULL && t->cursor > 0) {
       if (sequencedelete(t->sequence, t->cursor - 1, 1)) {
 	t->cursor--;
 	textboxpredraw(t, true, true);
@@ -367,22 +391,22 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     /* Delete selections */
 
-    for (sel = mace->selections; sel != NULL; sel = nsel) {
-      nsel = sel->next;
+    sel = t->selections;
+    t->selections = NULL;
 
-      if (sel->textbox != t) {
-	continue;
-      }
+    while (sel != NULL) {
+      nsel = sel->next;
 
       if (sel->start <= t->cursor && t->cursor <= sel->end) {
 	t->cursor = sel->start;
       }
-      
+
       sequencedelete(t->sequence,
 		     sel->start,
 		     sel->end - sel->start + 1);
 
-      selectionremove(sel);
+      selectionfree(sel);
+      sel = nsel;
     }
 
     textboxpredraw(t, true, true);
@@ -408,8 +432,8 @@ textboxscroll(struct textbox *t, int x, int y, int dy)
   t->yoff += dy;
   if (t->yoff < 0) {
     t->yoff = 0;
-  } else if (t->yoff > t->height - mace->lineheight) {
-    t->yoff = t->height - mace->lineheight;
+  } else if (t->yoff > t->height - t->font->lineheight) {
+    t->yoff = t->height - t->font->lineheight;
   }
 
   textboxpredraw(t, true, false);

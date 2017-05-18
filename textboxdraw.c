@@ -22,7 +22,7 @@ drawglyph(struct textbox *t, int x, int y,
 	  struct colour *fg, struct colour *bg)
 {
   uint8_t buf[1024]; /* Hopefully this is big enough */
-  FT_Bitmap *map = &mace->fontface->glyph->bitmap;
+  FT_Bitmap *map = &t->font->face->glyph->bitmap;
   cairo_surface_t *s;
   int stride, h;
 
@@ -46,16 +46,16 @@ drawglyph(struct textbox *t, int x, int y,
 
   cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
   cairo_rectangle(t->cr, x, y, 
-		  mace->fontface->glyph->advance.x >> 6,
-		  mace->lineheight);
+		  t->font->face->glyph->advance.x >> 6,
+		  t->font->lineheight);
 
   cairo_fill(t->cr);
   
   cairo_set_source_rgb(t->cr, fg->r, fg->g, fg->b);
 
-  cairo_mask_surface(t->cr, s, x + mace->fontface->glyph->bitmap_left,
-		     y + mace->baseline
-		     - mace->fontface->glyph->bitmap_top);
+  cairo_mask_surface(t->cr, s, x + t->font->face->glyph->bitmap_left,
+		     y + t->font->baseline
+		     - t->font->face->glyph->bitmap_top);
 
   cairo_surface_destroy(s);
 }
@@ -67,15 +67,15 @@ drawcursor(struct textbox *t, int x, int y)
   cairo_set_line_width (t->cr, 1.0);
 
   cairo_move_to(t->cr, x, y);
-  cairo_line_to(t->cr, x, y + mace->lineheight - 1);
+  cairo_line_to(t->cr, x, y + t->font->lineheight - 1);
   cairo_stroke(t->cr);
 
   cairo_move_to(t->cr, x - 2, y);
   cairo_line_to(t->cr, x + 2, y);
   cairo_stroke(t->cr);
 
-  cairo_move_to(t->cr, x - 2, y + mace->lineheight - 1);
-  cairo_line_to(t->cr, x + 2, y + mace->lineheight - 1);
+  cairo_move_to(t->cr, x - 2, y + t->font->lineheight - 1);
+  cairo_line_to(t->cr, x + 2, y + t->font->lineheight - 1);
   cairo_stroke(t->cr);
 }
 
@@ -92,7 +92,7 @@ textboxpredraw(struct textbox *t,
   size_t p, i;
 
   s = t->sequence;
-  
+
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
  
@@ -102,7 +102,7 @@ textboxpredraw(struct textbox *t,
     t->startpos = 0;
     t->starty = -t->yoff;
 
-    if (t->yoff < mace->lineheight) {
+    if (t->yoff < t->font->lineheight) {
       startfound = true;
     } else {
       startfound = false;
@@ -129,12 +129,13 @@ textboxpredraw(struct textbox *t,
 		      s->pieces[p].len - i, &a)) {
 
 	if (sel != NULL
-	    && y + mace->lineheight >= 0
+	    && y + t->font->lineheight >= 0
 	    && y < t->maxheight) {
 
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
 	  cairo_rectangle(t->cr, x, y, t->linewidth - x,
-			  mace->lineheight);
+			  t->font->lineheight);
+
 	  cairo_fill(t->cr);
 	}
 	    
@@ -143,12 +144,12 @@ textboxpredraw(struct textbox *t,
 	}
 
 	x = 0;
-	y += mace->lineheight;
+	y += t->font->lineheight;
 
 	if (!heightchanged && y >= t->maxheight) {
 	  return;
 	} else if (startchanged
-		   && y + mace->lineheight >= 0
+		   && y + t->font->lineheight >= 0
 		   && !startfound) {
 
 	  startfound = true;
@@ -156,34 +157,34 @@ textboxpredraw(struct textbox *t,
 	  t->starty = y;
 	}
       }
-      
-      if (!loadglyph(code)) {
+
+      if (!loadglyph(t->font->face, code)) {
 	i += a;
 	continue;
       }
 
-      ww = mace->fontface->glyph->advance.x >> 6;
+      ww = t->font->face->glyph->advance.x >> 6;
 
       if (x + ww >= t->linewidth) {
 	if (sel != NULL
-	    && y + mace->lineheight >= 0
+	    && y + t->font->lineheight >= 0
 	    && y < t->maxheight) {
 
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
 
 	  cairo_rectangle(t->cr, x, y,
 			  t->linewidth - x,
-			  mace->lineheight);
+			  t->font->lineheight);
 
 	  cairo_fill(t->cr);
 	}
 
 	x = 0;
-	y += mace->lineheight;
+	y += t->font->lineheight;
 	/* TODO: add in code from line break */
       }
 
-      if (y + mace->lineheight >= 0
+      if (y + t->font->lineheight >= 0
 	  && y < t->maxheight) {
 
 	if (sel != NULL) {
@@ -210,12 +211,12 @@ textboxpredraw(struct textbox *t,
 
   sel = inselections(t, pos);
   if (sel != NULL
-      && y + mace->lineheight >= 0
+      && y + t->font->lineheight >= 0
       && y < t->maxheight) {
 
     cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
     cairo_rectangle(t->cr, x, y, t->linewidth - x,
-		    mace->lineheight);
+		    t->font->lineheight);
     cairo_fill(t->cr);
   }
   
@@ -223,5 +224,5 @@ textboxpredraw(struct textbox *t,
     drawcursor(t, x, y);
   }
 
-  t->height = t->yoff + y + mace->lineheight;
+  t->height = t->yoff + y + t->font->lineheight;
 } 

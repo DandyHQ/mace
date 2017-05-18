@@ -43,6 +43,11 @@ static void *
 obj_ref_new(lua_State *L, void *addr, const char *type)
 {
   void **handle;
+
+  if (addr == NULL) {
+    lua_pushnil(L);
+    return NULL;
+  }
   
   lua_getfield(L, LUA_REGISTRYINDEX, "mace.objects");
   lua_pushlightuserdata(L, addr);
@@ -170,12 +175,7 @@ ltabindex(lua_State *L)
     }
 
     if (strcmp(key, "next") == 0) {
-      if (t->next != NULL) {
-	obj_ref_new(L, t->next, "mace.tab");
-      } else {
-	lua_pushnil(L);
-      }
-      
+      obj_ref_new(L, t->next, "mace.tab");
       return 1;
     }
   }
@@ -248,6 +248,11 @@ ltextboxindex(lua_State *L)
 
     if (strcmp(key, "tab") == 0) {
       obj_ref_new(L, t->tab, "mace.tab");
+      return 1;
+    }
+
+    if (strcmp(key, "selections") == 0) {
+      obj_ref_new(L, t->selections, "mace.selection");
       return 1;
     }
   }
@@ -405,12 +410,7 @@ lselectionindex(lua_State *L)
     key = lua_tostring(L, 2);
 
     if (strcmp(key, "next") == 0) {
-      if (s->next != NULL) {
-	obj_ref_new(L, s->next, "mace.selection");
-      } else {
-	lua_pushnil(L);
-      }
-      
+      obj_ref_new(L, s->next, "mace.selection");
       return 1;
     }
 
@@ -473,17 +473,7 @@ lmaceindex(lua_State *L)
     if (strcmp(key, "tabs") == 0) {
       obj_ref_new(L, mace->tabs, "mace.tab");
       return 1;
-    }
-
-    if (strcmp(key, "selections") == 0) {
-      if (mace->selections != NULL) {
-	obj_ref_new(L, mace->selections, "mace.selection");
-      } else {
-	lua_pushnil(L);
-      }
-      
-      return 1;
-    }
+    } 
   }
 
   return indexcommon(L);
@@ -526,7 +516,7 @@ lmacesetfont(lua_State *L)
 
   pattern = (const uint8_t *) luaL_checklstring(L, 2, &len);
 
-  r = fontset(mace, pattern);
+  r = fontset(mace->font, pattern);
 
   lua_pushnumber(L, r);
 
@@ -604,19 +594,15 @@ static const struct luaL_Reg mace_funcs[] = {
 };
 
 void
-luaremove(void *addr)
+luaremove(lua_State *L, void *addr)
 {
-  lua_State *L = mace->lua;
-  
   lua_pushnil(L);
   obj_ref_set(L, addr);
 }
 
 void
-command(uint8_t *s)
+command(lua_State *L, uint8_t *s)
 {
-  lua_State *L = mace->lua;
-
   lua_getglobal(L, s);
 
   if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
@@ -625,16 +611,15 @@ command(uint8_t *s)
   }
 }
 
-int
-luainit(struct mace *mace)
+lua_State *
+luanew(struct mace *mace)
 {
   lua_State *L;
-  int r;
 
-  mace->lua = L = luaL_newstate();
+  L = luaL_newstate();
   if (L == NULL) {
     fprintf(stderr, "Failed to initalize lua!");
-    return -1;
+    return NULL;
   }
 
   luaL_openlibs(L);
@@ -663,27 +648,29 @@ luainit(struct mace *mace)
   obj_ref_new(L, mace, "mace");
   lua_setglobal(L, "mace");
 
-  /* Load init file */
-  
+  return L;
+}
+
+void
+luaruninit(lua_State *L)
+{
+  int r;
+
   r = luaL_loadfile(L, "init.lua");
   if (r != LUA_OK) {
     fprintf(stderr, "Error loading init: %s", lua_tostring(L, -1));
-    return r;
+    return;
   }
 
   r = lua_pcall(L, 0, LUA_MULTRET, 0);
   if (r != LUA_OK) {
     fprintf(stderr, "Error running init: %s", lua_tostring(L, -1));
-    return r;
+    return;
   }
-
-  return 0;
 }
 
 void
-luaend(struct mace *mace)
+luafree(lua_State *L)
 {
-  lua_State *L = mace->lua;
-  
   lua_close(L);
 }

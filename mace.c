@@ -17,7 +17,7 @@
 struct mace *mace;
 
 struct mace *
-macenew(cairo_t *cr)
+macenew(void)
 {
   const uint8_t name[] = "Mace";
   struct mace *m;
@@ -27,13 +27,18 @@ macenew(cairo_t *cr)
     return NULL;
   }
 
-  m->cr = cr;
+  m->font = fontnew();
+  if (m->font == NULL) {
+    macefree(m);
+    return NULL;
+  }
 
-  m->fontlibrary = NULL;
-  m->fontface = NULL;
-  m->baseline = 0;
-  m->lineheight = 0;
-  
+  m->lua = luanew(m);
+  if (m->lua == NULL) {
+    macefree(m);
+    return NULL;
+  }
+
   m->tabs = tabnewempty(m, name, strlen(name));
   if (m->tabs == NULL) {
     free(m);
@@ -43,16 +48,8 @@ macenew(cairo_t *cr)
   m->focus = m->tabs->main;
   m->running = true;
 
-  if (fontinit(m) != 0) {
-    macefree(m);
-    return NULL;
-  }
+  luaruninit(m->lua);
   
-  if (luainit(m) != 0) {
-    macefree(m);
-    return NULL;
-  }
-
   return m;
 }
 
@@ -67,10 +64,6 @@ macefree(struct mace *m)
 {
   struct tab *t, *tn;
 
-  while (m->selections != NULL) {
-    selectionremove(m->selections);
-  } 
-
   t = m->tabs;
   while (t != NULL) {
     tn = t->next;
@@ -78,11 +71,63 @@ macefree(struct mace *m)
     t = tn;
   }
 
-  /* Thing that created the mace instance deals with m->cr as it
-     wishes. */
+  if (m->lua != NULL) {
+    luafree(m->lua);
+  }
 
-  luaend(m);
-  fontend(m);
+  if (m->font != NULL) {
+    fontfree(m->font);
+  }
 
   free(m);
+}
+
+bool
+handlebuttonpress(struct mace *mace, int x, int y, int button)
+{
+  struct tab *f = mace->focus->tab;
+  
+  return tabbuttonpress(f, x - f->x, y - f->y, button);
+}
+
+bool
+handlebuttonrelease(struct mace *mace, int x, int y, int button)
+{
+  struct tab *f = mace->focus->tab;
+
+  return tabbuttonrelease(f, x - f->x, y - f->y, button);
+}
+
+bool
+handlemotion(struct mace *mace, int x, int y)
+{
+  struct tab *f = mace->focus->tab;
+
+  return tabmotion(f, x - f->x, y - f->y);
+}
+
+bool
+handlescroll(struct mace *mace, int x, int y, int dy)
+{
+  struct tab *f = mace->focus->tab;
+
+  return tabscroll(f, x - f->x, y - f->y, dy);
+}
+
+bool
+handletyping(struct mace *mace, uint8_t *s, size_t n)
+{
+  return textboxtyping(mace->focus, s, n);
+}
+
+bool
+handlekeypress(struct mace *mace, keycode_t k)
+{
+  return textboxkeypress(mace->focus, k);
+}
+
+bool
+handlekeyrelease(struct mace *mace, keycode_t k)
+{
+  return textboxkeyrelease(mace->focus, k);
 }

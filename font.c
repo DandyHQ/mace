@@ -16,35 +16,52 @@
 
 #include <fontconfig/fontconfig.h>
 
-int
-fontinit(struct mace *mace)
+struct font *
+fontnew(void)
 {
+  struct font *f;
   int e;
+
+  f = malloc(sizeof(struct font));
+  if (f == NULL) {
+    return NULL;
+  }
   
-  e = FT_Init_FreeType(&mace->fontlibrary);
+  e = FT_Init_FreeType(&f->library);
   if (e != 0) {
-    return e;
+    fontfree(f);
+    return NULL;
   }
 
-  e = fontset(mace, "-15");
+  f->face = NULL;
+  
+  e = fontset(f, "-15");
   if (e != 0) {
-    return e;
+    fontfree(f);
+    return NULL;
   }
 
-  return 0;
+  return f;
 }
 
 void
-fontend(struct mace *mace)
+fontfree(struct font *font)
 {
-  FT_Done_Face(mace->fontface);
-  FT_Done_FreeType(mace->fontlibrary);
+  if (font->face != NULL) {
+    FT_Done_Face(font->face);
+  }
+
+  if (font->library != NULL) {
+    FT_Done_FreeType(font->library);
+  }
+  
+  free(font);
 }
 
 int
-fontset(struct mace *mace, const uint8_t *spattern)
+fontset(struct font *font, const uint8_t *spattern)
 {
-  FcPattern *pat, *font;
+  FcPattern *pat, *fontpat;
   FcConfig *config;
   FcResult result;
   FcChar8 *file;
@@ -66,41 +83,47 @@ fontset(struct mace *mace, const uint8_t *spattern)
   FcConfigSubstitute(config, pat, FcMatchPattern);
   FcDefaultSubstitute(pat);
 
-  font = FcFontMatch(config, pat, &result);
-  if (font == NULL) {
+  fontpat = FcFontMatch(config, pat, &result);
+  if (fontpat == NULL) {
     e = -1;
     goto err1;
   }
   
-  if (FcPatternGetString(font, FC_FILE, 0, &file) != FcResultMatch) {
+  if (FcPatternGetString(fontpat, FC_FILE, 0, &file)
+      != FcResultMatch) {
     e = -1;
     goto err2;
   }
 
-  if (FcPatternGetDouble(font, FC_SIZE, 0, &size) != FcResultMatch) {
+  if (FcPatternGetDouble(fontpat, FC_SIZE, 0, &size)
+      != FcResultMatch) {
     e = -1;
     goto err2;
   }
 
-  e = FT_New_Face(mace->fontlibrary, file, 0, &mace->fontface);
+  if (font->face != NULL) {
+    FT_Done_Face(font->face);
+  }
+  
+  e = FT_New_Face(font->library, file, 0, &font->face);
   if (e != 0) {
     goto err2;
   }
 
-  e = FT_Set_Pixel_Sizes(mace->fontface, 0, size);
+  e = FT_Set_Pixel_Sizes(font->face, 0, size);
   if (e != 0) {
     goto err2;
   }
 
-  mace->baseline = 1 + ((mace->fontface->size->metrics.height
-			 + mace->fontface->size->metrics.descender) >> 6);
+  font->baseline = 1 + ((font->face->size->metrics.height
+			 + font->face->size->metrics.descender) >> 6);
 
-  mace->lineheight = 2 + (mace->fontface->size->metrics.height >> 6);
+  font->lineheight = 2 + (font->face->size->metrics.height >> 6);
 
   return 0;
 
  err2:
-  FcPatternDestroy(font);
+  FcPatternDestroy(fontpat);
  err1:
   FcPatternDestroy(pat);
  err0:
@@ -108,22 +131,22 @@ fontset(struct mace *mace, const uint8_t *spattern)
 }
 
 bool
-loadglyph(int32_t code)
+loadglyph(FT_Face face, int32_t code)
 {
   FT_UInt i;
   int e;
 
-  i = FT_Get_Char_Index(mace->fontface, code);
+  i = FT_Get_Char_Index(face, code);
   if (i == 0) {
     return false;
   }
 
-  e = FT_Load_Glyph(mace->fontface, i, FT_LOAD_DEFAULT);
+  e = FT_Load_Glyph(face, i, FT_LOAD_DEFAULT);
   if (e != 0) {
     return false;
   }
 
-  e = FT_Render_Glyph(mace->fontface->glyph, FT_RENDER_MODE_NORMAL);
+  e = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
   if (e != 0) {
     return false;
   }

@@ -18,7 +18,8 @@
 #include "mace.h"
 
 struct sequence *
-sequencenew(uint8_t *data, size_t len, size_t max)
+sequencenew(struct mace *mace, uint8_t *data,
+	    size_t len, size_t max)
 {
   struct sequence *s;
 
@@ -27,6 +28,8 @@ sequencenew(uint8_t *data, size_t len, size_t max)
     return NULL;
   }
 
+  s->mace = mace;
+  
   s->pmax = 10;
   s->pieces = malloc(sizeof(struct piece) * s->pmax);
   if (s->pieces == NULL) {
@@ -80,7 +83,7 @@ sequencenew(uint8_t *data, size_t len, size_t max)
 void
 sequencefree(struct sequence *s)
 {
-  luaremove(s);
+  luaremove(s->mace->lua, s);
   
   free(s->pieces);
 

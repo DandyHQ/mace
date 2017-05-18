@@ -24,7 +24,11 @@ static Window win;
 static int screen;
 
 static int width, height;
+
 static cairo_surface_t *sfc;
+static cairo_t *cr;
+
+static struct mace *mace;
 
 static void
 xresize(int w, int h)
@@ -100,11 +104,11 @@ xhandlekeypress(XKeyEvent *e)
   if (c == KEY_none) {
     n = utf8proc_encode_char(sym, s);
     if (n > 0) {
-      return handletyping(s, n);
+      return handletyping(mace, s, n);
     }
   } 
 
-  return handlekeypress(c);
+  return handlekeypress(mace, c);
 }
 
 static bool
@@ -119,7 +123,7 @@ xhandlekeyrelease(XKeyEvent *e)
   c = symtocode(sym);
 
   if (c != KEY_none) {
-    return handlekeyrelease(c);
+    return handlekeyrelease(mace, c);
   } else {
     return false;
   }
@@ -132,13 +136,13 @@ xhandlebuttonpress(XButtonEvent *e)
   case 1:
   case 2:
   case 3:
-    return handlebuttonpress(e->x, e->y, e->button);
+    return handlebuttonpress(mace, e->x, e->y, e->button);
 
   case 4:
-    return handlescroll(e->x, e->y, -5);
+    return handlescroll(mace, e->x, e->y, -5);
     
   case 5:
-    return handlescroll(e->x, e->y, 5);
+    return handlescroll(mace, e->x, e->y, 5);
 
   default:
     return false;
@@ -152,7 +156,7 @@ xhandlebuttonrelease(XButtonEvent *e)
   case 1:
   case 2:
   case 3:
-    return handlebuttonrelease(e->x, e->y, e->button);
+    return handlebuttonrelease(mace, e->x, e->y, e->button);
   default:
     return false;
   }
@@ -161,7 +165,7 @@ xhandlebuttonrelease(XButtonEvent *e)
 static bool
 xhandlemotion(XMotionEvent *e)
 {
-  return handlemotion(e->x, e->y);
+  return handlemotion(mace, e->x, e->y);
 } 
 
 static void
@@ -216,12 +220,12 @@ eventLoop(void)
     }
 
     if (redraw) {
-      cairo_push_group(mace->cr);
+      cairo_push_group(cr);
 
-      tabdraw(mace->focus->tab);
+      tabdraw(mace->focus->tab, cr);
 
-      cairo_pop_group_to_source(mace->cr);
-      cairo_paint(mace->cr);
+      cairo_pop_group_to_source(cr);
+      cairo_paint(cr);
       cairo_surface_flush(sfc);
     }
   }
@@ -231,7 +235,6 @@ int
 main(int argc, char **argv)
 {
   int width, height;
-  cairo_t *cr;
   
   width = 800;
   height = 500;
@@ -261,19 +264,19 @@ main(int argc, char **argv)
 
   cr = cairo_create(sfc);
 
-  mace = macenew(cr);
+  mace = macenew();
   if (mace == NULL) {
     errx(1, "Failed to initalize mace!");
   }
 
   xresize(width, height);
 
-  cairo_push_group(mace->cr);
+  cairo_push_group(cr);
 
-  tabdraw(mace->focus->tab);
+  tabdraw(mace->focus->tab, cr);
 
-  cairo_pop_group_to_source(mace->cr);
-  cairo_paint(mace->cr);
+  cairo_pop_group_to_source(cr);
+  cairo_paint(cr);
   cairo_surface_flush(sfc);
 
   eventLoop();
