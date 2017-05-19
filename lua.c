@@ -273,14 +273,15 @@ ltextboxnewindex(lua_State *L)
     if (strcmp(key, "cursor") == 0) {
       i = luaL_checknumber(L, 3);
       t->cursor = i;
-      textboxpredraw(t, false, false);
+      textboxpredraw(t);
       return 0;
     }
 
     if (strcmp(key, "yoff") == 0) {
       i = luaL_checknumber(L, 3);
       t->yoff = i;
-      textboxpredraw(t, true, false);
+      textboxfindstart(t);
+      textboxpredraw(t);
       return 0;
     }
   }

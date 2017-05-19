@@ -47,6 +47,8 @@ struct piece {
   size_t len;
   size_t pos; /* In sequence */
   size_t off; /* In data buffer */
+
+  int x, y, width;
 };
 
 #define SEQ_start  0
@@ -101,10 +103,6 @@ struct textbox {
   
   struct font *font;
 
-  struct sequence *sequence;
-
-  int32_t cursor;
-
   struct selection *csel, *selections;
   bool cselisvalid;
   
@@ -113,13 +111,17 @@ struct textbox {
   cairo_t *cr;
   cairo_surface_t *sfc;
 
+  struct sequence *sequence;
+
+  ssize_t startpiece;
+  size_t startindex;
+  int startx, starty;
+
+  int32_t cursor;
   int yoff;
+
   int linewidth, height;
-
   int maxheight;
-
-  size_t startpos;
-  int starty;
 };
 
 struct tab {
@@ -267,10 +269,17 @@ textboxkeypress(struct textbox *t, keycode_t k);
 bool
 textboxkeyrelease(struct textbox *t, keycode_t k);
 
+size_t
+textboxfindpos(struct textbox *t, int x, int y);
+
 void
-textboxpredraw(struct textbox *t,
-	       bool startchanged,
-	       bool heightchanged);
+textboxcalcpositions(struct textbox *t, size_t pos);
+
+void
+textboxfindstart(struct textbox *t);
+
+void
+textboxpredraw(struct textbox *t);
 
 
 

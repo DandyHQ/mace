@@ -19,7 +19,8 @@ textboxnew(struct tab *tab, struct colour *bg,
 	   struct sequence *seq)
 {
   struct textbox *t;
-
+  struct piece *p;
+  
   t = calloc(1, sizeof(struct textbox));
   if (t == NULL) {
     return NULL;
@@ -42,7 +43,15 @@ textboxnew(struct tab *tab, struct colour *bg,
   t->height = 0;
 
   t->maxheight = 0;
-  t->startpos = 0;
+
+  t->startpiece = SEQ_start;
+
+  p = &t->sequence->pieces[t->startpiece];
+  p->x = 0;
+  p->y = 0;
+  
+  t->startindex = 0;
+  t->startx = 0;
   t->starty = 0;
   
   memmove(&t->bg, bg, sizeof(struct colour));
@@ -110,84 +119,16 @@ textboxresize(struct textbox *t, int lw, int maxheight)
   t->linewidth = lw;
   t->maxheight = maxheight;
 
-  textboxpredraw(t, true, true);
+  t->startpiece = SEQ_start;
+  t->startindex = 0;
+  t->startx = 0;
+  t->starty = 0;
+  
+  textboxcalcpositions(t, 0);
+  textboxfindstart(t);
+  textboxpredraw(t);
 
   return true;
-}
-
-static size_t
-findpos(struct textbox *t,
-	int x, int y)
-{
-  struct sequence *s;
-  size_t pos, p, i;
-  int32_t code, a;
-  int xx, yy, ww;
-
-  s = t->sequence;
-
-  xx = 0;
-
-  p = sequencefindpiece(s, t->startpos, &i);
-  yy = t->starty;
-
-  pos = s->pieces[p].pos;
-
-  while (p != SEQ_end) {
-    while (i < s->pieces[p].len) {
-      a = utf8proc_iterate(s->data + s->pieces[p].off + i,
-			   s->pieces[p].len - i, &code);
-      if (a <= 0) {
-	i++;
-	continue;
-      }
-
-      /* Line Break. */
-      if (islinebreak(code,
-		      s->data + s->pieces[p].off + i,
-		      s->pieces[p].len - i, &a)) {
-
-	if (y < yy + t->font->lineheight - 1) {
-	  return pos + i;
-	} else {
-	  xx = 0;
-	  yy += t->font->lineheight;
-	}
-      }
-     
-      if (!loadglyph(t->font->face, code)) {
-	i += a;
-	continue;
-      }
-
-      ww = t->font->face->glyph->advance.x >> 6;
-
-      /* Wrap Line. */
-      if (xx + ww >= t->linewidth) {
-	if (y < yy + t->font->lineheight - 1) {
-	  return pos + i;
-	} else {
-	  xx = 0;
-	  yy += t->font->lineheight;
-	}
-      }
-
-      xx += ww;
-      
-      if (y < yy + t->font->lineheight - 1 && x < xx) {
-	/* Found position. */
-	return pos + i;
-      }
-
-      i += a;
-    }
-
-    pos += i;
-    i = 0;
-    p = s->pieces[p].next;
-  }
-
-  return pos + i;
 }
 
 bool
@@ -197,8 +138,8 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   struct selection *sel, *nsel;
   size_t pos, start, len;
   uint8_t *buf;
-  
-  pos = findpos(t, x, y);
+
+  pos = textboxfindpos(t, x, y);
   
   switch (button) {
   case 1:
@@ -215,8 +156,8 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     
     t->csel = t->selections = selectionnew(t, pos);
     t->cselisvalid = false;
-    
-    textboxpredraw(t, false, false);
+
+    textboxpredraw(t);
     return true;
 
   case 3:
@@ -257,7 +198,7 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
     selectionfree(t->csel);
     t->csel = NULL;
 
-    textboxpredraw(t, false, false);
+    textboxpredraw(t);
 
     return true;
   } else {
@@ -270,16 +211,16 @@ bool
 textboxmotion(struct textbox *t, int x, int y)
 {
   size_t pos;
-  
+
   if (t->csel == NULL) {
     return false;
   }
-   
-  pos = findpos(t, x, y);
+
+  pos = textboxfindpos(t, x, y);
 
   if (selectionupdate(t->csel, pos)) {
     t->cselisvalid = true;
-    textboxpredraw(t, false, false);
+    textboxpredraw(t);
     return true;
   } else {
     return false;
@@ -293,8 +234,9 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
     return false;
   }
 
+  textboxcalcpositions(t, t->cursor);
   t->cursor += l;
-  textboxpredraw(t, false, true);
+  textboxpredraw(t);
   return true;
 }
 
@@ -302,8 +244,8 @@ bool
 textboxkeypress(struct textbox *t, keycode_t k)
 {
   struct selection *sel, *nsel;
+  size_t l, start;
   uint8_t s[16];
-  size_t l;
 
   switch (k) {
   default:
@@ -354,9 +296,9 @@ textboxkeypress(struct textbox *t, keycode_t k)
       return false;
     }
 
+    textboxcalcpositions(t, t->cursor);
     t->cursor += l;
- 
-    textboxpredraw(t, false, true);
+    textboxpredraw(t);
 
     return true;
     
@@ -364,12 +306,14 @@ textboxkeypress(struct textbox *t, keycode_t k)
     break;
 
 
-    /* TODO: improve significantly */
-
   case KEY_delete:
     if (t->selections == NULL) {
       if (sequencedelete(t->sequence, t->cursor, 1)) {
-	textboxpredraw(t, true, true);
+	textboxcalcpositions(t, t->cursor);
+
+	t->startpiece = SEQ_start;  
+	textboxfindstart(t);
+	textboxpredraw(t);
 	return true;
       } else {
 	return false;
@@ -382,7 +326,11 @@ textboxkeypress(struct textbox *t, keycode_t k)
     if (t->selections == NULL && t->cursor > 0) {
       if (sequencedelete(t->sequence, t->cursor - 1, 1)) {
 	t->cursor--;
-	textboxpredraw(t, true, true);
+	textboxcalcpositions(t, t->cursor);
+
+	t->startpiece = SEQ_start;  
+	textboxfindstart(t);
+	textboxpredraw(t);
 	return true;
       } else {
 	return false;
@@ -394,11 +342,17 @@ textboxkeypress(struct textbox *t, keycode_t k)
     sel = t->selections;
     t->selections = NULL;
 
+    start = t->sequence->pieces[SEQ_end].pos;
+    
     while (sel != NULL) {
       nsel = sel->next;
 
       if (sel->start <= t->cursor && t->cursor <= sel->end) {
 	t->cursor = sel->start;
+      }
+
+      if (sel->start < start) {
+	start = sel->start;
       }
 
       sequencedelete(t->sequence,
@@ -409,7 +363,11 @@ textboxkeypress(struct textbox *t, keycode_t k)
       sel = nsel;
     }
 
-    textboxpredraw(t, true, true);
+    textboxcalcpositions(t, start);
+
+    t->startpiece = SEQ_start;  
+    textboxfindstart(t);
+    textboxpredraw(t);
  
     return true;
 
@@ -429,14 +387,23 @@ textboxkeyrelease(struct textbox *t, keycode_t k)
 bool
 textboxscroll(struct textbox *t, int x, int y, int dy)
 {
-  t->yoff += dy;
-  if (t->yoff < 0) {
-    t->yoff = 0;
-  } else if (t->yoff > t->height - t->font->lineheight) {
-    t->yoff = t->height - t->font->lineheight;
+  int n;
+  
+  n = t->yoff + dy;
+  if (n < 0) {
+    n = 0;
+  } else if (n > t->height - t->font->lineheight) {
+    n = t->height - t->font->lineheight;
   }
 
-  textboxpredraw(t, true, false);
+  if (n != t->yoff) {
+    t->yoff = n;
 
-  return true;
+    textboxfindstart(t);
+    textboxpredraw(t);
+
+    return true;
+  } else {
+    return false;
+  }
 }

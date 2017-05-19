@@ -17,6 +17,9 @@
 static struct colour nfg = { 0, 0, 0 };
 static struct colour sbg = { 0.5, 0.8, 0.7 };
 
+
+/* Here be dragons. */
+
 static void 
 drawglyph(struct textbox *t, int x, int y,
 	  struct colour *fg, struct colour *bg)
@@ -80,81 +83,60 @@ drawcursor(struct textbox *t, int x, int y)
 }
 
 void
-textboxpredraw(struct textbox *t,
-	       bool startchanged, bool heightchanged)
+textboxpredraw(struct textbox *t)
 {
-  int32_t code, a, pos;
   struct selection *sel;
   struct sequence *s;
   struct colour *bg;
-  bool startfound;
+  struct piece *p;
+  int32_t code, a;
   int x, y, ww;
-  size_t p, i;
+  size_t i;
 
   s = t->sequence;
 
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
  
-  x = 0;
-
-  if (startchanged) {
-    t->startpos = 0;
-    t->starty = -t->yoff;
-
-    if (t->yoff < t->font->lineheight) {
-      startfound = true;
-    } else {
-      startfound = false;
-    }
-  } 
-
-  p = sequencefindpiece(s, t->startpos, &i);
+  p = &s->pieces[t->startpiece];
+  i = t->startindex;
+  x = t->startx;
   y = t->starty;
-  pos = s->pieces[p].pos;
 
-  while (p != SEQ_end) {
-    while (i < s->pieces[p].len) {
-      a = utf8proc_iterate(s->data + s->pieces[p].off + i,
-			   s->pieces[p].len - i, &code);
+  while (true) {
+    while (i < p->len) {
+      a = utf8proc_iterate(s->data + p->off + i,
+			   p->len - i, &code);
       if (a <= 0) {
 	i++;
 	continue;
       }
 
-      sel = inselections(t, pos + i);
+      sel = inselections(t, p->pos + i);
       
       if (islinebreak(code,
-		      s->data + s->pieces[p].off + i,
-		      s->pieces[p].len - i, &a)) {
+		      s->data + p->off + i,
+		      p->len - i, &a)) {
 
-	if (sel != NULL
-	    && y + t->font->lineheight >= 0
-	    && y < t->maxheight) {
-
+	if (sel != NULL) {
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
-	  cairo_rectangle(t->cr, x, y, t->linewidth - x,
+
+	  cairo_rectangle(t->cr, x, y - t->yoff,
+			  t->linewidth - x,
 			  t->font->lineheight);
 
 	  cairo_fill(t->cr);
 	}
 	    
-	if (pos + i == t->cursor) {
-	  drawcursor(t, x, y);
+	if (p->pos + i == t->cursor) {
+	  drawcursor(t, x, y - t->yoff);
 	}
 
 	x = 0;
 	y += t->font->lineheight;
 
-	if (!heightchanged && y >= t->maxheight) {
+	if (y - t->yoff >= t->maxheight) {
 	  return;
-	} else if (startchanged
-		   && y + t->font->lineheight >= 0
-		   && !startfound) {
-
-	  startfound = true;
-	  t->startpos = pos + i + a;
-	  t->starty = y;
 	}
       }
 
@@ -166,13 +148,10 @@ textboxpredraw(struct textbox *t,
       ww = t->font->face->glyph->advance.x >> 6;
 
       if (x + ww >= t->linewidth) {
-	if (sel != NULL
-	    && y + t->font->lineheight >= 0
-	    && y < t->maxheight) {
-
+	if (sel != NULL) {
 	  cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
 
-	  cairo_rectangle(t->cr, x, y,
+	  cairo_rectangle(t->cr, x, y - t->yoff,
 			  t->linewidth - x,
 			  t->font->lineheight);
 
@@ -181,48 +160,342 @@ textboxpredraw(struct textbox *t,
 
 	x = 0;
 	y += t->font->lineheight;
-	/* TODO: add in code from line break */
+
+	if (y - t->yoff >= t->maxheight) {
+	  return;
+	}
       }
 
-      if (y + t->font->lineheight >= 0
-	  && y < t->maxheight) {
+      if (sel != NULL) {
+	bg = &sbg;
+      } else {
+	bg = &t->bg;
+      }
 
-	if (sel != NULL) {
-	  bg = &sbg;
-	} else {
-	  bg = &t->bg;
-	}
-      
-	drawglyph(t, x, y, &nfg, bg);
+      drawglyph(t, x, y - t->yoff, &nfg, bg);
 
-	if (pos + i == t->cursor) {
-	  drawcursor(t, x, y);
-	}
+      if (p->pos + i == t->cursor) {
+	drawcursor(t, x, y - t->yoff);
       }
 
       i += a;
       x += ww;
     }
 
-    pos += i;
-    p = s->pieces[p].next;
-    i = 0;
+    if (p->next == -1) {
+      break;
+    } else {
+      p = &s->pieces[p->next];
+      x = p->x;
+      y = p->y;
+      i = 0;
+    }
   }
 
-  sel = inselections(t, pos);
-  if (sel != NULL
-      && y + t->font->lineheight >= 0
-      && y < t->maxheight) {
-
+  sel = inselections(t, p->pos);
+  if (sel != NULL) {
     cairo_set_source_rgb(t->cr, sbg.r, sbg.g, sbg.b);
-    cairo_rectangle(t->cr, x, y, t->linewidth - x,
+
+    cairo_rectangle(t->cr, x, y - t->yoff,
+		    t->linewidth - x,
 		    t->font->lineheight);
+
     cairo_fill(t->cr);
   }
   
-  if (pos == t->cursor) {
-    drawcursor(t, x, y);
+  if (p->pos + i == t->cursor) {
+    drawcursor(t, x, y - t->yoff);
+  }
+} 
+
+static bool
+inpiece(struct textbox *t, int lx, int ly, int x, int y, int w)
+{
+  if (w == 0) {
+    return false;
+  } else if (y <= ly && ly < y + t->font->lineheight) {
+    return x <= lx && lx < x + w;
   }
 
-  t->height = t->yoff + y + t->font->lineheight;
-} 
+  w -= t->linewidth - x;
+
+  while (w > 0) {
+    y += t->font->lineheight;
+    if (y <= ly && ly < y + t->font->lineheight) {
+      return lx < w;
+    } 
+
+    w -= t->linewidth;
+  }
+  
+  return false;
+}
+
+size_t
+textboxfindpos(struct textbox *t, int lx, int ly)
+{
+  struct sequence *s;
+  int32_t code, a;
+  struct piece *p;
+  int x, y, w, ww;
+  size_t i;
+
+  ly += t->yoff;
+
+  s = t->sequence;
+  p = &s->pieces[t->startpiece];
+  i = t->startindex;
+  x = t->startx;
+  y = t->starty;
+  w = p->width - (x - p->x);
+
+  while (!inpiece(t, lx, ly, x, y, w)) {
+    if (p->next == -1) {
+      break;
+    } else {
+      p = &s->pieces[p->next];
+      x = p->x;
+      y = p->y;
+      w = p->width;
+      i = 0;
+    }
+  }
+
+  while (i < p->len) {
+    a = utf8proc_iterate(s->data + p->off + i,
+			 p->len - i, &code);
+    if (a <= 0) {
+      i++;
+      continue;
+    }
+
+    /* Line Break. */
+    if (islinebreak(code,
+		    s->data + p->off + i,
+		    p->len - i, &a)) {
+
+      if (ly < y + t->font->lineheight) {
+	return p->pos + i;
+      } else {
+	x = 0;
+	y += t->font->lineheight;
+      }
+    }
+     
+    if (!loadglyph(t->font->face, code)) {
+      i += a;
+      continue;
+    }
+
+    ww = t->font->face->glyph->advance.x >> 6;
+
+    /* Wrap Line. */
+    if (x + ww >= t->linewidth) {
+      if (ly < y + t->font->lineheight) {
+	return p->pos + i;
+      } else {
+	x = 0;
+	y += t->font->lineheight;
+      }
+    }
+
+    x += ww;
+
+    if (ly < y + t->font->lineheight && lx < x) {
+      return p->pos + i;
+    }
+	
+    i += a;
+  }
+
+  return p->pos + i;
+}
+
+/* TODO: improve speed. Stop it from calculating things it doesnt need
+   to. eg: just push pieces down rather than recalculating their
+   width. */
+
+void
+textboxcalcpositions(struct textbox *t, size_t pos)
+{
+  struct sequence *s;
+  struct piece *p;
+  int32_t code, a;
+  int x, y, ww;
+  ssize_t pi;
+  size_t i;
+  
+  s = t->sequence;
+
+  pi = sequencefindpiece(s, pos, &i);
+  if (pi == -1) {
+    return;
+  }
+
+  p = &s->pieces[pi];
+  if (p->prev != -1) {
+    p = &s->pieces[p->prev];
+  }
+  
+  x = p->x;
+  y = p->y;
+  
+  while (true) {
+    p->width = 0;
+
+    i = 0;
+    while (i < p->len) {
+      a = utf8proc_iterate(s->data + p->off + i,
+			   p->len - i, &code);
+      if (a <= 0) {
+	i++;
+	continue;
+      }
+
+      /* Line Break. */
+      if (islinebreak(code,
+		      s->data + p->off + i,
+		      p->len - i, &a)) {
+
+	if (p->width == 0) {
+	  p->width = t->linewidth - p->x;
+	} else {
+	  p->width += t->linewidth;
+	}
+	
+	x = 0;
+	y += t->font->lineheight;
+      }
+     
+      if (!loadglyph(t->font->face, code)) {
+	i += a;
+	continue;
+      }
+
+      ww = t->font->face->glyph->advance.x >> 6;
+
+      /* Wrap Line. */
+      if (x + ww >= t->linewidth) {
+	if (p->width == 0) {
+	  p->width = t->linewidth - p->x;
+	} else {
+	  p->width += t->linewidth;
+	}
+
+	x = 0;
+	y += t->font->lineheight;
+      }
+
+      x += ww;
+      i += a;
+    }
+
+    if (p->width == 0) {
+      p->width = x - p->x;
+    } else {
+      p->width += x;
+    }
+
+    if (p->next == -1) {
+      break;
+    } else {
+      p = &s->pieces[p->next];
+      p->x = x;
+      p->y = y;
+    }
+  }
+
+  t->height = y + t->font->lineheight;
+}
+
+void
+textboxfindstart(struct textbox *t)
+{
+  struct sequence *s;
+  struct piece *p;
+  int32_t code, a;
+  int x, y, ww;
+  ssize_t pi;
+  size_t i;
+
+  s = t->sequence;
+
+  pi = t->startpiece;
+  p = &s->pieces[pi];
+
+  while (p->prev != -1) {
+    if (p->y + t->font->lineheight < t->yoff) {
+      break;
+    }
+
+    pi = p->prev;
+    p = &s->pieces[pi];
+  }
+
+  while (true) {
+    i = 0;
+    x = p->x;
+    y = p->y;
+
+    if (y + t->font->lineheight >= t->yoff) {
+      goto done;
+    }
+    
+    while (i < p->len) {
+      a = utf8proc_iterate(s->data + p->off + i,
+			   p->len - i, &code);
+      if (a <= 0) {
+	i++;
+	continue;
+      }
+
+      /* Line Break. */
+      if (islinebreak(code,
+		      s->data + p->off + i,
+		      p->len - i, &a)) {
+
+	x = 0;
+	y += t->font->lineheight;
+
+	if (y + t->font->lineheight >= t->yoff) {
+	  i += a;
+	  goto done;
+	}
+      }
+     
+      if (!loadglyph(t->font->face, code)) {
+	i += a;
+	continue;
+      }
+
+      ww = t->font->face->glyph->advance.x >> 6;
+
+      /* Wrap Line. */
+      if (x + ww >= t->linewidth) {
+	x = 0;
+	y += t->font->lineheight;
+
+	if (y + t->font->lineheight >= t->yoff) {
+	  goto done;
+	}
+      }
+
+      x += ww;
+      i += a;
+    }
+
+    if (p->next == -1) {
+      goto done;
+    } else {
+      pi = p->next;
+      p = &s->pieces[pi];
+    }
+  }
+
+ done:
+  t->startpiece = pi;
+  t->startindex = i;
+  t->startx = x;
+  t->starty = y;
+}
+

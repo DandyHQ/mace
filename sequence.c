@@ -41,14 +41,14 @@ sequencenew(struct mace *mace, uint8_t *data,
   s->pieces[SEQ_start].off = 0;
   s->pieces[SEQ_start].pos = 0;
   s->pieces[SEQ_start].len = 0;
-  s->pieces[SEQ_start].prev = SEQ_start;
+  s->pieces[SEQ_start].prev = -1;
   s->pieces[SEQ_start].next = SEQ_end;
 
   s->pieces[SEQ_end].off = 0;
   s->pieces[SEQ_end].pos = 0;
   s->pieces[SEQ_end].len = 0;
   s->pieces[SEQ_end].prev = SEQ_start;
-  s->pieces[SEQ_end].next = SEQ_end;
+  s->pieces[SEQ_end].next = -1;
  
   if (data != NULL) {
     s->pieces[SEQ_first].off = 0;
@@ -97,7 +97,7 @@ sequencefree(struct sequence *s)
 static void
 shiftpieces(struct sequence *s, ssize_t p, size_t pos)
 {
-  while (p != SEQ_end) {
+  while (p != -1) {
     s->pieces[p].pos = pos;
     pos += s->pieces[p].len;
     p = s->pieces[p].next;
@@ -107,7 +107,7 @@ shiftpieces(struct sequence *s, ssize_t p, size_t pos)
 static ssize_t
 piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
 {
-  while (p != SEQ_end) {
+  while (p != -1) {
     if (s->pieces[p].pos + s->pieces[p].len >= pos) {
       *i = pos - s->pieces[p].pos;
       return p;
@@ -267,12 +267,16 @@ sequenceinsert(struct sequence *s, size_t pos,
   return true;
 }
 
+/* TODO: this is broken. Can not delete first byte */
+
 bool
 sequencedelete(struct sequence *s, size_t pos, size_t len)
 {
   ssize_t start, end, starti, endi, nstart, nend;
   ssize_t startprev, endnext;
 
+  printf("sequence delete from %zu len %zu\n", pos, len);
+  
   start = piecefind(s, SEQ_start, pos, &starti);
   if (start == -1) {
     return false;
@@ -283,6 +287,8 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
     return false;
   }
 
+  printf("so start is in %zu,%zu and end in %zu,%zu\n", start, starti, end, endi);
+  
   nstart = pieceadd(s,
 		    s->pieces[start].pos,
 		    s->pieces[start].off,
@@ -304,14 +310,20 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
   startprev = s->pieces[start].prev;
   endnext   = s->pieces[end].next;
 
-  s->pieces[startprev].next = nstart;
+  if (startprev != -1) {
+    s->pieces[startprev].next = nstart;
+  }
+  
   s->pieces[nstart].prev = startprev;
 
   s->pieces[nstart].next = nend;
   s->pieces[nend].prev = nstart;
 
   s->pieces[nend].next = endnext;
-  s->pieces[endnext].prev = nend;
+
+  if (endnext != -1) {
+    s->pieces[endnext].prev = nend;
+  }
 
   shiftpieces(s, nend, pos);
   
@@ -325,7 +337,7 @@ findwordend(struct sequence *s, ssize_t p, size_t i)
   size_t end;
   
   end = 0;
-  while (p != SEQ_end) {
+  while (p != -1) {
     while (i < s->pieces[p].len) {
       a = utf8proc_iterate(s->data + s->pieces[p].off + i,
 			   s->pieces[p].len - i, &code);
@@ -362,7 +374,7 @@ findwordstart(struct sequence *s, ssize_t p, size_t ii)
   piecedist = 0;
   in = -1;
 
-  while (p != SEQ_start && in == -1) {
+  while (p != -1 && in == -1) {
     i = 0;
     while (i < ii) {
       a = utf8proc_iterate(s->data + s->pieces[p].off + i,
@@ -423,7 +435,7 @@ sequenceget(struct sequence *s, size_t pos,
   size_t i, l, b, p, ret;
 
   i = 0;
-  for (p = SEQ_start; p != SEQ_end; p = s->pieces[p].next) {
+  for (p = SEQ_start; p != -1; p = s->pieces[p].next) {
 
     if (i > pos + len) {
       break;
