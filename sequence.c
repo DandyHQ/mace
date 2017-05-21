@@ -111,9 +111,9 @@ piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
     if (s->pieces[p].pos + s->pieces[p].len >= pos) {
       *i = pos - s->pieces[p].pos;
       return p;
+    } else {
+      p = s->pieces[p].next;
     }
-
-    p = s->pieces[p].next;
   }
 
   return -1;
@@ -267,7 +267,7 @@ sequenceinsert(struct sequence *s, size_t pos,
   return true;
 }
 
-/* TODO: this is broken. Can not delete first byte */
+/* TODO: This could go for some improvements. */
 
 bool
 sequencedelete(struct sequence *s, size_t pos, size_t len)
@@ -275,20 +275,26 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
   ssize_t start, end, starti, endi, nstart, nend;
   ssize_t startprev, endnext;
 
-  printf("sequence delete from %zu len %zu\n", pos, len);
   
   start = piecefind(s, SEQ_start, pos, &starti);
   if (start == -1) {
     return false;
+  } else if (start == SEQ_start) {
+    start = s->pieces[SEQ_start].next;
   }
 
   end = piecefind(s, start, pos + len, &endi);
   if (end == -1) {
-    return false;
+    /* Use the very end. It is probably trying to delete one past the
+       end. */
+    
+    end = s->pieces[SEQ_end].prev;
+    endi = s->pieces[end].len;
   }
 
-  printf("so start is in %zu,%zu and end in %zu,%zu\n", start, starti, end, endi);
-  
+  startprev = s->pieces[start].prev;
+  endnext   = s->pieces[end].next;
+
   nstart = pieceadd(s,
 		    s->pieces[start].pos,
 		    s->pieces[start].off,
@@ -307,11 +313,11 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
     return false;
   }
 
-  startprev = s->pieces[start].prev;
-  endnext   = s->pieces[end].next;
-
   if (startprev != -1) {
     s->pieces[startprev].next = nstart;
+  } else {
+    fprintf(stderr, "We have a problem: Dangling start!\n");
+    return false;
   }
   
   s->pieces[nstart].prev = startprev;
@@ -323,6 +329,9 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
 
   if (endnext != -1) {
     s->pieces[endnext].prev = nend;
+  } else {
+    fprintf(stderr, "We have a problem: Dangling end!\n");
+    /* Can't give up now. */
   }
 
   shiftpieces(s, nend, pos);

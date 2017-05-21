@@ -227,26 +227,73 @@ textboxmotion(struct textbox *t, int x, int y)
   }
 }
 
+static bool
+removeselections(struct textbox *t)
+{
+  struct selection *sel, *nsel;
+  size_t start;
+  
+  start = t->sequence->pieces[SEQ_end].pos;
+    
+  while (t->selections != NULL) {
+    sel = t->selections;
+    
+    if (sel->start < start) {
+      start = sel->start;
+    }
+
+    if (!sequencedelete(t->sequence,
+			sel->start,
+			sel->end - sel->start + 1)) {
+
+      return false;
+    }
+
+    if (sel->start <= t->cursor && t->cursor <= sel->end) {
+      t->cursor = sel->start;
+    }
+
+    nsel = sel->next;
+    t->selections = nsel;
+    selectionfree(sel);
+    sel = nsel;
+  }
+
+  textboxcalcpositions(t, start);
+
+  t->startpiece = SEQ_start;  
+  textboxfindstart(t);
+  textboxpredraw(t);
+
+  return true;
+}
+
 bool
 textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 {
+  bool redraw = false;
+  
+  if (t->selections != NULL) {
+    redraw = removeselections(t);
+  }
+
   if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
-    return false;
+    return redraw;
   }
 
   textboxcalcpositions(t, t->cursor);
   t->cursor += l;
   textboxpredraw(t);
+
   return true;
 }
 
 bool
 textboxkeypress(struct textbox *t, keycode_t k)
 {
-  struct selection *sel, *nsel;
-  size_t l, start;
   uint8_t s[16];
-
+  size_t l;
+ 
   switch (k) {
   default:
     break;
@@ -288,6 +335,8 @@ textboxkeypress(struct textbox *t, keycode_t k)
   case KEY_end:
     break;
     
+  case KEY_tab:
+    break;
 
   case KEY_return:
     l = snprintf((char *) s, sizeof(s), "\n");
@@ -301,13 +350,11 @@ textboxkeypress(struct textbox *t, keycode_t k)
     textboxpredraw(t);
 
     return true;
-    
-  case KEY_tab:
-    break;
-
-
+  
   case KEY_delete:
-    if (t->selections == NULL) {
+    if (t->selections != NULL) {
+      return removeselections(t);
+    } else {
       if (sequencedelete(t->sequence, t->cursor, 1)) {
 	textboxcalcpositions(t, t->cursor);
 
@@ -320,10 +367,12 @@ textboxkeypress(struct textbox *t, keycode_t k)
       }
     } 
 
-    /* Fall through to delete selections */
+    break;
     
   case KEY_backspace:
-    if (t->selections == NULL && t->cursor > 0) {
+    if (t->selections != NULL) {
+      return removeselections(t);
+    } else if (t->cursor > 0) {
       if (sequencedelete(t->sequence, t->cursor - 1, 1)) {
 	t->cursor--;
 	textboxcalcpositions(t, t->cursor);
@@ -337,40 +386,8 @@ textboxkeypress(struct textbox *t, keycode_t k)
       }
     } 
 
-    /* Delete selections */
-
-    sel = t->selections;
-    t->selections = NULL;
-
-    start = t->sequence->pieces[SEQ_end].pos;
+    break;
     
-    while (sel != NULL) {
-      nsel = sel->next;
-
-      if (sel->start <= t->cursor && t->cursor <= sel->end) {
-	t->cursor = sel->start;
-      }
-
-      if (sel->start < start) {
-	start = sel->start;
-      }
-
-      sequencedelete(t->sequence,
-		     sel->start,
-		     sel->end - sel->start + 1);
-
-      selectionfree(sel);
-      sel = nsel;
-    }
-
-    textboxcalcpositions(t, start);
-
-    t->startpiece = SEQ_start;  
-    textboxfindstart(t);
-    textboxpredraw(t);
- 
-    return true;
-
   case KEY_escape:
     break;
   }
