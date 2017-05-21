@@ -76,7 +76,7 @@ sequencenew(struct mace *mace, uint8_t *data,
       return NULL;
     }
   }
- 
+
   return s;
 }
 
@@ -108,7 +108,7 @@ static ssize_t
 piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
 {
   while (p != -1) {
-    if (s->pieces[p].pos + s->pieces[p].len >= pos) {
+    if (pos <= s->pieces[p].pos + s->pieces[p].len) {
       *i = pos - s->pieces[p].pos;
       return p;
     } else {
@@ -187,7 +187,7 @@ sequenceappend(struct sequence *s, ssize_t p, size_t pos,
 
     s->pieces[p].len += len;
 
-    shiftpieces(s, s->pieces[p].next, pos + len);
+    shiftpieces(s, p, s->pieces[p].pos);
     
     return true;
   } else {
@@ -210,7 +210,7 @@ sequenceinsert(struct sequence *s, size_t pos,
   if (sequenceappend(s, p, pos, data, len)) {
     return true;
   }
-  
+
   pprev = s->pieces[p].prev;
   pnext = s->pieces[p].next;
 
@@ -218,9 +218,9 @@ sequenceinsert(struct sequence *s, size_t pos,
   if (p == -1) {
     return false;
   }
-  
+
   if (!appenddata(s, data, len)) {
-    s->plen--; /* Free n */
+    /* Should free n */
     return false;
   }
 
@@ -260,6 +260,7 @@ sequenceinsert(struct sequence *s, size_t pos,
     s->pieces[n].next = r;
     s->pieces[r].prev = n;
     s->pieces[r].next = pnext;
+    s->pieces[pnext].prev = r;
   }
 
   shiftpieces(s, n, pos);
@@ -275,7 +276,6 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
   ssize_t start, end, starti, endi, nstart, nend;
   ssize_t startprev, endnext;
 
-  
   start = piecefind(s, SEQ_start, pos, &starti);
   if (start == -1) {
     return false;
@@ -335,7 +335,7 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
   }
 
   shiftpieces(s, nend, pos);
-  
+ 
   return true;
 }
 
