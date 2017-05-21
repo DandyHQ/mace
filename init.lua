@@ -132,8 +132,10 @@ end
 function openfile(filename)
    local t = mace:newfiletab(filename, filename)
    if t == nil then
-      print("newfiletab failed")
-      return
+      t = mace:newemptytab(filename)
+      if t == nil then
+	 return
+      end
    end
    
    print("open file has tab", t)

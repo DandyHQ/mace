@@ -232,6 +232,7 @@ ltextboxindex(lua_State *L)
     key = lua_tostring(L, 2);
 
     if (strcmp(key, "sequence") == 0) {
+      t->sequence->lua = L;
       obj_ref_new(L, t->sequence, "mace.sequence");
       return 1;
     }

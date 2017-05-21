@@ -50,7 +50,7 @@ tabnew(struct mace *mace,
   strncpy(t->name, name, nlen);
   t->name[nlen] = 0;
 
-  actionseq = sequencenew(mace, NULL, 0, 0);
+  actionseq = sequencenew(NULL, 0, 0);
   if (actionseq == NULL) {
     tabfree(t);
     return NULL;
@@ -91,7 +91,7 @@ tabnewempty(struct mace *mace, const uint8_t *name, size_t nlen)
   struct sequence *seq;
   struct tab *t;
 
-  seq = sequencenew(mace, NULL, 0, 0);
+  seq = sequencenew(NULL, 0, 0);
   if (seq == NULL) {
     return NULL;
   }
@@ -141,7 +141,7 @@ tabnewfromfile(struct mace *mace,
     return NULL;
   }
 
-  seq = sequencenew(mace, data, dlen, dmax);
+  seq = sequencenew(data, dlen, dmax);
   if (seq == NULL) {
     return NULL;
   }

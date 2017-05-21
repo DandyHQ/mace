@@ -282,7 +282,11 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
   }
 
   textboxcalcpositions(t, t->cursor);
+
   t->cursor += l;
+
+  textboxfindstart(t);
+
   textboxpredraw(t);
 
   return true;

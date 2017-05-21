@@ -12,29 +12,49 @@ lua        = dependency('lua53')
 utf8proc   = cc.find_library('utf8proc', dirs : ['/usr/local/lib'])
 
 executable('mace',
-	sources: [
-		  'mace.c',
-		  'font.c',
-		  'utf8.c',
-		  'tab.c',
-		  'textbox.c',
-		  'textboxdraw.c',
-		  'selection.c',
-		  'sequence.c',
-		  'lua.c',
-		  'xmain.c'
-		],
+	   sources: [
+	     'mace.c',
+	     'font.c',
+	     'utf8.c',
+	     'tab.c',
+	     'textbox.c',
+	     'textboxdraw.c',
+	     'selection.c',
+	     'sequence.c',
+	     'lua.c',
+	     'xmain.c'
+	   ],
 
-	include_directories: [
-		  include_directories('/usr/local/include'),
-	],
+	   include_directories: [
+	     include_directories('/usr/local/include'),
+	   ],
 
-	dependencies: [
-	          x11,
-		  cairo,
-		  ft,
-		  fc,
-		  lua,
-		  utf8proc,
-		]
-	)
+	   dependencies: [
+	     x11,
+	     cairo,
+	     ft,
+	     fc,
+	     lua,
+	     utf8proc,
+	   ]
+	  )
+
+seqtest = executable('tests/sequence',
+		     sources: [
+		       'tests/sequence.c',
+		       'sequence.c',
+		       'utf8.c',
+		     ],
+		     
+		     dependencies: [
+		       cairo,
+		       ft,
+		       fc,
+		       lua,
+		       utf8proc,
+		       lua,
+		     ]
+		    )
+
+test('Sequence Test', seqtest)
+

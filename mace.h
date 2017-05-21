@@ -56,7 +56,7 @@ struct piece {
 #define SEQ_first  2
 
 struct sequence {
-  struct mace *mace;
+  lua_State *lua;
   
   struct piece *pieces;
   size_t plen, pmax;
@@ -144,8 +144,6 @@ struct mace {
   struct tab *tabs;
   struct textbox *focus;
 };
-
-
 
 struct mace *
 macenew(void);
@@ -288,8 +286,7 @@ textboxpredraw(struct textbox *t);
    allocation for data. */
 
 struct sequence *
-sequencenew(struct mace *mace, uint8_t *data,
-	    size_t len, size_t max);
+sequencenew(uint8_t *data, size_t len, size_t max);
 
 /* Frees a sequence and all it's pieces. */
 

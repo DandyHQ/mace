@@ -18,7 +18,15 @@ static struct colour nfg = { 0, 0, 0 };
 static struct colour sbg = { 0.5, 0.8, 0.7 };
 
 
-/* Here be dragons. */
+/* 
+
+   Here be dragons. 
+   Lots of fucking dragons.
+   This entire file is horrible and hacky. 
+   It needs to be done from scratch intelligently.
+   Possibly utilizing pango or harfbuzz.
+
+*/
 
 static void 
 drawglyph(struct textbox *t, int x, int y,
@@ -97,9 +105,8 @@ textboxpredraw(struct textbox *t)
 
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
- 
+
   p = &s->pieces[t->startpiece];
-  //p = &s->pieces[SEQ_start];
   i = t->startindex;
   x = t->startx;
   y = t->starty;
@@ -209,29 +216,6 @@ textboxpredraw(struct textbox *t)
   }
 } 
 
-static bool
-inpiece(struct textbox *t, int lx, int ly, int x, int y, int w)
-{
-  if (w == 0) {
-    return false;
-  } else if (y <= ly && ly < y + t->font->lineheight) {
-    return x <= lx && lx < x + w;
-  }
-
-  w -= t->linewidth - x;
-
-  while (w > 0) {
-    y += t->font->lineheight;
-    if (y <= ly && ly < y + t->font->lineheight) {
-      return lx < w;
-    } 
-
-    w -= t->linewidth;
-  }
-  
-  return false;
-}
-
 size_t
 textboxfindpos(struct textbox *t, int lx, int ly)
 {
@@ -250,20 +234,6 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   y = t->starty;
   w = p->width - (x - p->x);
 
-  /*
-  while (!inpiece(t, lx, ly, x, y, w)) {
-    if (p->next == -1) {
-      break;
-    } else {
-      p = &s->pieces[p->next];
-      x = p->x;
-      y = p->y;
-      w = p->width;
-      i = 0;
-    }
-  }
-  */
-  
   while (true) {
     while (i < p->len) {
       a = utf8proc_iterate(s->data + p->off + i,
