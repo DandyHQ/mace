@@ -1,23 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <err.h>
-
-#include <cairo.h>
-#include <freetype2/ft2build.h>
-#include FT_FREETYPE_H
 #include <utf8proc.h>
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-
-#include "mace.h"
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/XKBlib.h>
 #include <X11/keysymdef.h>
 #include <cairo-xlib.h>
+
+#include "mace.h"
 
 static Display *display;
 static Window win;
@@ -37,6 +29,8 @@ xresize(int w, int h)
   
   width = w;
   height = h;
+
+  cairo_xlib_surface_set_size(sfc, w, h);
 
   for (t = mace->tabs; t != NULL; t = t->next) {
     if (!tabresize(t, 0, 0, w, h)) {

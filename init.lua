@@ -114,6 +114,8 @@ function save()
    i = 0
    file = assert(io.open(filename, "w"))
 
+   print("saving", filename)
+   
    while true do
       str = seq:get(i, 100)
 

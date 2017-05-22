@@ -1,14 +1,12 @@
 #include <stdio.h>
 
 #include <cairo.h>
-#include <freetype2/ft2build.h>
-#include FT_FREETYPE_H
-#include <utf8proc.h>
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "mace.h"
+#include "lib.h"
+#include "sequence.h"
 
 /* This needs to be improved. Needs some checks on how the chain is
    held together. eg 1 -> 2 -> 3 and 3 <- 2 <- 1. */
@@ -32,7 +30,7 @@ main(int argc, char *argv[])
   size_t len;
 
   printf("Make empty sequence\n");
-  s = sequencenew(NULL, 0, 0);
+  s = sequencenew(NULL, 0);
   if (s == NULL) {
     return 1;
   }

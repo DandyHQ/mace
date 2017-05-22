@@ -1,22 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <err.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#include <cairo.h>
-#include <freetype2/ft2build.h>
-#include FT_FREETYPE_H
-#include <utf8proc.h>
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-
 #include "mace.h"
+
+/* Rounds X up to nearest multiple of M, M must be a power of 2. */
+#define RDUP(X, M) ((X + M - 1) & ~(M - 1))
 
 #define SCROLL_WIDTH   10
 
@@ -50,7 +40,7 @@ tabnew(struct mace *mace,
   strncpy(t->name, name, nlen);
   t->name[nlen] = 0;
 
-  actionseq = sequencenew(NULL, 0, 0);
+  actionseq = sequencenew(NULL, 0);
   if (actionseq == NULL) {
     tabfree(t);
     return NULL;
@@ -91,7 +81,7 @@ tabnewempty(struct mace *mace, const uint8_t *name, size_t nlen)
   struct sequence *seq;
   struct tab *t;
 
-  seq = sequencenew(NULL, 0, 0);
+  seq = sequencenew(NULL, 0);
   if (seq == NULL) {
     return NULL;
   }
@@ -111,10 +101,10 @@ tabnewfromfile(struct mace *mace,
 	       const uint8_t *filename, size_t flen)
 {
   struct sequence *seq;
-  size_t dlen, dmax;
   struct stat st;
   uint8_t *data;
   struct tab *t;
+  size_t dlen;
   int fd;
 
   fd = open(filename, O_RDONLY);
@@ -129,20 +119,23 @@ tabnewfromfile(struct mace *mace,
 
   dlen = st.st_size;
 
-  dmax = RDUP(dlen, sysconf(_SC_PAGESIZE));
-
-  data = mmap(NULL, dmax, PROT_READ|PROT_WRITE,
-	      MAP_PRIVATE|MAP_COPY,
-	      fd, 0);
-
-  close(fd);
-
-  if (data == MAP_FAILED) {
+  data = malloc(dlen);
+  if (data == NULL) {
+    close(fd);
     return NULL;
   }
 
-  seq = sequencenew(data, dlen, dmax);
+  if (read(fd, data, dlen) != dlen) {
+    free(data);
+    close(fd);
+    return NULL;
+  }
+  
+  close(fd);
+
+  seq = sequencenew(data, dlen);
   if (seq == NULL) {
+    free(data);
     return NULL;
   }
 

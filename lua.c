@@ -1,22 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <string.h>
-#include <err.h>
-
-#include <cairo.h>
-#include <freetype2/ft2build.h>
-#include FT_FREETYPE_H
-#include <utf8proc.h>
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
 #include "mace.h"
 
-/* Using
+/* I have used 
    [vis/vis-lua.c](https://github.com/martanne/vis/blob/945db2ed898d4feb55ca9e690dd859503f49c231/vis-lua.c)
-   as a reference */
+   as a reference to figure out how to build an interface for lua.  */
 
 static void
 obj_ref_set(lua_State *L, void *addr)

@@ -1,25 +1,14 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <err.h>
 #include <unistd.h>
-#include <fcntl.h>
+#include <string.h>
 #include <sys/mman.h>
-
-#include <cairo.h>
-#include <freetype2/ft2build.h>
-#include FT_FREETYPE_H
 #include <utf8proc.h>
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
-#include "mace.h"
+#include "lib.h"
+#include "sequence.h"
 
 struct sequence *
-sequencenew(uint8_t *data,
-	    size_t len, size_t max)
+sequencenew(uint8_t *data, size_t len)
 {
   struct sequence *s;
 
@@ -60,16 +49,14 @@ sequencenew(uint8_t *data,
 
     s->data = data;
     s->dlen = len;
-    s->dmax = max;
+    s->dmax = len;
 
   } else {
     s->dlen = 0;
-    s->dmax = sysconf(_SC_PAGESIZE);
+    s->dmax = 1024;
 
-    s->data = mmap(NULL, s->dmax, PROT_READ|PROT_WRITE,
-		   MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-
-    if (s->data == MAP_FAILED) {
+    s->data = malloc(s->dmax);
+    if (s->data == NULL) {
       sequencefree(s);
       return NULL;
     }
@@ -87,9 +74,7 @@ sequencefree(struct sequence *s)
   
   free(s->pieces);
 
-  if (s->data != NULL) {
-    munmap(s->data, s->dmax);
-  }
+  free(s->data);
 
   free(s);
 }
@@ -153,15 +138,15 @@ appenddata(struct sequence *s, const uint8_t *data, size_t len)
   uint8_t *ndata;
   size_t pg;
 
-  pg = sysconf(_SC_PAGESIZE);
+  pg = 1024;
 
   while (s->dlen + len >= s->dmax) {
-    ndata = mmap(s->data + s->dmax, pg, PROT_READ|PROT_WRITE,
-		   MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED, -1, 0);
-
-    if (ndata == MAP_FAILED) {
+    ndata = realloc(s->data, s->dmax + pg);
+    
+    if (ndata == NULL) {
       return false;
     } else {
+      s->data = ndata;
       s->dmax += pg;
     }
   }
@@ -316,8 +301,7 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
   if (startprev != -1) {
     s->pieces[startprev].next = nstart;
   } else {
-    fprintf(stderr, "We have a problem: Dangling start!\n");
-    return false;
+    /* We have a problem: Dangling start! */
   }
   
   s->pieces[nstart].prev = startprev;
@@ -330,7 +314,7 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
   if (endnext != -1) {
     s->pieces[endnext].prev = nend;
   } else {
-    fprintf(stderr, "We have a problem: Dangling end!\n");
+    /* We have a problem: Dangling end! */
     /* Can't give up now. */
   }
 
@@ -383,7 +367,7 @@ findwordstart(struct sequence *s, ssize_t p, size_t ii)
   piecedist = 0;
   in = -1;
 
-  while (p != -1 && in == -1) {
+  while (true) {
     i = 0;
     while (i < ii) {
       a = utf8proc_iterate(s->data + s->pieces[p].off + i,
@@ -404,9 +388,13 @@ findwordstart(struct sequence *s, ssize_t p, size_t ii)
     }
 
     piecedist += ii;
-    
+
     p = s->pieces[p].prev;
-    ii = s->pieces[p].len;
+    if (p == -1 || in != -1) {
+      break;
+    } else {
+      ii = s->pieces[p].len;
+    }
   }
 
   if (in == -1) {
@@ -421,7 +409,7 @@ sequencefindword(struct sequence *s, size_t pos,
 		 size_t *begin, size_t *len)
 {
   size_t start, end, i;
-  size_t p;
+  ssize_t p;
 
   p = piecefind(s, SEQ_start, pos, &i);
   if (p == -1) {
@@ -443,9 +431,25 @@ sequenceget(struct sequence *s, size_t pos,
 {
   size_t i, l, b, p, ret;
 
+  /*
+  printf("sequence %p get from %zu %zu bytes into %p\n",
+	 s, pos, len, buf);
+
+  printf("sequence dat at %p\n", s->data);
+  if (s->dmax > 4096 * 2) {
+    printf("get a page in\n");
+    printf("a page in is %i\n", *(s->data + 4096 * 2));
+  }
+  printf("first byte of data is %i\n", *s->data);
+
+  printf("test buf\n");
+  buf[0] = 1;
+  printf("buf test passed\n");
+  */
+  
   i = 0;
   for (p = SEQ_start; p != -1; p = s->pieces[p].next) {
-
+    
     if (i > pos + len) {
       break;
     } else if (i + s->pieces[p].len < pos) {
