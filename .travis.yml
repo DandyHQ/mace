@@ -1,5 +1,5 @@
 language: C
-dist: trusty
+dist: yakkety
 sudo: required
 
 addons:
