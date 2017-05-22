@@ -25,7 +25,7 @@ fontnew(void)
 
   f->face = NULL;
   
-  e = fontset(f, "-15");
+  e = fontset(f, (const uint8_t *) "-15");
   if (e != 0) {
     fontfree(f);
     return NULL;
@@ -95,7 +95,7 @@ fontset(struct font *font, const uint8_t *spattern)
     FT_Done_Face(font->face);
   }
   
-  e = FT_New_Face(font->library, file, 0, &font->face);
+  e = FT_New_Face(font->library, (const char *) file, 0, &font->face);
   if (e != 0) {
     goto err2;
   }

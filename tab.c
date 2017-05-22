@@ -37,7 +37,7 @@ tabnew(struct mace *mace,
     return NULL;
   }
 
-  strncpy(t->name, name, nlen);
+  memmove(t->name, name, nlen);
   t->name[nlen] = 0;
 
   actionseq = sequencenew(NULL, 0);
@@ -52,7 +52,8 @@ tabnew(struct mace *mace,
   }
   
   if (!sequenceinsert(actionseq, nlen,
-		      actionstart, strlen(actionstart))) {
+		      actionstart,
+		      sizeof(actionstart))) {
     tabfree(t);
     return NULL;
   }
@@ -64,7 +65,7 @@ tabnew(struct mace *mace,
     return NULL;
   }
 
-  t->action->cursor = nlen + strlen(actionstart);
+  t->action->cursor = nlen + sizeof(actionstart);
 
   t->main = textboxnew(t, &bg, mainseq);
   if (t->main == NULL) {
@@ -107,7 +108,7 @@ tabnewfromfile(struct mace *mace,
   size_t dlen;
   int fd;
 
-  fd = open(filename, O_RDONLY);
+  fd = open((const char *) filename, O_RDONLY);
   if (fd < 0) {
     return NULL;
   }

@@ -1,3 +1,4 @@
+#include <string.h>
 #include "mace.h"
 
 struct mace *mace;
@@ -25,7 +26,7 @@ macenew(void)
     return NULL;
   }
 
-  m->tabs = tabnewempty(m, name, strlen(name));
+  m->tabs = tabnewempty(m, name, strlen((const char *) name));
   if (m->tabs == NULL) {
     free(m);
     return NULL;

@@ -1,6 +1,9 @@
 project('mace', 'c')
 
-add_global_arguments('-std=c11', language : 'c')
+add_global_arguments('-std=c11',
+		     '-Wpointer-sign',
+		     '-Werror',
+		     language : 'c')
 
 cc = meson.get_compiler('c')
 
@@ -47,10 +50,6 @@ seqtest = executable('tests/sequence',
 		     ],
 		     
 		     dependencies: [
-		       cairo,
-		       ft,
-		       fc,
-		       lua,
 		       utf8proc,
 		       lua,
 		     ]

@@ -1,6 +1,5 @@
 #include <stdio.h>
 
-#include <cairo.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,10 +21,10 @@ int
 main(int argc, char *argv[])
 {
   struct sequence *s;
-  uint8_t *s1 = "Hello there.";
-  uint8_t *s2 = "This is a test.";
-  uint8_t *s12 = "Hello there.This is a test.";
-  uint8_t *s3 = "Hello test.";
+  uint8_t *s1 = (uint8_t *) "Hello there.";
+  uint8_t *s2 = (uint8_t *) "This is a test.";
+  uint8_t *s12 = (uint8_t *) "Hello there.This is a test.";
+  uint8_t *s3 = (uint8_t *) "Hello test.";
   uint8_t buf[512];
   size_t len;
 
@@ -35,24 +34,26 @@ main(int argc, char *argv[])
     return 1;
   }
 
-  if (!sequenceinsert(s, 0, s1, strlen(s1))) {
+  if (!sequenceinsert(s, 0, s1, strlen((const char *) s1))) {
     printf("failed to insert s1!\n");
     return 2;
   }
   
-  if (!sequenceinsert(s, strlen(s1), s2, strlen(s2))) {
+  if (!sequenceinsert(s, strlen((const char *) s1),
+		      s2, strlen((const char *) s2))) {
+
     printf("failed to insert s2!\n");
     return 3;
   }
 
   len = sequenceget(s, 0, buf, sizeof(buf));
-  if (len != strlen(s12)) {
+  if (len != strlen((const char *) s12)) {
     printf("length wrong after insert have %zu should have %zu\n",
-	   len, strlen(s12));
+	   len, strlen((const char *) s12));
     return 4;
   }
 
-  if (strcmp(buf, s12) != 0) {
+  if (strcmp((const char *) buf, (const char *) s12) != 0) {
     printf("retrieved string '%s' and expected string '%s' do not match!\n",
 	   buf, s12);
     return 5;
@@ -65,13 +66,13 @@ main(int argc, char *argv[])
 
   len = sequenceget(s, 0, buf, sizeof(buf));
 
-  if (len != strlen(s3)) {
+  if (len != strlen((const char *) s3)) {
     printf("length wrong after delete have %zu should have %zu\n",
-	   len, strlen(s3));
+	   len, strlen((const char *) s3));
     return 7;
   }
 
-  if (strcmp(buf, s3) != 0) {
+  if (strcmp((const char *) buf, (const char *) s3) != 0) {
     printf("retrieved string '%s' and expected string '%s' do not match!\n",
 	   buf, s3);
     return 8;

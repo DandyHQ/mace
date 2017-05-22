@@ -309,7 +309,7 @@ lsequenceinsert(lua_State *L)
   
   s = obj_ref_check(L, 1, "mace.sequence");
   pos = luaL_checknumber(L, 2);
-  data = luaL_checklstring(L, 3, &len);
+  data = (const uint8_t *) luaL_checklstring(L, 3, &len);
 
   r = sequenceinsert(s, pos, data, len);
 
@@ -339,30 +339,24 @@ lsequencedelete(lua_State *L)
 static int
 lsequenceget(lua_State *L)
 {
-  size_t start, len, i, l;
+  size_t start, len;
   struct sequence *s;
-  uint8_t buf[512];
-  luaL_Buffer b;
+  uint8_t *buf;
 
   s = obj_ref_check(L, 1, "mace.sequence");
   start = luaL_checknumber(L, 2);
   len = luaL_checknumber(L, 3);
 
-  luaL_buffinit(L, &b);
-
-  i = 0;
-  while (i < len) {
-    l = sequenceget(s, start + i, buf,
-		    sizeof(buf) > len - i ? len - i : sizeof(buf));
-    if (l == 0) {
-      break;
-    }
-
-    luaL_addlstring(&b, buf, l);
-    i += l;
+  buf = malloc(len);
+  if (buf == NULL) {
+    lua_pushnil(L);
+    return 1;
   }
 
-  luaL_pushresult(&b);
+  len = sequenceget(s, start, buf, len);
+  lua_pushlstring(L, (const char *) buf, len);
+
+  free(buf);
   
   return 1;
 }
@@ -593,9 +587,9 @@ luaremove(lua_State *L, void *addr)
 }
 
 void
-command(lua_State *L, uint8_t *s)
+command(lua_State *L, const uint8_t *s)
 {
-  lua_getglobal(L, s);
+  lua_getglobal(L, (const char *) s);
 
   if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
     fprintf(stderr, "error calling %s: %s\n", s, lua_tostring(L, -1));

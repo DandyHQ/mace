@@ -139,7 +139,7 @@ void
 luaruninit(lua_State *L);
 
 void
-command(lua_State *L, uint8_t *s);
+command(lua_State *L, const uint8_t *s);
 
 
 

@@ -209,7 +209,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   struct sequence *s;
   int32_t code, a;
   struct piece *p;
-  int x, y, w, ww;
+  int x, y, ww;
   size_t i;
 
   ly += t->yoff;
@@ -219,7 +219,6 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   i = t->startindex;
   x = t->startx;
   y = t->starty;
-  w = p->width - (x - p->x);
 
   while (true) {
     while (i < p->len) {

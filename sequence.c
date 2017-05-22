@@ -258,8 +258,8 @@ sequenceinsert(struct sequence *s, size_t pos,
 bool
 sequencedelete(struct sequence *s, size_t pos, size_t len)
 {
-  ssize_t start, end, starti, endi, nstart, nend;
-  ssize_t startprev, endnext;
+  ssize_t start, end, startprev, endnext, nstart, nend;
+  size_t starti, endi;
 
   start = piecefind(s, SEQ_start, pos, &starti);
   if (start == -1) {

@@ -1,7 +1,5 @@
 #include <utf8proc.h>
 
-#include "mace.h"
-
 bool
 islinebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l)
 {
