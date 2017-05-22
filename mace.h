@@ -1,4 +1,5 @@
 
+#include <unistd.h>
 #include <stdbool.h>
 #include <cairo.h>
 #include <freetype2/ft2build.h>
@@ -154,6 +155,11 @@ fontset(struct font *font, const uint8_t *pattern);
 
 bool
 loadglyph(FT_Face face, int32_t code);
+
+struct tab *
+tabnew(struct mace *mace,
+       const uint8_t *name, size_t nlen,
+       struct sequence *mainseq);
 
 struct tab *
 tabnewempty(struct mace *mace,

@@ -21,7 +21,3 @@ ninja -C build
 $EDITOR init.lua        # Give loadfont a valid font path.
 ./build/mace
 ```
-
-## Development
-
-Check the wiki.
