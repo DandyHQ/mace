@@ -1,0 +1,10 @@
+language: C
+dist: trusty
+sudo: required
+
+addons:
+  apt:
+    packages:
+      - meson
+      - lua5.3-dev
+      - libcairo2-dev
