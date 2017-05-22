@@ -111,22 +111,17 @@ function save()
    end
 
    seq = tab.main.sequence
-   i = 0
-   file = assert(io.open(filename, "w"))
+
+   l = seq:len()
+   print("getting", l, "bytes")
+   
+   str = seq:get(0, l)
 
    print("saving", filename)
-   
-   while true do
-      str = seq:get(i, 100)
 
-      if str == nil or str:len() == 0 then
-	 break
-      end
+   file = assert(io.open(filename, "w"))
 
-      assert(file:write(str))
-      
-      i = i + str:len()
-   end
+   assert(file:write(str))
 
    assert(file:close())
 end

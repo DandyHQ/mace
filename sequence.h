@@ -74,5 +74,5 @@ sequenceget(struct sequence *s, size_t pos,
 ssize_t
 sequencefindpiece(struct sequence *s, size_t pos, size_t *i);
 
-int
-sequencewrite(struct sequence *s, uint8_t *filename);
+size_t
+sequencegetlen(struct sequence *s);

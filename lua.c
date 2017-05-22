@@ -347,6 +347,11 @@ lsequenceget(lua_State *L)
   start = luaL_checknumber(L, 2);
   len = luaL_checknumber(L, 3);
 
+  if (len == 0) {
+    lua_pushnil(L);
+    return 1;
+  }
+  
   buf = malloc(len);
   if (buf == NULL) {
     lua_pushnil(L);
@@ -361,6 +366,18 @@ lsequenceget(lua_State *L)
   return 1;
 }
 
+static int
+lsequencelen(lua_State *L)
+{
+  struct sequence *s;
+
+  s = obj_ref_check(L, 1, "mace.sequence");
+
+  lua_pushnumber(L, sequencegetlen(s));
+
+  return 1;
+}
+
 static const struct luaL_Reg sequence_funcs[] = {
   { "__tostring", lsequencetostring },
   { "__index",    indexcommon },
@@ -368,6 +385,7 @@ static const struct luaL_Reg sequence_funcs[] = {
   { "insert",     lsequenceinsert },
   { "delete",     lsequencedelete },
   { "get",        lsequenceget },
+  { "len",        lsequencelen },
   { NULL,         NULL },
 };
 

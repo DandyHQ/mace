@@ -3,10 +3,9 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#include "mace.h"
+/* Hello there. I typed this in mace! */
 
-/* Rounds X up to nearest multiple of M, M must be a power of 2. */
-#define RDUP(X, M) ((X + M - 1) & ~(M - 1))
+#include "mace.h"
 
 #define SCROLL_WIDTH   10
 
@@ -205,10 +204,13 @@ tabbuttonpress(struct tab *t, int x, int y,
   if (y < t->action->height) {
     t->mace->focus = t->action;
     return textboxbuttonpress(t->action, x, y, button);
-  } else {
+  } else if (x < t->width - SCROLL_WIDTH) {
     t->mace->focus = t->main;
     return textboxbuttonpress(t->main, x, y - t->action->height - 1,
 			      button);
+  } else {
+    printf("should scroll to somewhere\n");
+    return false;
   }
 }
 

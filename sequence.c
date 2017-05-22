@@ -47,6 +47,8 @@ sequencenew(uint8_t *data, size_t len)
     s->pieces[SEQ_start].next = SEQ_first;
     s->pieces[SEQ_end].prev = SEQ_first;
 
+    s->pieces[SEQ_end].pos = len;
+
     s->data = data;
     s->dlen = len;
     s->dmax = len;
@@ -431,22 +433,6 @@ sequenceget(struct sequence *s, size_t pos,
 {
   size_t i, l, b, p, ret;
 
-  /*
-  printf("sequence %p get from %zu %zu bytes into %p\n",
-	 s, pos, len, buf);
-
-  printf("sequence dat at %p\n", s->data);
-  if (s->dmax > 4096 * 2) {
-    printf("get a page in\n");
-    printf("a page in is %i\n", *(s->data + 4096 * 2));
-  }
-  printf("first byte of data is %i\n", *s->data);
-
-  printf("test buf\n");
-  buf[0] = 1;
-  printf("buf test passed\n");
-  */
-  
   i = 0;
   for (p = SEQ_start; p != -1; p = s->pieces[p].next) {
     
@@ -486,4 +472,10 @@ sequenceget(struct sequence *s, size_t pos,
   memset(buf + (i - pos), 0, len + 1 - (i - pos));
 
   return ret;
+}
+
+size_t
+sequencegetlen(struct sequence *s)
+{
+  return s->pieces[SEQ_end].pos;
 }
