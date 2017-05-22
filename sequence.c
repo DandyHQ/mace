@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/types.h>
 #include <utf8proc.h>
 
 #include "lib.h"
@@ -36,7 +37,7 @@ sequencenew(uint8_t *data, size_t len)
   s->pieces[SEQ_end].len = 0;
   s->pieces[SEQ_end].prev = SEQ_start;
   s->pieces[SEQ_end].next = -1;
- 
+
   if (data != NULL) {
     s->pieces[SEQ_first].off = 0;
     s->pieces[SEQ_first].pos = 0;
@@ -71,7 +72,7 @@ sequencefree(struct sequence *s)
   if (s->lua != NULL) {
     luaremove(s->lua, s);
   }
-  
+
   free(s->pieces);
 
   free(s->data);
@@ -121,7 +122,7 @@ pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
       s->pmax = 0;
       return -1;
     }
-    
+
     s->pmax = s->plen + 10;
   }
 
@@ -142,7 +143,7 @@ appenddata(struct sequence *s, const uint8_t *data, size_t len)
 
   while (s->dlen + len >= s->dmax) {
     ndata = realloc(s->data, s->dmax + pg);
-    
+
     if (ndata == NULL) {
       return false;
     } else {
@@ -173,7 +174,7 @@ sequenceappend(struct sequence *s, ssize_t p, size_t pos,
     s->pieces[p].len += len;
 
     shiftpieces(s, p, s->pieces[p].pos);
-    
+
     return true;
   } else {
     return false;
@@ -228,7 +229,7 @@ sequenceinsert(struct sequence *s, size_t pos,
       /* Should free n */
       return false;
     }
-    
+
     r = pieceadd(s, pos + len,
 		 s->pieces[p].off + i,
 		 s->pieces[p].len - i);
@@ -272,7 +273,7 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
   if (end == -1) {
     /* Use the very end. It is probably trying to delete one past the
        end. */
-    
+
     end = s->pieces[SEQ_end].prev;
     endi = s->pieces[end].len;
   }
@@ -303,7 +304,7 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
   } else {
     /* We have a problem: Dangling start! */
   }
-  
+
   s->pieces[nstart].prev = startprev;
 
   s->pieces[nstart].next = nend;
@@ -319,7 +320,7 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
   }
 
   shiftpieces(s, nend, pos);
- 
+
   return true;
 }
 
@@ -328,7 +329,7 @@ findwordend(struct sequence *s, ssize_t p, size_t i)
 {
   int32_t code, a;
   size_t end;
-  
+
   end = 0;
   while (p != -1) {
     while (i < s->pieces[p].len) {
@@ -363,7 +364,7 @@ findwordstart(struct sequence *s, ssize_t p, size_t ii)
   size_t piecedist, i;
   int32_t code, a;
   ssize_t in;
-  
+
   piecedist = 0;
   in = -1;
 
@@ -446,10 +447,10 @@ sequenceget(struct sequence *s, size_t pos,
   buf[0] = 1;
   printf("buf test passed\n");
   */
-  
+
   i = 0;
   for (p = SEQ_start; p != -1; p = s->pieces[p].next) {
-    
+
     if (i > pos + len) {
       break;
     } else if (i + s->pieces[p].len < pos) {

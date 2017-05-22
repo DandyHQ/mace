@@ -1,3 +1,4 @@
+#include <sys/types.h>
 
 #include "lib.h"
 
@@ -5,7 +6,7 @@
    Text can be added to a sequence at any position, text can be
    removed at any position, and text can be retreived from the
    sequence.
- 
+
    The sequence is managed in such as way that no text is ever lost,
    so undo's should be easy to manage. We will just need a way of
    tracking the pieces that have been replaced.
@@ -21,12 +22,12 @@ struct piece {
 };
 
 #define SEQ_start  0
-#define SEQ_end    1 
+#define SEQ_end    1
 #define SEQ_first  2
 
 struct sequence {
   lua_State *lua;
-  
+
   struct piece *pieces;
   size_t plen, pmax;
 

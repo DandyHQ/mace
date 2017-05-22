@@ -41,19 +41,3 @@ executable('mace',
 	     utf8proc,
 	   ]
 	  )
-
-seqtest = executable('tests/sequence',
-		     sources: [
-		       'tests/sequence.c',
-		       'sequence.c',
-		       'utf8.c',
-		     ],
-		     
-		     dependencies: [
-		       utf8proc,
-		       lua,
-		     ]
-		    )
-
-test('Sequence Test', seqtest)
-

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <sys/types.h>
 
 #include "mace.h"
 
@@ -16,7 +17,7 @@ fontnew(void)
   if (f == NULL) {
     return NULL;
   }
-  
+
   e = FT_Init_FreeType(&f->library);
   if (e != 0) {
     fontfree(f);
@@ -24,7 +25,7 @@ fontnew(void)
   }
 
   f->face = NULL;
-  
+
   e = fontset(f, (const uint8_t *) "-15");
   if (e != 0) {
     fontfree(f);
@@ -44,7 +45,7 @@ fontfree(struct font *font)
   if (font->library != NULL) {
     FT_Done_FreeType(font->library);
   }
-  
+
   free(font);
 }
 
@@ -63,13 +64,13 @@ fontset(struct font *font, const uint8_t *spattern)
     e = -1;
     goto err0;
   }
-  
+
   pat = FcNameParse(spattern);
   if (pat == NULL) {
     e = -1;
     goto err0;
   }
-  
+
   FcConfigSubstitute(config, pat, FcMatchPattern);
   FcDefaultSubstitute(pat);
 
@@ -78,7 +79,7 @@ fontset(struct font *font, const uint8_t *spattern)
     e = -1;
     goto err1;
   }
-  
+
   if (FcPatternGetString(fontpat, FC_FILE, 0, &file)
       != FcResultMatch) {
     e = -1;
@@ -94,7 +95,7 @@ fontset(struct font *font, const uint8_t *spattern)
   if (font->face != NULL) {
     FT_Done_Face(font->face);
   }
-  
+
   e = FT_New_Face(font->library, (const char *) file, 0, &font->face);
   if (e != 0) {
     goto err2;
@@ -117,7 +118,7 @@ fontset(struct font *font, const uint8_t *spattern)
  err1:
   FcPatternDestroy(pat);
  err0:
-  return e; 
+  return e;
 }
 
 bool
@@ -143,4 +144,3 @@ loadglyph(FT_Face face, int32_t code)
 
   return true;
 }
-
