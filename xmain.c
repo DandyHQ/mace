@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
-#include <utf8proc.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -96,7 +95,9 @@ xhandlekeypress(XKeyEvent *e)
   c = symtocode(sym);
 
   if (c == KEY_none) {
-    n = utf8proc_encode_char(sym, s);
+    /* TODO: fix for unicode characters. I do not know any nice way to
+     do this. */
+    n = snprintf((char *) s, sizeof(s), "%c", (int) sym);
     if (n > 0) {
       return handletyping(mace, s, n);
     }
