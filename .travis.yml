@@ -5,6 +5,8 @@ sudo: required
 install:
   - ./scripts/install_lua53.sh
   - pip3 install meson
+  - mkdir build && export PATH="`pwd`/build:${PATH}"
+  - wget https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-linux.zip && unzip -q ninja-linux.zip -d build
 
 script:
   - meson build
