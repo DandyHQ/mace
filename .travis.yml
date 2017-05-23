@@ -2,9 +2,19 @@ language: C
 dist: trusty
 sudo: required
 
+install:
+  - ./scripts/install_lua53.sh
+  - pip3 install meson
+
+script:
+  - meson build
+  - ninja -C build
+
 addons:
   apt:
     packages:
-      - meson
-      - lua5.3-dev
       - libcairo2-dev
+      - libreadline-dev
+      - python3
+      - python3-pip
+      - ninja-build
