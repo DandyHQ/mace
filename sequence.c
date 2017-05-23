@@ -3,7 +3,6 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
-#include <utf8proc.h>
 
 #include "lib.h"
 #include "sequence.h"
@@ -335,9 +334,9 @@ findwordend(struct sequence *s, ssize_t p, size_t i)
   end = 0;
   while (p != -1) {
     while (i < s->pieces[p].len) {
-      a = utf8proc_iterate(s->data + s->pieces[p].off + i,
+      a = utf8iterate(s->data + s->pieces[p].off + i,
 			   s->pieces[p].len - i, &code);
-      if (a <= 0) {
+      if (a == 0) {
 	i += 1;
 	continue;
       }
@@ -373,9 +372,9 @@ findwordstart(struct sequence *s, ssize_t p, size_t ii)
   while (true) {
     i = 0;
     while (i < ii) {
-      a = utf8proc_iterate(s->data + s->pieces[p].off + i,
+      a = utf8iterate(s->data + s->pieces[p].off + i,
 			   s->pieces[p].len - i, &code);
-      if (a <= 0) {
+      if (a == 0) {
 	i += 1;
 	continue;
       }

@@ -9,15 +9,13 @@ You will need:
 
  - [meson](https://github.com/mesonbuild/meson)
  - xlib
+ - fontconfig
  - freetype2
  - cairo
  - lua 5.2+ (?)
- - [utf8proc](https://github.com/JuliaLang/utf8proc)
 
 ```
-$EDITOR meson.build     # Point meson to the correct libraries.
 meson build
 ninja -C build
-$EDITOR init.lua        # Give loadfont a valid font path.
 ./build/mace
 ```

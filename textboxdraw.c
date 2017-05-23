@@ -1,4 +1,3 @@
-#include <utf8proc.h>
 #include "mace.h"
 
 static struct colour nfg = { 0, 0, 0 };
@@ -100,9 +99,8 @@ textboxpredraw(struct textbox *t)
 
   while (true) {
     while (i < p->len) {
-      a = utf8proc_iterate(s->data + p->off + i,
-			   p->len - i, &code);
-      if (a <= 0) {
+      a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+      if (a == 0) {
 	i++;
 	continue;
       }
@@ -222,9 +220,8 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
   while (true) {
     while (i < p->len) {
-      a = utf8proc_iterate(s->data + p->off + i,
-			   p->len - i, &code);
-      if (a <= 0) {
+      a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+      if (a == 0) {
 	i++;
 	continue;
       }
@@ -315,9 +312,8 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 
     i = 0;
     while (i < p->len) {
-      a = utf8proc_iterate(s->data + p->off + i,
-			   p->len - i, &code);
-      if (a <= 0) {
+      a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+      if (a == 0) {
 	i++;
 	continue;
       }
@@ -420,7 +416,7 @@ textboxfindstart(struct textbox *t)
     }
     
     while (i < p->len) {
-      a = utf8proc_iterate(s->data + p->off + i,
+      a = utf8iterate(s->data + p->off + i,
 			   p->len - i, &code);
       if (a <= 0) {
 	i++;
