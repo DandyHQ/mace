@@ -6,7 +6,7 @@ cd lua-5.3.4
 sed -i -e 's/INSTALL_TOP=.*$/INSTALL_TOP=\/usr/g' Makefile
 make linux test
 sudo make install
-sudo sh -c 'cat << EOF > /usr/lib/pkgconfig/lua53.pc
+sudo sh -c 'cat > /usr/lib/pkgconfig/lua53.pc' << 'EOF' 
 prefix=/usr
 major_version=5.3
 version=5.3.4
@@ -32,4 +32,3 @@ Requires:
 Libs: -L${libdir} -l${lib_name} -ldl -lm
 Cflags: -I${includedir}/${lib_name_include}
 EOF
-'
