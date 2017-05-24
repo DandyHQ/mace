@@ -11,7 +11,7 @@ ft         = dependency('freetype2')
 fc         = dependency('fontconfig')
 lua        = dependency('lua53', required: false)
 if not lua.found()
-	lua = dependency('lua', version : '>=5.3')
+	lua = dependency('lua', version : '>=5.2.4')
 endif
 
 executable('mace',
