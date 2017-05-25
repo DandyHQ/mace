@@ -10,7 +10,10 @@ x11        = dependency('x11')
 cairo      = dependency('cairo')
 ft         = dependency('freetype2')
 fc         = dependency('fontconfig')
-lua        = dependency('lua52')
+lua        = dependency('lua53', required: false)
+if not lua.found()
+	lua = dependency('lua', version : '>=5.2.4')
+endif
 
 executable('mace',
 	   sources: [
