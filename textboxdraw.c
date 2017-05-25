@@ -14,49 +14,6 @@ static struct colour sbg = { 0.5, 0.8, 0.7 };
 
 */
 
-static void 
-drawglyph(struct textbox *t, int x, int y,
-	  struct colour *fg, struct colour *bg)
-{
-  uint8_t buf[1024]; /* Hopefully this is big enough */
-  FT_Bitmap *map = &t->font->face->glyph->bitmap;
-  cairo_surface_t *s;
-  int stride, h;
-
-  /* The buffer needs to be in a format cairo accepts */
-
-  stride = cairo_format_stride_for_width(CAIRO_FORMAT_A8, map->width);
-  for (h = 0; h < map->rows; h++) {
-    memmove(buf + h * stride,
-	    map->buffer + h * map->width,
-	    map->width);
-  }
-
-  s = cairo_image_surface_create_for_data(buf,
-					  CAIRO_FORMAT_A8,
-					  map->width,
-					  map->rows,
-					  stride);
-  if (s == NULL) {
-    return;
-  }
-
-  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
-  cairo_rectangle(t->cr, x, y, 
-		  t->font->face->glyph->advance.x >> 6,
-		  t->font->lineheight);
-
-  cairo_fill(t->cr);
-  
-  cairo_set_source_rgb(t->cr, fg->r, fg->g, fg->b);
-
-  cairo_mask_surface(t->cr, s, x + t->font->face->glyph->bitmap_left,
-		     y + t->font->baseline
-		     - t->font->face->glyph->bitmap_top);
-
-  cairo_surface_destroy(s);
-}
-
 static void
 drawcursor(struct textbox *t, int x, int y)
 {
@@ -165,7 +122,7 @@ textboxpredraw(struct textbox *t)
 	bg = &t->bg;
       }
 
-      drawglyph(t, x, y - t->yoff, &nfg, bg);
+      drawglyph(t->font, t->cr, x, y - t->yoff, &nfg, bg);
 
       if (p->pos + i == t->cursor) {
 	drawcursor(t, x, y - t->yoff);
@@ -293,7 +250,9 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 
   pi = SEQ_start;
   i = 0;
+  p = &s->pieces[pi];
 
+  /*
   pi = sequencefindpiece(s, pos, &i);
   if (pi == -1) {
     return;
@@ -303,6 +262,7 @@ textboxcalcpositions(struct textbox *t, size_t pos)
   if (p->prev != -1) {
     p = &s->pieces[p->prev];
   }
+  */
   
   x = p->x;
   y = p->y;

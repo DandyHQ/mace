@@ -24,18 +24,14 @@ static struct mace *mace;
 static void
 xresize(int w, int h)
 {
-  struct tab *t;
-  
   width = w;
   height = h;
 
   cairo_xlib_surface_set_size(sfc, w, h);
 
-  for (t = mace->tabs; t != NULL; t = t->next) {
-    if (!tabresize(t, 0, 0, w, h)) {
-      /* What should actually happen here? */
-      errx(1, "Failed to resize!");
-    }
+  if (!paneresize(mace->pane, 0, 0, w, h)) {
+    /* What should actually happen here? */
+    errx(1, "Failed to resize!");
   }
 }
 
@@ -217,7 +213,7 @@ eventLoop(void)
     if (redraw) {
       cairo_push_group(cr);
 
-      tabdraw(mace->focus->tab, cr);
+      panedraw(mace->pane, cr);
 
       cairo_pop_group_to_source(cr);
       cairo_paint(cr);
@@ -268,7 +264,7 @@ main(int argc, char **argv)
 
   cairo_push_group(cr);
 
-  tabdraw(mace->focus->tab, cr);
+  panedraw(mace->pane, cr);
 
   cairo_pop_group_to_source(cr);
   cairo_paint(cr);

@@ -73,6 +73,7 @@ macenew(void)
   const uint8_t name[] = "Mace";
   struct sequence *s;
   struct mace *m;
+  struct tab *t;
   uint8_t *buf;
 
   m = calloc(1, sizeof(struct mace));
@@ -106,14 +107,22 @@ macenew(void)
     macefree(m);
     return NULL;
   }
-  
-  m->tabs = tabnew(m, name, strlen((const char *) name), s);
-  if (m->tabs == NULL) {
+
+  m->pane = panenew(m);
+  if (m->pane == NULL) {
     macefree(m);
     return NULL;
   }
 
-  m->focus = m->tabs->main;
+  t = tabnew(m, name, strlen((const char *) name), s);
+  if (t == NULL) {
+    macefree(m);
+    return NULL;
+  }
+
+  m->focus = t->main;
+  m->pane->tabs = m->pane->focus = t;
+
   m->running = true;
 
   luaruninit(m->lua);
@@ -130,13 +139,8 @@ macequit(struct mace *m)
 void
 macefree(struct mace *m)
 {
-  struct tab *t, *tn;
-
-  t = m->tabs;
-  while (t != NULL) {
-    tn = t->next;
-    tabfree(t);
-    t = tn;
+  if (m->pane != NULL) {
+    panefree(m->pane);
   }
 
   if (m->lua != NULL) {
@@ -150,12 +154,32 @@ macefree(struct mace *m)
   free(m);
 }
 
+static struct pane *
+findpane(struct mace *mace, int x, int y)
+{
+  struct pane *p;
+
+  p = mace->pane;
+
+  /* Do search if there were more panes */
+  
+  return p;
+}
+
 bool
 handlebuttonpress(struct mace *mace, int x, int y, int button)
 {
-  struct tab *f = mace->focus->tab;
+  struct pane *p = findpane(mace, x, y);
+
+  x -= p->x;
+  y -= p->y;
   
-  return tabbuttonpress(f, x - f->x, y - f->y, button);
+  if (y < mace->font->lineheight) {
+    return false;
+  } else {
+    return tabbuttonpress(p->focus, x, y - mace->font->lineheight,
+			  button);
+  }
 }
 
 bool
@@ -177,9 +201,16 @@ handlemotion(struct mace *mace, int x, int y)
 bool
 handlescroll(struct mace *mace, int x, int y, int dy)
 {
-  struct tab *f = mace->focus->tab;
+  struct pane *p = findpane(mace, x, y);
 
-  return tabscroll(f, x - f->x, y - f->y, dy);
+  x -= p->x;
+  y -= p->y;
+  
+  if (y < mace->font->lineheight) {
+    return false;
+  } else {
+    return tabscroll(p->focus, x, y - mace->font->lineheight, dy);
+  }
 }
 
 bool

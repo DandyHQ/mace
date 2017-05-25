@@ -102,11 +102,21 @@ struct tab {
   struct mace *mace;
   
   uint8_t *name;
+  size_t nlen;
 
   int x, y, width, height;
   
   struct textbox *action, *main;
   struct tab *next;
+};
+
+struct pane {
+  struct mace *mace;
+
+  int x, y, width, height;
+
+  struct tab *tabs;
+  struct tab *focus;
 };
 
 struct mace {
@@ -115,7 +125,7 @@ struct mace {
   struct font *font;
   lua_State *lua;
   
-  struct tab *tabs;
+  struct pane *pane;
   struct textbox *focus;
 };
 
@@ -155,6 +165,25 @@ fontset(struct font *font, const uint8_t *pattern);
 bool
 loadglyph(FT_Face face, int32_t code);
 
+void 
+drawglyph(struct font *f, cairo_t *cr, int x, int y,
+	  struct colour *fg, struct colour *bg);
+
+
+struct pane *
+panenew(struct mace *mace);
+
+void
+panefree(struct pane *p);
+
+bool
+paneresize(struct pane *p, int x, int y, int w, int h);
+
+void
+panedraw(struct pane *p, cairo_t *cr);
+
+
+
 struct tab *
 tabnew(struct mace *mace,
        const uint8_t *name, size_t nlen,
@@ -171,6 +200,9 @@ tabnewfromfile(struct mace *mace,
 
 void
 tabfree(struct tab *t);
+
+bool
+tabsetname(struct tab *t, const uint8_t *name, size_t len);
 
 bool
 tabresize(struct tab *t, int x, int y, int w, int h);

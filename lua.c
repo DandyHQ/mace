@@ -134,6 +134,214 @@ newindexcommon(lua_State *L)
 }
 
 static int
+lmacetostring(lua_State *L)
+{
+  /*struct mace *mace = */obj_ref_check(L, 1, "mace");
+
+  lua_pushfstring(L, "[mace]");
+
+  return 1;
+}
+
+static int
+lmaceindex(lua_State *L)
+{
+  struct mace *mace = obj_ref_check(L, 1, "mace");
+  const char *key;
+
+  if (lua_isstring(L, 2)) {
+    key = lua_tostring(L, 2);
+
+    if (strcmp(key, "focus") == 0) {
+      obj_ref_new(L, mace->focus, "mace.textbox");
+      return 1;
+    }
+
+    if (strcmp(key, "pane") == 0) {
+      obj_ref_new(L, mace->pane, "mace.pane");
+      return 1;
+    } 
+  }
+
+  return indexcommon(L);
+}
+
+static int
+lmacenewindex(lua_State *L)
+{
+  struct mace *mace = obj_ref_check(L, 1, "mace");
+  struct textbox *tb;
+  const char *key;
+  
+  if (lua_isstring(L, 2)) {
+    key = lua_tostring(L, 2);
+
+    if (strcmp(key, "focus") == 0) {
+      tb = obj_ref_check(L, 3, "mace.textbox");
+      mace->focus = tb;
+      return 0;
+    }
+  }
+    
+  return newindexcommon(L);
+}
+
+static int
+lmacesetfont(lua_State *L)
+{
+  struct mace *mace = obj_ref_check(L, 1, "mace");
+  const uint8_t *pattern;
+  size_t len;
+  int r;
+
+  pattern = (const uint8_t *) luaL_checklstring(L, 2, &len);
+
+  r = fontset(mace->font, pattern);
+
+  lua_pushnumber(L, r);
+
+  return 1;
+}
+
+static int
+lmacequit(lua_State *L)
+{
+  struct mace *mace = obj_ref_check(L, 1, "mace");
+
+  macequit(mace);
+
+  return 0;
+}
+
+static int
+lmaceemptytab(lua_State *L)
+{
+  struct mace *mace = obj_ref_check(L, 1, "mace");
+  const uint8_t *name;
+  struct tab *t;
+  size_t nlen;
+
+  name = (const uint8_t *) luaL_checklstring(L, 2, &nlen);
+
+  t = tabnewempty(mace, name, nlen);
+  if (t == NULL) {
+    lua_pushnil(L);
+    return 1;
+  }
+
+  tabresize(t, mace->focus->tab->x, mace->focus->tab->y,
+	    mace->focus->tab->width, mace->focus->tab->height);
+
+  obj_ref_new(L, t, "mace.tab");
+
+  return 1;
+}
+
+static int
+lmacefiletab(lua_State *L)
+{
+  struct mace *mace = obj_ref_check(L, 1, "mace");
+  const uint8_t *name, *filename;
+  size_t nlen, flen;
+  struct tab *t;
+
+  name = (const uint8_t *) luaL_checklstring(L, 2, &nlen);
+  filename = (const uint8_t *) luaL_checklstring(L, 3, &flen);
+
+  t = tabnewfromfile(mace, name, nlen, filename, flen);
+  if (t == NULL) {
+    lua_pushnil(L);
+    return 1;
+  }
+
+  tabresize(t, mace->focus->tab->x, mace->focus->tab->y,
+	    mace->focus->tab->width, mace->focus->tab->height);
+
+  obj_ref_new(L, t, "mace.tab");
+
+  return 1;
+}
+
+static const struct luaL_Reg mace_funcs[] = {
+  { "__tostring",      lmacetostring },
+  { "__index",         lmaceindex },
+  { "__newindex",      lmacenewindex },
+  { "setfont",         lmacesetfont },
+  { "quit",            lmacequit },
+  { "newemptytab",     lmaceemptytab },
+  { "newfiletab",      lmacefiletab },
+  { NULL, NULL }
+};
+
+
+static int
+lpanetostring(lua_State *L)
+{
+  struct pane *p = obj_ref_check(L, 1, "mace.pane");
+
+  lua_pushfstring(L, "[pane %i,%i %ix%i]",
+		  p->x, p->y, p->width, p->height);
+
+  return 1;
+}
+
+static int
+lpaneindex(lua_State *L)
+{
+  struct pane *p = obj_ref_check(L, 1, "mace.pane");
+  const char *key;
+
+  if (lua_isstring(L, 2)) {
+    key = lua_tostring(L, 2);
+
+    if (strcmp(key, "focus") == 0) {
+      obj_ref_new(L, p->focus, "mace.tab");
+      return 1;
+    }
+
+    if (strcmp(key, "tabs") == 0) {
+      obj_ref_new(L, p->tabs, "mace.tab");
+      return 1;
+    } 
+  }
+
+  return indexcommon(L);
+}
+
+static int
+lpanenewindex(lua_State *L)
+{
+  struct pane *p = obj_ref_check(L, 1, "mace.pane");
+  struct tab *tab;
+  const char *key;
+  
+  if (lua_isstring(L, 2)) {
+    key = lua_tostring(L, 2);
+
+    if (strcmp(key, "focus") == 0) {
+      tab = obj_ref_check(L, 3, "mace.tab");
+      p->focus = tab;
+      return 0;
+    }
+
+    if (strcmp(key, "tabs") == 0) {
+      tab = obj_ref_check(L, 3, "mace.tab");
+      p->tabs = tab;
+      return 0;
+    }
+  }
+    
+  return newindexcommon(L);
+}
+
+static const struct luaL_Reg pane_funcs[] = {
+  { "__tostring",      lpanetostring },
+  { "__index",         lpaneindex },
+  { "__newindex",      lpanenewindex },
+  { NULL, NULL }
+};
+
+static int
 ltabtostring(lua_State *L)
 {
   struct tab *t;
@@ -193,10 +401,26 @@ ltabnewindex(lua_State *L)
   return newindexcommon(L);
 }
 
+static int
+ltabsetname(lua_State *L)
+{
+  struct tab *t = obj_ref_check(L, 1, "mace.tab");
+  const char *name;
+  size_t len;
+  bool r;
+
+  name = luaL_checklstring(L, 2, &len);
+  r = tabsetname(t, (const uint8_t *) name, len);
+
+  lua_pushboolean(L, r);
+  return 1;
+}
+
 static const struct luaL_Reg tab_funcs[] = {
   { "__tostring", ltabtostring },
   { "__index",    ltabindex },
   { "__newindex", ltabnewindex },
+  { "setname",    ltabsetname },
   { NULL,         NULL },
 };
 
@@ -450,153 +674,6 @@ static const struct luaL_Reg selection_funcs[] = {
   { NULL,         NULL },
 };
 
-static int
-lmacetostring(lua_State *L)
-{
-  /*struct mace *mace = */obj_ref_check(L, 1, "mace");
-
-  lua_pushfstring(L, "[mace]");
-
-  return 1;
-}
-
-static int
-lmaceindex(lua_State *L)
-{
-  struct mace *mace = obj_ref_check(L, 1, "mace");
-  const char *key;
-
-  if (lua_isstring(L, 2)) {
-    key = lua_tostring(L, 2);
-
-    if (strcmp(key, "focus") == 0) {
-      obj_ref_new(L, mace->focus, "mace.textbox");
-      return 1;
-    }
-
-    if (strcmp(key, "tabs") == 0) {
-      obj_ref_new(L, mace->tabs, "mace.tab");
-      return 1;
-    } 
-  }
-
-  return indexcommon(L);
-}
-
-static int
-lmacenewindex(lua_State *L)
-{
-  struct mace *mace = obj_ref_check(L, 1, "mace");
-  struct textbox *tb;
-  struct tab *tab;
-  const char *key;
-  
-  if (lua_isstring(L, 2)) {
-    key = lua_tostring(L, 2);
-
-    if (strcmp(key, "focus") == 0) {
-      tb = obj_ref_check(L, 3, "mace.textbox");
-      mace->focus = tb;
-      return 0;
-    }
-
-    if (strcmp(key, "tabs") == 0) {
-      tab = obj_ref_check(L, 3, "mace.tab");
-      mace->tabs = tab;
-      return 0;
-    }
-  }
-    
-  return newindexcommon(L);
-}
-
-static int
-lmacesetfont(lua_State *L)
-{
-  struct mace *mace = obj_ref_check(L, 1, "mace");
-  const uint8_t *pattern;
-  size_t len;
-  int r;
-
-  pattern = (const uint8_t *) luaL_checklstring(L, 2, &len);
-
-  r = fontset(mace->font, pattern);
-
-  lua_pushnumber(L, r);
-
-  return 1;
-}
-
-static int
-lmacequit(lua_State *L)
-{
-  struct mace *mace = obj_ref_check(L, 1, "mace");
-
-  macequit(mace);
-
-  return 0;
-}
-
-static int
-lmaceemptytab(lua_State *L)
-{
-  struct mace *mace = obj_ref_check(L, 1, "mace");
-  const uint8_t *name;
-  struct tab *t;
-  size_t nlen;
-
-  name = (const uint8_t *) luaL_checklstring(L, 2, &nlen);
-
-  t = tabnewempty(mace, name, nlen);
-  if (t == NULL) {
-    lua_pushnil(L);
-    return 1;
-  }
-
-  tabresize(t, mace->focus->tab->x, mace->focus->tab->y,
-	    mace->focus->tab->width, mace->focus->tab->height);
-
-  obj_ref_new(L, t, "mace.tab");
-
-  return 1;
-}
-
-static int
-lmacefiletab(lua_State *L)
-{
-  struct mace *mace = obj_ref_check(L, 1, "mace");
-  const uint8_t *name, *filename;
-  size_t nlen, flen;
-  struct tab *t;
-
-  name = (const uint8_t *) luaL_checklstring(L, 2, &nlen);
-  filename = (const uint8_t *) luaL_checklstring(L, 3, &flen);
-
-  t = tabnewfromfile(mace, name, nlen, filename, flen);
-  if (t == NULL) {
-    lua_pushnil(L);
-    return 1;
-  }
-
-  tabresize(t, mace->focus->tab->x, mace->focus->tab->y,
-	    mace->focus->tab->width, mace->focus->tab->height);
-
-  obj_ref_new(L, t, "mace.tab");
-
-  return 1;
-}
-
-static const struct luaL_Reg mace_funcs[] = {
-  { "__tostring",      lmacetostring },
-  { "__index",         lmaceindex },
-  { "__newindex",      lmacenewindex },
-  { "setfont",         lmacesetfont },
-  { "quit",            lmacequit },
-  { "newemptytab",     lmaceemptytab },
-  { "newfiletab",      lmacefiletab },
-  { NULL, NULL }
-};
-
 void
 luaremove(lua_State *L, void *addr)
 {
@@ -634,6 +711,12 @@ luanew(struct mace *mace)
   lua_newtable(L);
   lua_setfield(L, LUA_REGISTRYINDEX, "mace.objects");
 
+  obj_type_new(L, "mace");
+  luaL_setfuncs(L, mace_funcs, 0);
+
+  obj_type_new(L, "mace.pane");
+  luaL_setfuncs(L, pane_funcs, 0);
+
   obj_type_new(L, "mace.tab");
   luaL_setfuncs(L, tab_funcs, 0);
   
@@ -645,9 +728,6 @@ luanew(struct mace *mace)
 
   obj_type_new(L, "mace.selection");
   luaL_setfuncs(L, selection_funcs, 0);
-
-  obj_type_new(L, "mace");
-  luaL_setfuncs(L, mace_funcs, 0);
 
   obj_ref_new(L, mace, "mace");
   lua_setglobal(L, "mace");

@@ -3,8 +3,6 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-/* Hello there. I typed this in mace! */
-
 #include "mace.h"
 
 #define SCROLL_WIDTH   10
@@ -29,15 +27,11 @@ tabnew(struct mace *mace,
 
   t->mace = mace;
   t->next = NULL;
-  
-  t->name = malloc(nlen + 1);
-  if (t->name == NULL) {
+
+  if (!tabsetname(t, name, nlen)) {
     tabfree(t);
     return NULL;
   }
-
-  memmove(t->name, name, nlen);
-  t->name[nlen] = 0;
 
   actionseq = sequencenew(NULL, 0);
   if (actionseq == NULL) {
@@ -184,6 +178,29 @@ tabresize(struct tab *t, int x, int y, int w, int h)
     return false;
   }
 
+  return true;
+}
+
+bool
+tabsetname(struct tab *t, const uint8_t *name, size_t len)
+{
+  uint8_t *new;
+  
+  new = malloc(len + 1);
+  if (new == NULL) {
+    return false;
+  }
+  
+  memmove(new, name, len);
+  new[len] = 0;
+  
+  if (t->name != NULL) {
+    free(t->name);
+  }
+
+  t->name = new;
+  t->nlen = len;
+  
   return true;
 }
 

@@ -136,8 +136,14 @@ function openfile(filename)
    end
    
    print("open file has tab", t)
-   t.next = mace.tabs
-   mace.tabs = t
+
+   local prev = mace.pane.tabs
+   while prev.next ~= nil do
+      prev = prev.next
+   end
+   
+   prev.next = t
+   mace.pane.focus = t
    mace.focus = t.main
 end
 
@@ -168,4 +174,17 @@ end
 
 function search()
    print("should search")
+end
+
+function cyclefocus()
+   t = mace.focus.tab
+
+   if t.next ~= nil then
+      t = t.next
+   else
+      t = mace.pane.tabs
+   end
+
+   mace.pane.focus = t
+   mace.focus = t.main
 end

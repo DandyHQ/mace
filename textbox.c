@@ -282,9 +282,15 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 bool
 textboxkeypress(struct textbox *t, keycode_t k)
 {
+  bool removed = false, redraw = false;
   uint8_t s[16];
   size_t l;
- 
+
+  if (t->selections != NULL) {
+    redraw = removeselections(t);
+    removed = true;
+  }
+
   switch (k) {
   default:
     break;
@@ -333,7 +339,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     l = snprintf((char *) s, sizeof(s), "\n");
 
     if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
-      return false;
+      return redraw;
     }
 
     textboxcalcpositions(t, t->cursor);
@@ -343,9 +349,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     return true;
   
   case KEY_delete:
-    if (t->selections != NULL) {
-      return removeselections(t);
-    } else {
+    if (!removed) {
       if (sequencedelete(t->sequence, t->cursor, 1)) {
 	textboxcalcpositions(t, t->cursor);
 
@@ -354,16 +358,14 @@ textboxkeypress(struct textbox *t, keycode_t k)
 	textboxpredraw(t);
 	return true;
       } else {
-	return false;
+	return redraw;
       }
     } 
 
     break;
     
   case KEY_backspace:
-    if (t->selections != NULL) {
-      return removeselections(t);
-    } else if (t->cursor > 0) {
+    if (!removed && t->cursor > 0) {
       if (sequencedelete(t->sequence, t->cursor - 1, 1)) {
 	t->cursor--;
 	textboxcalcpositions(t, t->cursor);
@@ -373,7 +375,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
 	textboxpredraw(t);
 	return true;
       } else {
-	return false;
+	return redraw;
       }
     } 
 
@@ -383,7 +385,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     break;
   }
 
-  return false;
+  return redraw;
 }
 
 bool
