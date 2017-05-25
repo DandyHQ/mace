@@ -4,9 +4,18 @@
 
 #include "mace.h"
 
-/* I have used 
-   [vis/vis-lua.c](https://github.com/martanne/vis/blob/945db2ed898d4feb55ca9e690dd859503f49c231/vis-lua.c)
-   as a reference to figure out how to build an interface for lua.  */
+/* Tab's, Textbox's, and sequences are represented as user data 
+   objects that contain pointers to the c data. The user data 
+   structures are stored in lua's registry and are managed by lua's 
+   garbage collector. Before data is free'd on the C side it must call
+   luaremove(L, addr) to remove the object from the lua registry. 
+   Should a lua script try to use a object that has been free'd the 
+   lua wrapper functions will check if the address is in the registry,
+   if it is not then they fail. Thereby making the objects safe to 
+   use. There can be no dangling pointers and we don't have to 
+   constantly talk to lua to get data when working only in the C side 
+   of life.
+*/
 
 static void
 obj_ref_set(lua_State *L, void *addr)
@@ -279,7 +288,7 @@ lpanetostring(lua_State *L)
 {
   struct pane *p = obj_ref_check(L, 1, "mace.pane");
 
-  lua_pushfstring(L, "[pane %i,%i %ix%i]",
+  lua_pushfstring(L, "[pane %d,%d %dx%d]",
 		  p->x, p->y, p->width, p->height);
 
   return 1;
@@ -334,10 +343,35 @@ lpanenewindex(lua_State *L)
   return newindexcommon(L);
 }
 
+static int
+lpaneaddtab(lua_State *L)
+{
+  struct pane *p = obj_ref_check(L, 1, "mace.pane");
+  struct tab *tab = obj_ref_check(L, 2, "mace.tab");
+  int pos = luaL_checknumber(L, 3);
+  
+  paneaddtab(p, tab, pos);
+   
+  return 0;
+}
+
+static int
+lpaneremovetab(lua_State *L)
+{
+  struct pane *p = obj_ref_check(L, 1, "mace.pane");
+  struct tab *tab = obj_ref_check(L, 2, "mace.tab");
+  
+  paneremovetab(p, tab);
+   
+  return 0;
+}
+
 static const struct luaL_Reg pane_funcs[] = {
   { "__tostring",      lpanetostring },
   { "__index",         lpaneindex },
   { "__newindex",      lpanenewindex },
+  { "addtab",          lpaneaddtab },
+  { "removetab",       lpaneremovetab },
   { NULL, NULL }
 };
 
@@ -372,6 +406,11 @@ ltabindex(lua_State *L)
       return 1;
     }
 
+    if (strcmp(key, "pane") == 0) {
+      obj_ref_new(L, t->pane, "mace.pane");
+      return 1;
+    }
+
     if (strcmp(key, "next") == 0) {
       obj_ref_new(L, t->next, "mace.tab");
       return 1;
@@ -379,26 +418,6 @@ ltabindex(lua_State *L)
   }
 
   return indexcommon(L);
-}
-
-static int
-ltabnewindex(lua_State *L)
-{
-  struct tab *n, *t = obj_ref_check(L, 1, "mace.tab");
-  const char *key;
-
-  if (lua_isstring(L, 2)) {
-    key = lua_tostring(L, 2);
-
-    if (strcmp(key, "next") == 0) {
-      n = obj_ref_check(L, 3, "mace.tab");
-      t->next = n;
-      
-      return 0;
-    }
-  }
-
-  return newindexcommon(L);
 }
 
 static int
@@ -416,11 +435,26 @@ ltabsetname(lua_State *L)
   return 1;
 }
 
+static int
+ltabclose(lua_State *L)
+{
+  struct tab *t = obj_ref_check(L, 1, "mace.tab");
+
+  if (t->pane != NULL) {
+    paneremovetab(t->pane, t);
+  }
+  
+  tabfree(t);
+
+  return 0;
+}
+
 static const struct luaL_Reg tab_funcs[] = {
   { "__tostring", ltabtostring },
   { "__index",    ltabindex },
-  { "__newindex", ltabnewindex },
+  { "__newindex", newindexcommon },
   { "setname",    ltabsetname },
+  { "close",      ltabclose },
   { NULL,         NULL },
 };
 

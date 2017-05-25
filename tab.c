@@ -10,7 +10,7 @@
 static struct colour bg   = { 1, 1, 1 };
 static struct colour abg  = { 0.86, 0.94, 1 };
 
-static const uint8_t actionstart[] = ": save open eval quit";
+static const uint8_t actionstart[] = ": save open close eval quit";
 
 struct tab *
 tabnew(struct mace *mace,
@@ -205,12 +205,13 @@ tabsetname(struct tab *t, const uint8_t *name, size_t len)
 }
 
 bool
-tabscroll(struct tab *t, int x, int y, int dy)
+tabscroll(struct tab *t, int x, int y, int dx, int dy)
 {
   if (y < t->action->height) {
     return false;
   } else {
-    return textboxscroll(t->main, x, y - t->action->height - 1, dy);
+    return textboxscroll(t->main, x, y - t->action->height - 1,
+			 dx, dy);
   }
 }
 

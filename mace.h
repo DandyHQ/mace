@@ -107,6 +107,8 @@ struct tab {
   int x, y, width, height;
   
   struct textbox *action, *main;
+
+  struct pane *pane;
   struct tab *next;
 };
 
@@ -182,6 +184,19 @@ paneresize(struct pane *p, int x, int y, int w, int h);
 void
 panedraw(struct pane *p, cairo_t *cr);
 
+bool
+tablistbuttonpress(struct pane *p, int x, int y, int button);
+
+bool
+tablistscroll(struct pane *p, int x, int y, int dx, int dy);
+
+/* Pos = -1  puts the tab at the end. Otherwise it puts it in the list
+   so that it is the pos'th tab */
+void
+paneaddtab(struct pane *p, struct tab *t, int pos);
+
+void
+paneremovetab(struct pane *p, struct tab *t);
 
 
 struct tab *
@@ -211,7 +226,7 @@ void
 tabdraw(struct tab *t, cairo_t *cr);
 
 bool
-tabscroll(struct tab *t, int x, int y, int dy);
+tabscroll(struct tab *t, int x, int y, int dx, int dy);
 
 bool
 tabbuttonpress(struct tab *t, int x, int y,
@@ -239,7 +254,7 @@ bool
 textboxresize(struct textbox *t, int width, int maxheight);
 
 bool
-textboxscroll(struct textbox *t, int x, int y, int dy);
+textboxscroll(struct textbox *t, int x, int y, int dx, int dy);
 
 bool
 textboxbuttonpress(struct textbox *t, int x, int y,
@@ -317,4 +332,4 @@ bool
 handlemotion(struct mace *mace, int x, int y);
 
 bool
-handlescroll(struct mace *mace, int x, int y, int dy);
+handlescroll(struct mace *mace, int x, int y, int dx, int dy);

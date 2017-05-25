@@ -1,4 +1,6 @@
 
+print("Hello")
+
 mace:setfont("LiberationMono-15")
 
 function test()
@@ -137,14 +139,9 @@ function openfile(filename)
    
    print("open file has tab", t)
 
-   local prev = mace.pane.tabs
-   while prev.next ~= nil do
-      prev = prev.next
-   end
-   
-   prev.next = t
-   mace.pane.focus = t
-   mace.focus = t.main
+   local pane = mace.focus.tab.pane
+   pane:addtab(t, -1)
+   pane.focus = t
 end
 
 function open()
@@ -158,6 +155,11 @@ function open()
       
       sel = sel.next
    end
+end
+
+function close()
+   local t = mace.focus.tab
+   t:close()
 end
 
 function cut()
@@ -176,15 +178,3 @@ function search()
    print("should search")
 end
 
-function cyclefocus()
-   t = mace.focus.tab
-
-   if t.next ~= nil then
-      t = t.next
-   else
-      t = mace.pane.tabs
-   end
-
-   mace.pane.focus = t
-   mace.focus = t.main
-end

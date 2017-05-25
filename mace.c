@@ -121,7 +121,8 @@ macenew(void)
   }
 
   m->focus = t->main;
-  m->pane->tabs = m->pane->focus = t;
+  paneaddtab(m->pane, t, 0);
+  m->pane->focus = t;
 
   m->running = true;
 
@@ -175,7 +176,7 @@ handlebuttonpress(struct mace *mace, int x, int y, int button)
   y -= p->y;
   
   if (y < mace->font->lineheight) {
-    return false;
+    return tablistbuttonpress(p, x, y, button);
   } else {
     return tabbuttonpress(p->focus, x, y - mace->font->lineheight,
 			  button);
@@ -185,7 +186,13 @@ handlebuttonpress(struct mace *mace, int x, int y, int button)
 bool
 handlebuttonrelease(struct mace *mace, int x, int y, int button)
 {
-  struct tab *f = mace->focus->tab;
+  struct tab *f;
+
+  if (mace->focus == NULL) {
+    return false;
+  } else {
+    f = mace->focus->tab;
+  }
 
   return tabbuttonrelease(f, x - f->x, y - f->y, button);
 }
@@ -193,13 +200,19 @@ handlebuttonrelease(struct mace *mace, int x, int y, int button)
 bool
 handlemotion(struct mace *mace, int x, int y)
 {
-  struct tab *f = mace->focus->tab;
+  struct tab *f;
+
+  if (mace->focus == NULL) {
+    return false;
+  } else {
+    f = mace->focus->tab;
+  }
 
   return tabmotion(f, x - f->x, y - f->y);
 }
 
 bool
-handlescroll(struct mace *mace, int x, int y, int dy)
+handlescroll(struct mace *mace, int x, int y, int dx, int dy)
 {
   struct pane *p = findpane(mace, x, y);
 
@@ -207,26 +220,38 @@ handlescroll(struct mace *mace, int x, int y, int dy)
   y -= p->y;
   
   if (y < mace->font->lineheight) {
-    return false;
+    return tablistscroll(p, x, y, dx, dy);
   } else {
-    return tabscroll(p->focus, x, y - mace->font->lineheight, dy);
+    return tabscroll(p->focus, x, y - mace->font->lineheight, dx, dy);
   }
 }
 
 bool
 handletyping(struct mace *mace, uint8_t *s, size_t n)
 {
-  return textboxtyping(mace->focus, s, n);
+  if (mace->focus == NULL) {
+    return false;
+  } else {
+    return textboxtyping(mace->focus, s, n);
+  }
 }
 
 bool
 handlekeypress(struct mace *mace, keycode_t k)
 {
-  return textboxkeypress(mace->focus, k);
+  if (mace->focus == NULL) {
+    return false;
+  } else {
+    return textboxkeypress(mace->focus, k);
+  }
 }
 
 bool
 handlekeyrelease(struct mace *mace, keycode_t k)
 {
-  return textboxkeyrelease(mace->focus, k);
+  if (mace->focus == NULL) {
+    return false;
+  } else {
+    return textboxkeyrelease(mace->focus, k);
+  }
 }

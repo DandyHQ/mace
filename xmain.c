@@ -130,10 +130,10 @@ xhandlebuttonpress(XButtonEvent *e)
     return handlebuttonpress(mace, e->x, e->y, e->button);
 
   case 4:
-    return handlescroll(mace, e->x, e->y, -5);
+    return handlescroll(mace, e->x, e->y, 0, -5);
     
   case 5:
-    return handlescroll(mace, e->x, e->y, 5);
+    return handlescroll(mace, e->x, e->y, 0, 5);
 
   default:
     return false;

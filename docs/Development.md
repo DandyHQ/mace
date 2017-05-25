@@ -114,16 +114,37 @@ evaluate lua code during run time and add new functions.
 Lua is integrated into mace by providing bindings for various data
 types. 
 
-Tab's, Textbox's, and sequences are represented as user data objects
-that contain pointers to the real data. The user data structures are
-stored in lua's registry and are managed by lua's garbage
-collector. When the data is free'd on the C side it removes the object
-from the lua registry and lets lua deal with it. Should a lua script
-try to use a object that has been free'd on the C side the lua wrapper
-functions will see that the object is no longer in the registry and
-refuse to work on them. Thereby making the objects safe to use. There
-can be no dangling pointers and we don't have to constantly talk to
-lua to get data when working only in the C side of life.
+Tab's, Textbox's, and sequences are represented as user data 
+objects that contain pointers to the c data. The user data 
+structures are stored in lua's registry and are managed by lua's 
+garbage collector. Before data is free'd on the C side it must call
+luaremove(L, addr) to remove the object from the lua registry. 
+Should a lua script try to use a object that has been free'd the 
+lua wrapper functions will check if the address is in the registry,
+if it is not then they fail. Thereby making the objects safe to 
+use. There can be no dangling pointers and we don't have to 
+constantly talk to lua to get data when working only in the C side 
+of life.
+
+# Fonts
+
+Mace uses fontconfig to find fonts to use. So on startup mace asks
+fontconfig for the default font for size 15px. Once mace has found a
+font to use it gets freetype2 to do the heavy lifting and get
+anti-aliased bitmaps that it can draw. 
+
+This is not the best way to do things. For a start it forces mace to 
+have to figure out all the layouts, so multi codepoint glyphs will 
+almost definatly not render properly in mace, and any language that 
+is not left to right will be wrong. 
+
+In future I think we should convert to using pango, and having it
+manage all the font picking and font rendering, or use harfbuzz to do
+the text layouts. However I have not figured out any way to integrate
+them nicely with text pieces/sequence structures. Both expect to have
+an uninterupted string of of utf8 and a rectangle to draw to. 
+
+So font handling will have to change at some point.
 
 # Reading
 

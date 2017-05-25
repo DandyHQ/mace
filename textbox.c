@@ -395,7 +395,7 @@ textboxkeyrelease(struct textbox *t, keycode_t k)
 }
 
 bool
-textboxscroll(struct textbox *t, int x, int y, int dy)
+textboxscroll(struct textbox *t, int x, int y, int dx, int dy)
 {
   int n;
   
