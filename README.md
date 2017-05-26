@@ -17,25 +17,29 @@ Mace requires the following dependencies:
  - cairo
  - lua 5.3
  
-### Ubuntu 16.04 Dependencies
-
-To install the dependencies in Ubuntu 16.04 execute the next command:
+#### Ubuntu 16.04 
 
 ```
-sudo apt install meson libx11-dev libcairo2-dev lua5.3-dev
+# apt install meson libx11-dev libcairo2-dev lua5.3-dev
 ```
 
-Then continue with the steps below to build Mace.
+Then go to [Compiling](#compiling)
 
-### Fedora 25 Dependencies
-
-To install the dependencies in Fedora 25 execute the next command:
+#### Fedora 25 
 
 ```
-sudo dnf install meson libX11-devel cairo-devel lua-devel
+# dnf install meson libX11-devel cairo-devel lua-devel
 ```
 
-Then continue with the steps below to build Mace.
+Then go to [Compiling](#compiling)
+
+#### OpenBSD 6.1
+
+```
+# pkg_add cairo lua%5.3
+```
+
+Then go to [Compiling](#compiling)
 
 ### Compiling
 

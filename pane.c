@@ -127,6 +127,9 @@ paneremovetab(struct pane *p, struct tab *t)
   }
 }
 
+/* The tab list stuff is shit but will do for now. It will need to be
+   redone once we have multiple panes. */
+
 bool
 tablistbuttonpress(struct pane *p, int px, int py, int button)
 {
@@ -183,9 +186,6 @@ tablistscroll(struct pane *p, int x, int y, int dx, int dy)
 static struct colour fg = { 0, 0, 0 };
 static struct colour nbg = { 0.8, 0.8, 0.8 };
 static struct colour fbg = { 1, 1, 1 };
-
-/* This is shit but will do for now. This will not work once we get
-   multiple panes. */
 
 void
 tablistdraw(struct pane *p, cairo_t *cr)
