@@ -3,6 +3,9 @@
 A modern Unix text editor taking inspiration from Acme, Emacs and
 Atom.
 
+## Screenshot
+![Screenshot](https://github.com/DandyHQ/mace-design/blob/master/screenshot.png)
+
 ## Building
 
 Mace requires the following dependencies:
