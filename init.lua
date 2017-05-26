@@ -137,8 +137,6 @@ function openfile(filename)
       end
    end
    
-   print("open file has tab", t)
-
    local pane = mace.focus.tab.pane
    pane:addtab(t, -1)
    pane.focus = t
@@ -159,7 +157,19 @@ end
 
 function close()
    local t = mace.focus.tab
+   local p = t.pane
+
    t:close()
+
+   if p.tabs == nil then
+      t = mace:newemptytab("*scratch*")
+      p:addtab(t, 0)
+
+      p.focus = t
+      if mace.focus == nil then
+	 mace.focus = t.main
+      end
+   end
 end
 
 function cut()

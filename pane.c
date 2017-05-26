@@ -66,8 +66,7 @@ paneaddtab(struct pane *p, struct tab *t, int pos)
   if (pos == 0 || p->tabs == NULL) {
     t->next = p->tabs;
     p->tabs = t;
-    t->pane = p;
-    return;
+    goto clean;
   }
   
   for (prev = p->tabs; prev->next != NULL; prev = prev->next) {
@@ -80,7 +79,15 @@ paneaddtab(struct pane *p, struct tab *t, int pos)
 
   t->next = prev->next;
   prev->next = t;
+
+ clean:
   t->pane = p;
+
+  if (!tabresize(t, p->x, p->y + p->mace->font->lineheight,
+		 p->width, p->height - p->mace->font->lineheight)) {
+    fprintf(stderr, "Failed to resize tab to fit in pane!\n");
+    /* What should happen here? */
+  }
 }
 
 void
@@ -259,6 +266,7 @@ panedraw(struct pane *p, cairo_t *cr)
   if (p->focus != NULL) {
     tabdraw(p->focus, cr);
   } else {
+    printf("have no focus\n");
     cairo_set_source_rgb(cr, 1, 1, 1);
     cairo_rectangle(cr, p->x, p->y + p->mace->font->lineheight,
 		    p->x + p->width,

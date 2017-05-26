@@ -230,17 +230,19 @@ lmaceemptytab(lua_State *L)
   struct tab *t;
   size_t nlen;
 
+  printf("mace make new empty tab\n");
   name = (const uint8_t *) luaL_checklstring(L, 2, &nlen);
 
+  printf("called %s\n", name);
+  
   t = tabnewempty(mace, name, nlen);
   if (t == NULL) {
     lua_pushnil(L);
     return 1;
   }
 
-  tabresize(t, mace->focus->tab->x, mace->focus->tab->y,
-	    mace->focus->tab->width, mace->focus->tab->height);
-
+  printf("resize tab\n");
+  
   obj_ref_new(L, t, "mace.tab");
 
   return 1;
@@ -262,9 +264,6 @@ lmacefiletab(lua_State *L)
     lua_pushnil(L);
     return 1;
   }
-
-  tabresize(t, mace->focus->tab->x, mace->focus->tab->y,
-	    mace->focus->tab->width, mace->focus->tab->height);
 
   obj_ref_new(L, t, "mace.tab");
 
