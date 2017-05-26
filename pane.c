@@ -266,7 +266,6 @@ panedraw(struct pane *p, cairo_t *cr)
   if (p->focus != NULL) {
     tabdraw(p->focus, cr);
   } else {
-    printf("have no focus\n");
     cairo_set_source_rgb(cr, 1, 1, 1);
     cairo_rectangle(cr, p->x, p->y + p->mace->font->lineheight,
 		    p->x + p->width,
