@@ -38,3 +38,20 @@ executable('mace',
 	     lua,
 	   ]
 	  )
+
+seqtest = executable('tests/sequence',
+		     sources: [
+		       'tests/sequence.c',
+		       'sequence.c',
+		       'utf8.c',
+		     ],
+
+		     dependencies: [
+		       cairo,
+		       ft,
+		       fc,
+		       lua,
+		     ]
+		    )
+
+test('Sequence Test', seqtest)
