@@ -27,6 +27,16 @@ sudo apt install meson libx11-dev libcairo2-dev lua5.3-dev
 
 Then continue with the steps below to build Mace.
 
+### Fedora 25 Dependencies
+
+To install the dependencies in Fedora 25 execute the next command:
+
+```
+sudo dnf install meson libX11-devel cairo-devel lua-devel
+```
+
+Then continue with the steps below to build Mace.
+
 ### Compiling
 
 Once you have the dependencies install, Mace can be compiled as follows:
@@ -40,7 +50,7 @@ ninja -C build
 
 The last command launches Mace.
 
-If you'd like to run the test suite to ensure Mace is functioning correctly. They can be run from ninja using.
+If you'd like to run the test suite to ensure Mace is functioning correctly. They can be run from ninja using:
 
 ```
 ninja -C build test
