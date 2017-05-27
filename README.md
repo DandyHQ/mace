@@ -23,15 +23,11 @@ Mace requires the following dependencies:
 # apt install meson libx11-dev libcairo2-dev lua5.3-dev
 ```
 
-Then go to [Compiling](#compiling)
-
 #### Fedora 25 
 
 ```
 # dnf install meson libX11-devel cairo-devel lua-devel
 ```
-
-Then go to [Compiling](#compiling)
 
 #### OpenBSD 6.1
 
@@ -39,11 +35,10 @@ Then go to [Compiling](#compiling)
 # pkg_add cairo lua%5.3
 ```
 
-Then go to [Compiling](#compiling)
-
 ### Compiling
 
-Once you have the dependencies install, Mace can be compiled as follows:
+Once you have the dependencies install, Mace can be compiled as 
+follows:
 
 ```
 $ mkdir build
@@ -61,7 +56,8 @@ $ mace
 
 The last command launches Mace.
 
-If you'd like to run the test suite to ensure Mace is functioning correctly. They can be run from ninja using:
+If you'd like to run the test suite to ensure Mace is functioning 
+correctly. They can be run from ninja using:
 
 ```
 $ ninja -C build test
