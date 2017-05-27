@@ -743,7 +743,7 @@ lua_State *
 luanew(struct mace *mace)
 {
   const char *home, *xdg, *epath;
-  char path[PATH_MAX];
+  char path[1024];
   struct passwd *pw;
   lua_State *L;
 
