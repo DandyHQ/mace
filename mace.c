@@ -126,7 +126,7 @@ macenew(void)
 
   m->running = true;
 
-  luaruninit(m->lua);
+  lualoadrc(m->lua);
   
   return m;
 }

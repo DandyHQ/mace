@@ -1,3 +1,18 @@
+function quit()
+   mace:quit()
+end
+
+function eval()
+   sel = mace:selections()
+   for i, sel in pairs(mace:selections()) do
+      seq = sel.textbox.sequence
+      str = seq:get(sel.start, sel.len)
+
+      f = load(str)
+      f()
+   end
+end
+
 function getfilename(tab)
    action = tab.action
    seq = action.sequence
@@ -15,37 +30,6 @@ function getfilename(tab)
    end
 
    return filename
-end
-
-function openfile(filename)
-   local t = mace:newfiletab(filename, filename)
-   if t == nil then
-      t = mace:newemptytab(filename)
-      if t == nil then
-	 return
-      end
-   end
-   
-   local pane = mace.focus.tab.pane
-   pane:addtab(t, -1)
-   pane.focus = t
-end
-
-function quit()
-   mace:quit()
-end
-
-function eval()
-   sel = mace.focus.selections
-   while sel ~= nil do
-      seq = sel.textbox.sequence
-      str = seq:get(sel.start, sel.len)
-
-      f = load(str)
-      f()
-      
-      sel = sel.next
-   end
 end
 
 function save()
@@ -72,16 +56,28 @@ function save()
    assert(file:close())
 end
 
-function open()
-   sel = mace.focus.selections
-   while sel ~= nil do
-      seq = sel.textbox.sequence
+function openfile(filename)
+   local t = mace:newfiletab(filename, filename)
+   if t == nil then
+      t = mace:newemptytab(filename)
+      if t == nil then
+	 return
+      end
+   end
+   
+   local pane = mace.focus.tab.pane
+   pane:addtab(t, -1)
+   pane.focus = t
+   mace.focus = t.main
+end
 
+function open()
+   sel = mace:selections()
+   for i, sel in pairs(mace:selections()) do
+      seq = sel.textbox.sequence
       str = seq:get(sel.start, sel.len)
 
       openfile(str)
-      
-      sel = sel.next
    end
 end
 

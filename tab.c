@@ -210,8 +210,7 @@ tabscroll(struct tab *t, int x, int y, int dx, int dy)
   if (y < t->action->height) {
     return false;
   } else {
-    return textboxscroll(t->main, x, y - t->action->height - 1,
-			 dx, dy);
+    return textboxscroll(t->main, dx, t->main->yoff + dy);
   }
 }
 
@@ -219,16 +218,21 @@ bool
 tabbuttonpress(struct tab *t, int x, int y,
 	       unsigned int button)
 {
+  int yoff;
+  
   if (y < t->action->height) {
     t->mace->focus = t->action;
     return textboxbuttonpress(t->action, x, y, button);
+
   } else if (x < t->width - SCROLL_WIDTH) {
     t->mace->focus = t->main;
     return textboxbuttonpress(t->main, x, y - t->action->height - 1,
 			      button);
   } else {
-    printf("should scroll to somewhere\n");
-    return false;
+    yoff = (int) (t->main->height * (float) (y - t->action->height)
+		  / (float) (t->height - t->action->height));
+
+    return textboxscroll(t->main, 0, yoff);
   }
 }
 

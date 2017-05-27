@@ -395,19 +395,16 @@ textboxkeyrelease(struct textbox *t, keycode_t k)
 }
 
 bool
-textboxscroll(struct textbox *t, int x, int y, int dx, int dy)
+textboxscroll(struct textbox *t, int xoff, int yoff)
 {
-  int n;
-  
-  n = t->yoff + dy;
-  if (n < 0) {
-    n = 0;
-  } else if (n > t->height - t->font->lineheight) {
-    n = t->height - t->font->lineheight;
+  if (yoff < 0) {
+    yoff = 0;
+  } else if (yoff > t->height - t->font->lineheight) {
+    yoff = t->height - t->font->lineheight;
   }
 
-  if (n != t->yoff) {
-    t->yoff = n;
+  if (yoff != t->yoff) {
+    t->yoff = yoff;
 
     textboxfindstart(t);
     textboxpredraw(t);

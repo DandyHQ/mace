@@ -145,6 +145,33 @@ newindexcommon(lua_State *L)
 }
 
 static int
+pushtextboxselections(lua_State *L, int i, struct textbox *t)
+{
+  struct selection *sel;
+  
+  for (sel = t->selections; sel != NULL; sel = sel->next) {
+    lua_pushnumber(L, i++);
+    lua_newtable(L);
+
+    lua_pushstring(L, "start");
+    lua_pushnumber(L, sel->start);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "len");
+    lua_pushnumber(L, sel->end - sel->start + 1);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "textbox");
+    obj_ref_new(L, t, "mace.textbox");
+    lua_settable(L, -3);
+
+    lua_settable(L, -3);
+  }
+
+  return i;
+}
+
+static int
 lmacetostring(lua_State *L)
 {
   /*struct mace *mace = */obj_ref_check(L, 1, "mace");
@@ -272,6 +299,23 @@ lmacefiletab(lua_State *L)
   return 1;
 }
 
+static int
+lmaceselections(lua_State *L)
+{
+  struct mace *mace = obj_ref_check(L, 1, "mace");
+  int i;
+
+  lua_newtable(L);
+
+  i = 0;
+  if (mace->focus != NULL) {
+    i = pushtextboxselections(L, i, mace->focus->tab->action);
+    i = pushtextboxselections(L, i, mace->focus->tab->main);
+  }
+
+  return 1;
+}
+
 static const struct luaL_Reg mace_funcs[] = {
   { "__tostring",      lmacetostring },
   { "__index",         lmaceindex },
@@ -280,6 +324,7 @@ static const struct luaL_Reg mace_funcs[] = {
   { "quit",            lmacequit },
   { "newemptytab",     lmaceemptytab },
   { "newfiletab",      lmacefiletab },
+  { "selections",      lmaceselections },
   { NULL, NULL }
 };
 
@@ -450,12 +495,28 @@ ltabclose(lua_State *L)
   return 0;
 }
 
+static int
+ltabselections(lua_State *L)
+{
+  struct tab *t = obj_ref_check(L, 1, "mace.tab");
+  int i;
+  
+  lua_newtable(L);
+
+  i = 0;
+  i = pushtextboxselections(L, i, t->action);
+  i = pushtextboxselections(L, i, t->main);
+
+  return 1;
+}
+
 static const struct luaL_Reg tab_funcs[] = {
-  { "__tostring", ltabtostring },
-  { "__index",    ltabindex },
-  { "__newindex", newindexcommon },
-  { "setname",    ltabsetname },
-  { "close",      ltabclose },
+  { "__tostring",    ltabtostring },
+  { "__index",       ltabindex },
+  { "__newindex",    newindexcommon },
+  { "setname",       ltabsetname },
+  { "close",         ltabclose },
+  { "selections",    ltabselections },
   { NULL,         NULL },
 };
 
@@ -500,11 +561,6 @@ ltextboxindex(lua_State *L)
       obj_ref_new(L, t->tab, "mace.tab");
       return 1;
     }
-
-    if (strcmp(key, "selections") == 0) {
-      obj_ref_new(L, t->selections, "mace.selection");
-      return 1;
-    }
   }
 
   return indexcommon(L);
@@ -539,10 +595,23 @@ ltextboxnewindex(lua_State *L)
   return newindexcommon(L);
 }
 
+static int
+ltextboxselections(lua_State *L)
+{
+  struct textbox *t = obj_ref_check(L, 1, "mace.textbox");
+  
+  lua_newtable(L);
+
+  pushtextboxselections(L, 0, t);
+
+  return 1;
+}
+
 static const struct luaL_Reg textbox_funcs[] = {
-  { "__tostring", ltextboxtostring },
-  { "__index",    ltextboxindex },
-  { "__newindex", ltextboxnewindex },
+  { "__tostring",    ltextboxtostring },
+  { "__index",       ltextboxindex },
+  { "__newindex",    ltextboxnewindex },
+  { "selections",    ltextboxselections },
   { NULL,         NULL },
 };
 
@@ -648,67 +717,6 @@ static const struct luaL_Reg sequence_funcs[] = {
   { NULL,         NULL },
 };
 
-static int
-lselectiontostring(lua_State *L)
-{
-  struct selection *s;
-
-  s = obj_ref_check(L, 1, "mace.selection");
-
-  lua_pushfstring(L, "[selection in %p from %d len %d]",
-		  s->textbox, s->start, s->end - s->start + 1);
-
-  return 1;
-}
-
-static int
-lselectionindex(lua_State *L)
-{
-  struct selection *s;
-  const char *key;
-  
-  s = obj_ref_check(L, 1, "mace.selection");
-
-  if (lua_isstring(L, 2)) {
-    key = lua_tostring(L, 2);
-
-    if (strcmp(key, "next") == 0) {
-      obj_ref_new(L, s->next, "mace.selection");
-      return 1;
-    }
-
-    if (strcmp(key, "start") == 0) {
-      lua_pushnumber(L, s->start);
-      return 1;
-    }
-
-    if (strcmp(key, "len") == 0) {
-      lua_pushnumber(L, s->end - s->start + 1);
-      return 1;
-    }
-
-    if (strcmp(key, "textbox") == 0) {
-      obj_ref_new(L, s->textbox, "mace.textbox");
-      return 1;
-    }
-  }
-
-  return indexcommon(L);
-}
-
-static int
-lselectionnewindex(lua_State *L)
-{
-  return newindexcommon(L);
-}
-
-static const struct luaL_Reg selection_funcs[] = {
-  { "__tostring", lselectiontostring },
-  { "__index",    lselectionindex },
-  { "__newindex", lselectionnewindex },
-  { NULL,         NULL },
-};
-
 void
 luaremove(lua_State *L, void *addr)
 {
@@ -800,9 +808,6 @@ luanew(struct mace *mace)
   obj_type_new(L, "mace.sequence");
   luaL_setfuncs(L, sequence_funcs, 0);
 
-  obj_type_new(L, "mace.selection");
-  luaL_setfuncs(L, selection_funcs, 0);
-
   obj_ref_new(L, mace, "mace");
   lua_setglobal(L, "mace");
 
@@ -810,7 +815,7 @@ luanew(struct mace *mace)
 }
 
 void
-luaruninit(lua_State *L)
+lualoadrc(lua_State *L)
 {
   lua_getglobal(L, "require");
   lua_pushstring(L, "macerc");

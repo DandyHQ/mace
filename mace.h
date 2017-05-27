@@ -148,7 +148,7 @@ void
 luafree(lua_State *L);
 
 void
-luaruninit(lua_State *L);
+lualoadrc(lua_State *L);
 
 void
 command(lua_State *L, const uint8_t *s);
@@ -254,7 +254,7 @@ bool
 textboxresize(struct textbox *t, int width, int maxheight);
 
 bool
-textboxscroll(struct textbox *t, int x, int y, int dx, int dy);
+textboxscroll(struct textbox *t, int xoff, int yoff);
 
 bool
 textboxbuttonpress(struct textbox *t, int x, int y,

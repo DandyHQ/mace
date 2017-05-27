@@ -161,6 +161,7 @@ tablistbuttonpress(struct pane *p, int px, int py, int button)
       if (px < x) {
 	if (p->focus != t) {
 	  p->focus = t;
+	  p->mace->focus = t->main;
 	  return true;
 	} else {
 	  return false;
