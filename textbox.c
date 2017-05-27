@@ -41,6 +41,8 @@ textboxnew(struct tab *tab, struct colour *bg,
   t->startx = 0;
   t->starty = 0;
   
+  snprintf((char *) t->tabstring, sizeof(t->tabstring), "  ");
+
   memmove(&t->bg, bg, sizeof(struct colour));
 
   return t;
@@ -333,7 +335,19 @@ textboxkeypress(struct textbox *t, keycode_t k)
     break;
     
   case KEY_tab:
-    break;
+    l = snprintf((char *) s, sizeof(s), "%s",
+		 (char *) t->tabstring);
+    
+    if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
+      return redraw;
+    }
+
+    textboxcalcpositions(t, t->cursor);
+    t->cursor += l;
+    textboxfindstart(t);
+    textboxpredraw(t);
+
+    return true;
 
   case KEY_return:
     l = snprintf((char *) s, sizeof(s), "\n");
@@ -344,6 +358,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     textboxcalcpositions(t, t->cursor);
     t->cursor += l;
+    textboxfindstart(t);
     textboxpredraw(t);
 
     return true;

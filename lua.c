@@ -6,7 +6,7 @@
 #include "mace.h"
 #include "config.h"
 
-/* Tab's, Textbox's, and sequences are represented as user data 
+/* Mace's, Pane's, Tab's, and Textbox's are represented as user data 
    objects that contain pointers to the c data. The user data 
    structures are stored in lua's registry and are managed by lua's 
    garbage collector. Before data is free'd on the C side it must call
@@ -557,6 +557,11 @@ ltextboxindex(lua_State *L)
       return 1;
     }
 
+    if (strcmp(key, "tabstring") == 0) {
+        lua_pushfstring(L, "%s", t->tabstring);
+        return 1;
+    }
+
     if (strcmp(key, "tab") == 0) {
       obj_ref_new(L, t->tab, "mace.tab");
       return 1;
@@ -570,7 +575,7 @@ static int
 ltextboxnewindex(lua_State *L)
 {
   struct textbox *t = obj_ref_check(L, 1, "mace.textbox");
-  const char *key;
+  const char *key, *str;
   int i;
 
   if (lua_isstring(L, 2)) {
@@ -589,6 +594,13 @@ ltextboxnewindex(lua_State *L)
       textboxfindstart(t);
       textboxpredraw(t);
       return 0;
+    }
+
+    if (strcmp(key, "tabstring") == 0) {
+        str = luaL_checkstring(L, 3);
+        snprintf((char *) t->tabstring, sizeof(t->tabstring),
+		 "%s", str);
+        return 0;
     }
   }
   

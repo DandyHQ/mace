@@ -45,12 +45,6 @@ struct colour {
 
 typedef enum { SELECTION_left, SELECTION_right } selection_t;
 
-/* Note: There is a memory leak if lua code changes the linked list
-   structure to skip a selection. Should probably turn them into
-   tables or have some more structured way of talking to them. This
-   applies for all linked lists that lua can see (selections and
-   tabs). */
-
 struct selection {
   struct textbox *textbox;
 
@@ -59,7 +53,6 @@ struct selection {
 
   struct selection *next;
 };
-
 
 /* This is done horribly. There can only be one instance for every
    instance of mace. I would like to be able to have each textbox have
@@ -71,6 +64,8 @@ struct font {
 
   int baseline, lineheight;
 };
+
+#define TABMAX 32
 
 struct textbox {
   struct tab *tab;
@@ -91,6 +86,8 @@ struct textbox {
   size_t startindex;
   int startx, starty;
 
+  uint8_t tabstring[TABMAX];
+ 
   int32_t cursor;
   int yoff;
 

@@ -8,7 +8,7 @@ function eval()
       seq = sel.textbox.sequence
       str = seq:get(sel.start, sel.len)
 
-      f = load(str)
+      load(str)
       f()
    end
 end
