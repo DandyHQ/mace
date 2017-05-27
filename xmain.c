@@ -9,6 +9,7 @@
 #include <cairo-xlib.h>
 
 #include "mace.h"
+#include "config.h"
 
 static Display *display;
 static Window win;

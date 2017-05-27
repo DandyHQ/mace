@@ -1,22 +1,3 @@
-mace:setfont("LiberationMono-15")
-
-function quit()
-   mace:quit()
-end
-
-function eval()
-   sel = mace.focus.selections
-   while sel ~= nil do
-      seq = sel.textbox.sequence
-      str = seq:get(sel.start, sel.len)
-
-      f = load(str)
-      f()
-      
-      sel = sel.next
-   end
-end
-
 function getfilename(tab)
    action = tab.action
    seq = action.sequence
@@ -36,31 +17,6 @@ function getfilename(tab)
    return filename
 end
 
-function save()
-   tab = mace.focus.tab
-
-   filename = getfilename(tab)
-   if filename == nil then
-      print("not saving")
-      return
-   end
-
-   seq = tab.main.sequence
-
-   l = seq:len()
-   print("getting", l, "bytes")
-   
-   str = seq:get(0, l)
-
-   print("saving", filename)
-
-   file = assert(io.open(filename, "w"))
-
-   assert(file:write(str))
-
-   assert(file:close())
-end
-
 function openfile(filename)
    local t = mace:newfiletab(filename, filename)
    if t == nil then
@@ -73,6 +29,47 @@ function openfile(filename)
    local pane = mace.focus.tab.pane
    pane:addtab(t, -1)
    pane.focus = t
+end
+
+function quit()
+   mace:quit()
+end
+
+function eval()
+   sel = mace.focus.selections
+   while sel ~= nil do
+      seq = sel.textbox.sequence
+      str = seq:get(sel.start, sel.len)
+
+      f = load(str)
+      f()
+      
+      sel = sel.next
+   end
+end
+
+function save()
+   tab = mace.focus.tab
+
+   filename = getfilename(tab)
+   if filename == nil then
+      print("not saving")
+      return
+   end
+
+   seq = tab.main.sequence
+
+   l = seq:len()
+   
+   str = seq:get(0, l)
+
+   print("saving", filename)
+
+   file = assert(io.open(filename, "w"))
+
+   assert(file:write(str))
+
+   assert(file:close())
 end
 
 function open()

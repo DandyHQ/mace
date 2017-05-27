@@ -7,15 +7,31 @@ add_global_arguments('-std=c11',
 		     language : 'c')
 
 x11        = dependency('x11')
-cairo      = dependency('cairo')
 ft         = dependency('freetype2')
 fc         = dependency('fontconfig')
+
+cairo      = dependency('cairo')
+
 lua        = dependency('lua53', required: false)
 if not lua.found()
 	lua = dependency('lua', version : '>=5.2.4')
 endif
 
-executable('mace',
+path = join_paths(get_option('datadir'), 'mace')
+
+conf_data = configuration_data()
+conf_data.set('version', '0.1.0')
+conf_data.set('path', join_paths(get_option('prefix'), path))
+
+configure_file(input : 'config.h.in',
+	       output : 'config.h',
+	       configuration : conf_data)
+
+
+install_data('macerc.lua', install_dir : path)
+install_data('mace.lua', install_dir : path)
+
+executable('mace', install: true,
 	   sources: [
 	     'mace.c',
 	     'pane.c',
@@ -36,8 +52,9 @@ executable('mace',
 	     ft,
 	     fc,
 	     lua,
-	   ]
+	   ],
 	  )
+
 
 seqtest = executable('tests/sequence',
 		     sources: [

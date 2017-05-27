@@ -46,10 +46,17 @@ Then go to [Compiling](#compiling)
 Once you have the dependencies install, Mace can be compiled as follows:
 
 ```
-mkdir build
-meson build
-ninja -C build
-./build/mace
+$ mkdir build
+$ meson build
+$ ninja -C build
+
+$ ./build/mace
+
+# or to install
+
+# ninja -C build install
+$ mace
+
 ```
 
 The last command launches Mace.
@@ -57,5 +64,5 @@ The last command launches Mace.
 If you'd like to run the test suite to ensure Mace is functioning correctly. They can be run from ninja using:
 
 ```
-ninja -C build test
+$ ninja -C build test
 ```

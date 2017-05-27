@@ -4,6 +4,7 @@
 #include <sys/types.h>
 
 #include "mace.h"
+#include "config.h"
 
 #include <fontconfig/fontconfig.h>
 

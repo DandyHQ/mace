@@ -1,0 +1,2 @@
+#define VERSION_STR "@version@"
+#define MACE_PATH "@path@"

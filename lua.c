@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <pwd.h>
 
 #include "mace.h"
+#include "config.h"
 
 /* Tab's, Textbox's, and sequences are represented as user data 
    objects that contain pointers to the c data. The user data 
@@ -161,6 +163,11 @@ lmaceindex(lua_State *L)
   if (lua_isstring(L, 2)) {
     key = lua_tostring(L, 2);
 
+    if (strcmp(key, "version") == 0) {
+      lua_pushstring(L, VERSION_STR);
+      return 1;
+    }
+    
     if (strcmp(key, "focus") == 0) {
       obj_ref_new(L, mace->focus, "mace.textbox");
       return 1;
@@ -230,19 +237,14 @@ lmaceemptytab(lua_State *L)
   struct tab *t;
   size_t nlen;
 
-  printf("mace make new empty tab\n");
   name = (const uint8_t *) luaL_checklstring(L, 2, &nlen);
 
-  printf("called %s\n", name);
-  
   t = tabnewempty(mace, name, nlen);
   if (t == NULL) {
     lua_pushnil(L);
     return 1;
   }
 
-  printf("resize tab\n");
-  
   obj_ref_new(L, t, "mace.tab");
 
   return 1;
@@ -725,9 +727,24 @@ command(lua_State *L, const uint8_t *s)
   }
 }
 
+static void
+addpath(lua_State *L, const char *path)
+{
+  lua_getglobal(L, "package");
+  lua_pushstring(L, path);
+  lua_pushstring(L, "/?.lua;");
+  lua_getfield(L, -3, "path");
+  lua_concat(L, 3);
+  lua_setfield(L, -2, "path");
+  lua_pop(L, 1);
+}
+
 lua_State *
 luanew(struct mace *mace)
 {
+  const char *home, *xdg, *epath;
+  char path[PATH_MAX];
+  struct passwd *pw;
   lua_State *L;
 
   L = luaL_newstate();
@@ -738,6 +755,30 @@ luanew(struct mace *mace)
 
   luaL_openlibs(L);
 
+  addpath(L, MACE_PATH);
+
+  home = getenv("HOME");
+  if (home == NULL || home[0] == 0) {
+    pw = getpwuid(getuid());
+    if (pw != NULL) {
+      home = pw->pw_dir;
+    }
+  }
+
+  xdg = getenv("XDG_CONFIG_HOME");
+  if (xdg != NULL && xdg[0] != 0) {
+    snprintf(path, sizeof(path), "%s/mace", xdg);
+    addpath(L, path);
+  } else if (home != NULL && home[0] != 0) {
+    snprintf(path, sizeof(path), "%s/.config/mace", home);
+    addpath(L, path);
+  }
+
+  epath = getenv("MACE_PATH");
+  if (epath != NULL && epath[0] != 0) {
+    addpath(L, getenv("MACE_PATH"));
+  }
+  
   lua_newtable(L);
   lua_setfield(L, LUA_REGISTRYINDEX, "mace.types");
 
@@ -771,18 +812,12 @@ luanew(struct mace *mace)
 void
 luaruninit(lua_State *L)
 {
-  int r;
+  lua_getglobal(L, "require");
+  lua_pushstring(L, "macerc");
 
-  r = luaL_loadfile(L, "init.lua");
-  if (r != LUA_OK) {
-    fprintf(stderr, "Error loading init: %s", lua_tostring(L, -1));
-    return;
-  }
-
-  r = lua_pcall(L, 0, LUA_MULTRET, 0);
-  if (r != LUA_OK) {
-    fprintf(stderr, "Error running init: %s", lua_tostring(L, -1));
-    return;
+  if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
+    fprintf(stderr, "Error loading macerc: %s\n",
+	    lua_tostring(L, -1));
   }
 }
 
