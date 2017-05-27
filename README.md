@@ -4,7 +4,7 @@ A modern Unix text editor taking inspiration from Acme, Emacs and
 Atom.
 
 ## Screenshot
-![Screenshot](https://github.com/DandyHQ/mace-design/blob/master/screenshot.png)
+![Screenshot](https://github.com/DandyHQ/mace/blob/master/docs/screenshot.png)
 
 ## Building
 
