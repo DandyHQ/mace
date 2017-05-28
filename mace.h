@@ -7,6 +7,11 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+/* Linux has PATH_MAX defined under <linux/limits.h>, OpenBSD has it
+   defined under <limits.h>, PATH_MAX is a horrible thing anyway so
+   lets just make it up. */
+#define PATH_MAX 512
+
 #include "lib.h"
 #include "sequence.h"
 
@@ -43,6 +48,11 @@ struct colour {
   double r, g, b;
 };
 
+/* Used by textbox's to store a linked list of current
+   selections. Currently you can only have one selection so it doesn't
+   need to be a list, but if future I think it would be cool to have a
+   multiple selections. */
+
 typedef enum { SELECTION_left, SELECTION_right } selection_t;
 
 struct selection {
@@ -53,6 +63,10 @@ struct selection {
 
   struct selection *next;
 };
+
+/* A wrapper around freetype with functions that use fontconfig to
+   load fonts from patterns. Each textbox has it's own font
+   structure. This is probably inefficent but I will keep it for now. */
 
 struct font {
   char path[PATH_MAX];
@@ -108,6 +122,10 @@ struct tab {
   struct tab *next;
 };
 
+/* There is currently only one pane but in future you will be able to
+   split them and have multiple set up however you like. Each pane has
+   a linked list of tabs. */
+
 struct pane {
   struct mace *mace;
 
@@ -116,6 +134,9 @@ struct pane {
   struct tab *tabs;
   struct tab *focus;
 };
+
+/* A mace structure. Each structure represents a window and lua
+   runtime. */
 
 struct mace {
   bool running;
