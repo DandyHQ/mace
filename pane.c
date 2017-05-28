@@ -63,6 +63,10 @@ paneaddtab(struct pane *p, struct tab *t, int pos)
 {
   struct tab *prev;
 
+  if (t->pane != NULL) {
+    paneremovetab(t->pane, t);
+  }
+  
   if (pos == 0 || p->tabs == NULL) {
     t->next = p->tabs;
     p->tabs = t;

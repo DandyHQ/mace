@@ -17,6 +17,11 @@
    use. There can be no dangling pointers and we don't have to 
    constantly talk to lua to get data when working only in the C side 
    of life.
+
+   For the sake of safety do not let lua change linked lists by
+   itself. It should call bindings to do that to make sure items don't
+   get lost. This doesn't really solve the problem of loosing them but
+   it helps keep everything a little more consistant.
 */
 
 static void

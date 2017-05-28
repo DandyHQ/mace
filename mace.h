@@ -192,6 +192,7 @@ drawglyph(struct font *f, cairo_t *cr, int x, int y,
 	  struct colour *fg, struct colour *bg);
 
 
+
 struct pane *
 panenew(struct mace *mace);
 
@@ -218,6 +219,10 @@ paneaddtab(struct pane *p, struct tab *t, int pos);
 void
 paneremovetab(struct pane *p, struct tab *t);
 
+
+/* New tabs are not added to any pane on creation, You must do that
+   yourself with paneaddtab. paneaddtab will resize the tab to fit in
+   the pane. Tabs can not be in multiple panes at once. */
 
 struct tab *
 tabnew(struct mace *mace,
@@ -260,8 +265,6 @@ bool
 tabmotion(struct tab *t, int x, int y);
 
 
-
-/* Takes ownership of seq */
 
 struct textbox *
 textboxnew(struct tab *tab, struct colour *bg,
