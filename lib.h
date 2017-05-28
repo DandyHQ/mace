@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /* Checks if code warrents a line break.
    May update l if code requires consuming more code points such as a 

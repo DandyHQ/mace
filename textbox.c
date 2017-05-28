@@ -332,10 +332,12 @@ textboxkeypress(struct textbox *t, keycode_t k)
     break;
     
   case KEY_pageup:
-    break;
+    return textboxscroll(t, 0, t->yoff
+			 - (t->maxheight - t->font->lineheight * 2));
     
   case KEY_pagedown:
-    break;
+    return textboxscroll(t, 0, t->yoff
+			 + (t->maxheight - t->font->lineheight * 2));
     
   case KEY_home:
     break;
