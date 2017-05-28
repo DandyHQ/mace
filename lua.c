@@ -312,7 +312,7 @@ lmaceselections(lua_State *L)
 
   lua_newtable(L);
 
-  i = 0;
+  i = 1; /* Apparently lua arrays start at 1 */
   if (mace->focus != NULL) {
     i = pushtextboxselections(L, i, mace->focus->tab->action);
     i = pushtextboxselections(L, i, mace->focus->tab->main);
@@ -399,7 +399,7 @@ lpaneaddtab(lua_State *L)
 {
   struct pane *p = obj_ref_check(L, 1, "mace.pane");
   struct tab *tab = obj_ref_check(L, 2, "mace.tab");
-  int pos = luaL_checknumber(L, 3);
+  int pos = luaL_checkinteger(L, 3);
   
   paneaddtab(p, tab, pos);
    
@@ -508,7 +508,7 @@ ltabselections(lua_State *L)
   
   lua_newtable(L);
 
-  i = 0;
+  i = 1; /* Apparently lua arrays start at 1 */
   i = pushtextboxselections(L, i, t->action);
   i = pushtextboxselections(L, i, t->main);
 
@@ -546,12 +546,6 @@ ltextboxindex(lua_State *L)
   if (lua_isstring(L, 2)) {
     key = lua_tostring(L, 2);
 
-    if (strcmp(key, "sequence") == 0) {
-      t->sequence->lua = L;
-      obj_ref_new(L, t->sequence, "mace.sequence");
-      return 1;
-    }
-
     if (strcmp(key, "cursor") == 0) {
       lua_pushnumber(L, t->cursor);
       return 1;
@@ -587,14 +581,14 @@ ltextboxnewindex(lua_State *L)
     key = lua_tostring(L, 2);
 
     if (strcmp(key, "cursor") == 0) {
-      i = luaL_checknumber(L, 3);
+      i = luaL_checkinteger(L, 3);
       t->cursor = i;
       textboxpredraw(t);
       return 0;
     }
 
     if (strcmp(key, "yoff") == 0) {
-      i = luaL_checknumber(L, 3);
+      i = luaL_checkinteger(L, 3);
       t->yoff = i;
       textboxfindstart(t);
       textboxpredraw(t);
@@ -642,79 +636,116 @@ ltextboxselections(lua_State *L)
   
   lua_newtable(L);
 
-  pushtextboxselections(L, 0, t);
+  pushtextboxselections(L, 1, t);
 
   return 1;
 }
 
-static const struct luaL_Reg textbox_funcs[] = {
-  { "__tostring",    ltextboxtostring },
-  { "__index",       ltextboxindex },
-  { "__newindex",    ltextboxnewindex },
-  { "setfont",       ltextboxsetfont },
-  { "selections",    ltextboxselections },
-  { NULL,         NULL },
-};
+/* This is a horrible way to do this. Selections should be their own
+   type. They don't need to be handled the same way as other mace
+   types though. Should make them plain user data. */
 
 static int
-lsequencetostring(lua_State *L)
+ltextboxremoveselection(lua_State *L)
 {
-  struct sequence *s;
-  
-  s = obj_ref_check(L, 1, "mace.sequence");
+  struct selection *sel, *psel;
+  struct textbox *t, *st;
+  size_t start, len;
 
-  lua_pushfstring(L, "[sequence plen %d, dlen %d]", s->plen, s->dlen);
+  t = obj_ref_check(L, 1, "mace.textbox");
 
-  return 1;
+  lua_getfield(L, 2, "start");
+  start = luaL_checkinteger(L, -1);
+
+  lua_getfield(L, 2, "len");
+  len = luaL_checkinteger(L, -1);
+
+  lua_getfield(L, 2, "textbox");
+  st = obj_ref_check(L, -1, "mace.textbox");
+
+  if (st != t) {
+    printf("textbox remove selection for wrong textbox.\n");
+    return 0;
+  }
+
+  psel = NULL;
+  for (sel = t->selections; sel != NULL; sel = sel->next) {
+    if (sel->start != start) continue;
+    if (sel->end != start + len - 1) continue;
+    if (sel->textbox != st) continue;
+
+    if (psel == NULL) {
+      t->selections = sel->next;
+    } else {
+      psel->next = sel->next;
+    }
+
+    selectionfree(sel);
+    break;
+  }
+
+  textboxcalcpositions(t, start);
+  textboxfindstart(t);
+  textboxpredraw(t);
+
+  return 0;
 }
 
 static int
-lsequenceinsert(lua_State *L)
+ltextboxinsert(lua_State *L)
 {
   const uint8_t *data;
-  struct sequence *s;
+  struct textbox *t;
   size_t pos, len;
   bool r;
   
-  s = obj_ref_check(L, 1, "mace.sequence");
-  pos = luaL_checknumber(L, 2);
+  t = obj_ref_check(L, 1, "mace.textbox");
+  pos = luaL_checkinteger(L, 2);
   data = (const uint8_t *) luaL_checklstring(L, 3, &len);
 
-  r = sequenceinsert(s, pos, data, len);
+  r = sequenceinsert(t->sequence, pos, data, len);
 
+  textboxcalcpositions(t, pos);
+  textboxfindstart(t);
+  textboxpredraw(t);
+  
   lua_pushboolean(L, r);
 
   return 1;
 }
 
 static int
-lsequencedelete(lua_State *L)
+ltextboxdelete(lua_State *L)
 {
-  struct sequence *s;
+  struct textbox *t;
   size_t start, len;
   bool r;
   
-  s = obj_ref_check(L, 1, "mace.sequence");
-  start = luaL_checknumber(L, 2);
-  len = luaL_checknumber(L, 3);
+  t = obj_ref_check(L, 1, "mace.textbox");
+  start = luaL_checkinteger(L, 2);
+  len = luaL_checkinteger(L, 3);
 
-  r = sequencedelete(s, start, len);
+  r = sequencedelete(t->sequence, start, len);
 
+  textboxcalcpositions(t, start);
+  textboxfindstart(t);
+  textboxpredraw(t);
+  
   lua_pushboolean(L, r);
   
   return 1;
 }
 
 static int
-lsequenceget(lua_State *L)
+ltextboxget(lua_State *L)
 {
   size_t start, len;
-  struct sequence *s;
+  struct textbox *t;
   uint8_t *buf;
 
-  s = obj_ref_check(L, 1, "mace.sequence");
-  start = luaL_checknumber(L, 2);
-  len = luaL_checknumber(L, 3);
+  t = obj_ref_check(L, 1, "mace.textbox");
+  start = luaL_checkinteger(L, 2);
+  len = luaL_checkinteger(L, 3);
 
   if (len == 0) {
     lua_pushnil(L);
@@ -727,7 +758,7 @@ lsequenceget(lua_State *L)
     return 1;
   }
 
-  len = sequenceget(s, start, buf, len);
+  len = sequenceget(t->sequence, start, buf, len);
   lua_pushlstring(L, (const char *) buf, len);
 
   free(buf);
@@ -736,25 +767,32 @@ lsequenceget(lua_State *L)
 }
 
 static int
-lsequencelen(lua_State *L)
+ltextboxlen(lua_State *L)
 {
-  struct sequence *s;
+  struct textbox *t;
 
-  s = obj_ref_check(L, 1, "mace.sequence");
+  t = obj_ref_check(L, 1, "mace.textbox");
 
-  lua_pushnumber(L, sequencegetlen(s));
+  lua_pushnumber(L, sequencegetlen(t->sequence));
 
   return 1;
 }
 
-static const struct luaL_Reg sequence_funcs[] = {
-  { "__tostring", lsequencetostring },
-  { "__index",    indexcommon },
-  { "__newindex", newindexcommon },
-  { "insert",     lsequenceinsert },
-  { "delete",     lsequencedelete },
-  { "get",        lsequenceget },
-  { "len",        lsequencelen },
+static const struct luaL_Reg textbox_funcs[] = {
+  { "__tostring",    ltextboxtostring },
+  { "__index",       ltextboxindex },
+  { "__newindex",    ltextboxnewindex },
+
+  { "setfont",       ltextboxsetfont },
+
+  { "selections",    ltextboxselections },
+  { "removeselection",ltextboxremoveselection },
+
+  { "insert",        ltextboxinsert },
+  { "delete",        ltextboxdelete },
+  { "get",           ltextboxget },
+  { "len",           ltextboxlen },
+
   { NULL,         NULL },
 };
 
@@ -804,6 +842,9 @@ luanew(struct mace *mace)
 
   luaL_openlibs(L);
 
+  /* Give lua some directories to look in for mace's init file and
+     other modules. */
+  
   addpath(L, MACE_PATH);
 
   home = getenv("HOME");
@@ -827,6 +868,8 @@ luanew(struct mace *mace)
   if (epath != NULL && epath[0] != 0) {
     addpath(L, getenv("MACE_PATH"));
   }
+
+  /* Create tables in lua's registry to store binding data. */
   
   lua_newtable(L);
   lua_setfield(L, LUA_REGISTRYINDEX, "mace.types");
@@ -845,9 +888,6 @@ luanew(struct mace *mace)
   
   obj_type_new(L, "mace.textbox");
   luaL_setfuncs(L, textbox_funcs, 0);
-
-  obj_type_new(L, "mace.sequence");
-  luaL_setfuncs(L, sequence_funcs, 0);
 
   obj_ref_new(L, mace, "mace");
   lua_setglobal(L, "mace");

@@ -1,6 +1,4 @@
 #include <stdio.h>
-
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -9,13 +7,6 @@
 
 /* This needs to be improved. Needs some checks on how the chain is
    held together. eg 1 -> 2 -> 3 and 3 <- 2 <- 1. */
-
-void
-luaremove(lua_State *L, void *addr)
-{
-  /* Stub for sequences as in mace they can be accessed from lua, so
-     when freed lua needs to know to stop using them. */
-}
 
 int
 main(int argc, char *argv[])

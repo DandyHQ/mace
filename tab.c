@@ -221,11 +221,9 @@ tabbuttonpress(struct tab *t, int x, int y,
   int yoff;
   
   if (y < t->action->height) {
-    t->mace->focus = t->action;
     return textboxbuttonpress(t->action, x, y, button);
 
   } else if (x < t->width - SCROLL_WIDTH) {
-    t->mace->focus = t->main;
     return textboxbuttonpress(t->main, x, y - t->action->height - 1,
 			      button);
   } else {

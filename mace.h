@@ -7,10 +7,12 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#ifndef PATH_MAX
 /* Linux has PATH_MAX defined under <linux/limits.h>, OpenBSD has it
    defined under <limits.h>, PATH_MAX is a horrible thing anyway so
    lets just make it up. */
 #define PATH_MAX 512
+#endif
 
 #include "lib.h"
 #include "sequence.h"
@@ -166,6 +168,12 @@ luafree(lua_State *L);
 
 void
 lualoadrc(lua_State *L);
+
+/* Structs that lua uses must call this before freeing themselves. */
+/* Currently pane, tabs, and textboxs. */
+void
+luaremove(lua_State *L, void *addr);
+
 
 void
 command(lua_State *L, const uint8_t *s);

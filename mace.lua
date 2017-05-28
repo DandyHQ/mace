@@ -1,12 +1,15 @@
+
+clipboard = nil
+
+
 function quit()
    mace:quit()
 end
 
 function eval()
-   sel = mace:selections()
    for i, sel in pairs(mace:selections()) do
-      seq = sel.textbox.sequence
-      str = seq:get(sel.start, sel.len)
+      t = sel.textbox
+      str = t:get(sel.start, sel.len)
 
       f, err = load(str)
       if f ~= nil then
@@ -19,12 +22,11 @@ end
 
 function getfilename(tab)
    action = tab.action
-   seq = action.sequence
 
    filename = ""
    i = 0
    while true do
-      c = seq:get(i, 1)
+      c = action:get(i, 1)
       if c == ':' then
 	 break
       else
@@ -37,7 +39,8 @@ function getfilename(tab)
 end
 
 function save()
-   tab = mace.focus.tab
+   local tab = mace.focus.tab
+   local m = tab.main
 
    filename = getfilename(tab)
    if filename == nil then
@@ -45,11 +48,9 @@ function save()
       return
    end
 
-   seq = tab.main.sequence
-
-   l = seq:len()
+   l = m:len()
    
-   str = seq:get(0, l)
+   str = m:get(0, l)
 
    print("saving", filename)
 
@@ -76,10 +77,9 @@ function openfile(filename)
 end
 
 function open()
-   sel = mace:selections()
    for i, sel in pairs(mace:selections()) do
-      seq = sel.textbox.sequence
-      str = seq:get(sel.start, sel.len)
+      local t = sel.textbox
+      str = t:get(sel.start, sel.len)
 
       openfile(str)
    end
@@ -103,15 +103,52 @@ function close()
 end
 
 function cut()
-   print("should cut")
+   local final = nil
+   
+   for i, sel in pairs(mace:selections()) do
+      final = sel
+   end
+
+   if final == nil then
+      return
+   end
+
+   local t = final.textbox
+
+   clipboard = t:get(final.start, final.len)
+   
+   t:delete(final.start, final.len)
+
+   t:removeselection(final)
+
+   if final.start <= t.cursor
+   and t.cursor <= final.start + final.len then
+
+      t.cursor = final.start
+   end
 end
 
 function copy()
-   print("should copy")
+   local final = nil
+   
+   for i, sel in pairs(mace:selections()) do
+      final = sel
+   end
+
+   if final == nil then
+      return
+   end
+
+   local t = final.textbox
+
+   clipboard = t:get(final.start, final.len)
 end
 
 function paste()
-   print("should paste")
+
+   t = mace.focus
+   t:insert(t.cursor, clipboard)
+   t.cursor = t.cursor + clipboard:len()
 end
 
 function search()

@@ -70,10 +70,6 @@ sequencenew(uint8_t *data, size_t len)
 void
 sequencefree(struct sequence *s)
 {
-  if (s->lua != NULL) {
-    luaremove(s->lua, s);
-  }
-
   free(s->pieces);
 
   free(s->data);

@@ -26,8 +26,6 @@ struct piece {
 #define SEQ_first  2
 
 struct sequence {
-  lua_State *lua;
-
   struct piece *pieces;
   size_t plen, pmax;
 

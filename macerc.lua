@@ -1,4 +1,6 @@
+-- Get some basic commands that will make mace usable.
 require("mace")
 
--- mace:setfont("LiberationMono-15")
+-- Try to load a prettier font.
+mace:setfont("LiberationMono-15")
 

@@ -139,6 +139,8 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   
   switch (button) {
   case 1:
+    t->tab->mace->focus = t;
+
     t->cursor = pos;
 
     sel = t->selections;
@@ -224,7 +226,7 @@ textboxmotion(struct textbox *t, int x, int y)
 }
 
 static bool
-removeselections(struct textbox *t)
+deleteselections(struct textbox *t)
 {
   struct selection *sel, *nsel;
   size_t start;
@@ -270,7 +272,7 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
   bool redraw = false;
   
   if (t->selections != NULL) {
-    redraw = removeselections(t);
+    redraw = deleteselections(t);
   }
 
   if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
@@ -296,7 +298,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
   size_t l;
 
   if (t->selections != NULL) {
-    redraw = removeselections(t);
+    redraw = deleteselections(t);
     removed = true;
   }
 
