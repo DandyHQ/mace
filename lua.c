@@ -608,6 +608,29 @@ ltextboxnewindex(lua_State *L)
 }
 
 static int
+ltextboxsetfont(lua_State *L)
+{
+  struct textbox *t = obj_ref_check(L, 1, "mace.textbox");
+  const char *pattern;
+  size_t len;
+  int r;
+
+  pattern = luaL_checklstring(L, 2, &len);
+
+  r = fontset(t->font, pattern);
+
+  if (r == 0) {
+    textboxcalcpositions(t, SEQ_start);
+    textboxfindstart(t);
+    textboxpredraw(t);
+  }
+  
+  lua_pushnumber(L, r);
+
+  return 1;
+}
+
+static int
 ltextboxselections(lua_State *L)
 {
   struct textbox *t = obj_ref_check(L, 1, "mace.textbox");
@@ -623,6 +646,7 @@ static const struct luaL_Reg textbox_funcs[] = {
   { "__tostring",    ltextboxtostring },
   { "__index",       ltextboxindex },
   { "__newindex",    ltextboxnewindex },
+  { "setfont",       ltextboxsetfont },
   { "selections",    ltextboxselections },
   { NULL,         NULL },
 };

@@ -8,8 +8,12 @@ function eval()
       seq = sel.textbox.sequence
       str = seq:get(sel.start, sel.len)
 
-      load(str)
-      f()
+      f, err = load(str)
+      if f ~= nil then
+	 f()
+      else
+	 print("failed to load:", str, ":", err)
+      end
    end
 end
 

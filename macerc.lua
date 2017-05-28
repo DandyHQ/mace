@@ -1,4 +1,4 @@
 require("mace")
 
-mace:setfont("LiberationMono-15")
+-- mace:setfont("LiberationMono-15")
 

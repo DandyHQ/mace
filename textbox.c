@@ -69,6 +69,8 @@ textboxfree(struct textbox *t)
 
   sequencefree(t->sequence);
 
+  fontfree(t->font);
+  
   if (t->cr != NULL) {
     cairo_destroy(t->cr);
   }
