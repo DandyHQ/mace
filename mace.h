@@ -47,6 +47,7 @@ typedef enum {
   KEY_escape
 } keycode_t;
 
+/* Just a helper structure, not really used in many places. */
 struct colour {
   double r, g, b;
 };
@@ -54,7 +55,12 @@ struct colour {
 /* Used by textbox's to store a linked list of current
    selections. Currently you can only have one selection so it doesn't
    need to be a list, but if future I think it would be cool to have a
-   multiple selections. */
+   multiple selections. 
+
+   I am starting to think it would be best to only have on selection 
+   per mace instance, at least for now. Maybe this should be 
+   discussed. 
+*/
 
 typedef enum { SELECTION_left, SELECTION_right } selection_t;
 
@@ -81,38 +87,57 @@ struct font {
   int baseline, lineheight;
 };
 
-#define TABMAX 32
-
 struct textbox {
   struct tab *tab;
   
   struct font *font;
 
   struct selection *csel, *selections;
-  bool cselisvalid;
+  /* Has csel selected more than the one glyph. If it hasn't then the
+     selection is removed when the button is lifted. */
+  bool cselisvalid; 
   
-  struct colour bg;
-
-  cairo_t *cr;
-  cairo_surface_t *sfc;
-
   struct sequence *sequence;
 
+  /* Some attempts at optimization. They don't work properly. */
   ssize_t startpiece;
   size_t startindex;
   int startx, starty;
 
+  /* A string that is inserted when the tab key is pressed. This is a
+     temperary measure. I don't know if this should be global or per
+     textbox. */
+#define TABMAX 32
   uint8_t tabstring[TABMAX];
- 
-  int32_t cursor;
-  int yoff;
 
-  int linewidth, height;
+  /* This must be on a unicode code point boundry or it will not be
+     drawn. */
+  int32_t cursor;
+
+  /* Maximum width a line can be. */
+  int linewidth;
+  /* Current height of the text in the textbox. This has nothing to do
+     with the size of sfc. */
+  int height;
+
+  int yoff;
+  /* Maximum distance from yoff that is worth drawing. Also the
+     height of the sfc. */
   int maxheight;
+
+  struct colour bg;
+
+  /* Used for prerendering textbox's. Probably doesn't help too 
+     much. */
+  cairo_t *cr;
+  cairo_surface_t *sfc;
 };
 
 struct tab {
+  /* Mace structure that created this. */
   struct mace *mace;
+  /* Parent pane. */
+  struct pane *pane;
   
   uint8_t *name;
   size_t nlen;
@@ -121,7 +146,7 @@ struct tab {
   
   struct textbox *action, *main;
 
-  struct pane *pane;
+  /* Next in linked list. */
   struct tab *next;
 };
 
@@ -134,7 +159,9 @@ struct pane {
 
   int x, y, width, height;
 
+  /* Linked list of tabs in this pane. */
   struct tab *tabs;
+  /* Currently focused tab. */
   struct tab *focus;
 };
 
@@ -148,8 +175,11 @@ struct mace {
   lua_State *lua;
   
   struct pane *pane;
+  /* Currently focused textbox. */
   struct textbox *focus;
 };
+
+
 
 struct mace *
 macenew(void);
@@ -157,8 +187,11 @@ macenew(void);
 void
 macefree(struct mace *mace);
 
+/* Sets a flag that informs whatever is drawing this can stop and free
+   it. */
 void
 macequit(struct mace *mace);
+
 
 
 lua_State *
@@ -167,6 +200,7 @@ luanew(struct mace *mace);
 void
 luafree(lua_State *L);
 
+/* Loads a config file from where ever it can find it. */
 void
 lualoadrc(lua_State *L);
 
@@ -174,7 +208,6 @@ lualoadrc(lua_State *L);
 /* Currently pane, tabs, and textboxs. */
 void
 luaremove(lua_State *L, void *addr);
-
 
 void
 command(lua_State *L, const uint8_t *s);
@@ -229,6 +262,7 @@ void
 paneremovetab(struct pane *p, struct tab *t);
 
 
+
 /* New tabs are not added to any pane on creation, You must do that
    yourself with paneaddtab. paneaddtab will resize the tab to fit in
    the pane. Tabs can not be in multiple panes at once. */
@@ -272,6 +306,7 @@ tabbuttonrelease(struct tab *t, int x, int y,
 
 bool
 tabmotion(struct tab *t, int x, int y);
+
 
 
 
@@ -319,8 +354,6 @@ textboxfindstart(struct textbox *t);
 
 void
 textboxpredraw(struct textbox *t);
-
-
 
 
 struct selection *

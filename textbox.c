@@ -1,4 +1,3 @@
-
 #include "mace.h"
 
 struct textbox *
@@ -379,6 +378,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
   case KEY_delete:
     if (t->selections != NULL) {
       return deleteselections(t);
+
     } else if (sequencedelete(t->sequence, t->cursor, 1)) {
       textboxcalcpositions(t, t->cursor);
 
@@ -393,8 +393,9 @@ textboxkeypress(struct textbox *t, keycode_t k)
   case KEY_backspace:
     if (t->selections != NULL) {
       return deleteselections(t);
-    } else if (t->cursor > 0
-	       && sequencedelete(t->sequence, t->cursor - 1, 1)) {
+
+    } else if (t->cursor > 0 && sequencedelete(t->sequence,
+					       t->cursor - 1, 1)) {
 
       t->cursor--;
       textboxcalcpositions(t, t->cursor);
