@@ -1,4 +1,4 @@
-#include "lib.h"
+#include "utf8.h"
 
 bool
 islinebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l)
@@ -105,3 +105,23 @@ utf8iterate(uint8_t *s, size_t slen, int32_t *code)
   return i;
 }
 
+size_t
+utf8codepoints(uint8_t *s, size_t len)
+{
+  size_t i, j, a;
+  int32_t code;
+
+  i = 0;
+  j = 0;
+  while (i < len) {
+    a = utf8iterate(s + i, len - i, &code);
+    if (a == 0) {
+      break;
+    } else {
+      i += a;
+      j++;
+    }
+  }
+
+  return j;
+}

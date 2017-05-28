@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lib.h"
 #include "sequence.h"
 
 /* This needs to be improved. Needs some checks on how the chain is

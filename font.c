@@ -101,6 +101,10 @@ fontloadfile(struct font *font, const char *path, double size)
   
   font->face = new;
 
+  font->cface =
+    cairo_ft_font_face_create_for_ft_face(font->face,
+					  FT_LOAD_DEFAULT);
+
   font->baseline = 1 + ((font->face->size->metrics.height
 			 + font->face->size->metrics.descender) >> 6);
 

@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <cairo.h>
+#include <cairo-ft.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 #include <lua.h>
@@ -15,7 +16,7 @@
 #define PATH_MAX 512
 #endif
 
-#include "lib.h"
+#include "utf8.h"
 #include "sequence.h"
 
 /* Most keys are just text and are given to functions as a utf8 
@@ -83,6 +84,7 @@ struct font {
   
   FT_Library library;
   FT_Face face;
+  cairo_font_face_t *cface;
 
   int baseline, lineheight;
 };
@@ -98,11 +100,6 @@ struct textbox {
   bool cselisvalid; 
   
   struct sequence *sequence;
-
-  /* Some attempts at optimization. They don't work properly. */
-  ssize_t startpiece;
-  size_t startindex;
-  int startx, starty;
 
   /* A string that is inserted when the tab key is pressed. This is a
      temperary measure. I don't know if this should be global or per
@@ -348,9 +345,6 @@ textboxfindpos(struct textbox *t, int x, int y);
 
 void
 textboxcalcpositions(struct textbox *t, size_t pos);
-
-void
-textboxfindstart(struct textbox *t);
 
 void
 textboxpredraw(struct textbox *t);

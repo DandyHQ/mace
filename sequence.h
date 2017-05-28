@@ -1,6 +1,7 @@
 #include <sys/types.h>
+#include <cairo.h>
 
-#include "lib.h"
+#include "utf8.h"
 
 /* A sequence is a collection of pieces that manages a string of text.
    Text can be added to a sequence at any position, text can be
@@ -18,7 +19,8 @@ struct piece {
   size_t pos; /* In sequence */
   size_t off; /* In data buffer */
 
-  int x, y, width;
+  cairo_glyph_t *glyphs;
+  size_t nglyphs;
 };
 
 #define SEQ_start  0

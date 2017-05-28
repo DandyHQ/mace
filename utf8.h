@@ -14,3 +14,6 @@ iswordbreak(int32_t code);
 
 size_t
 utf8iterate(uint8_t *s, size_t len, int32_t *code);
+
+size_t
+utf8codepoints(uint8_t *s, size_t len);

@@ -5,7 +5,6 @@ textboxnew(struct tab *tab, struct colour *bg,
 	   struct sequence *seq)
 {
   struct textbox *t;
-  struct piece *p;
   
   t = calloc(1, sizeof(struct textbox));
   if (t == NULL) {
@@ -35,16 +34,6 @@ textboxnew(struct tab *tab, struct colour *bg,
 
   t->maxheight = 0;
 
-  t->startpiece = SEQ_start;
-
-  p = &t->sequence->pieces[t->startpiece];
-  p->x = 0;
-  p->y = 0;
-  
-  t->startindex = 0;
-  t->startx = 0;
-  t->starty = 0;
-  
   snprintf((char *) t->tabstring, sizeof(t->tabstring), "  ");
 
   memmove(&t->bg, bg, sizeof(struct colour));
@@ -114,13 +103,7 @@ textboxresize(struct textbox *t, int lw, int maxheight)
   t->linewidth = lw;
   t->maxheight = maxheight;
 
-  t->startpiece = SEQ_start;
-  t->startindex = 0;
-  t->startx = 0;
-  t->starty = 0;
-  
   textboxcalcpositions(t, 0);
-  textboxfindstart(t);
   textboxpredraw(t);
 
   return true;
@@ -257,9 +240,6 @@ deleteselections(struct textbox *t)
   }
 
   textboxcalcpositions(t, start);
-
-  t->startpiece = SEQ_start;  
-  textboxfindstart(t);
   textboxpredraw(t);
 
   return true;
@@ -281,8 +261,6 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
   textboxcalcpositions(t, t->cursor);
 
   t->cursor += l;
-
-  textboxfindstart(t);
 
   textboxpredraw(t);
 
@@ -352,7 +330,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     textboxcalcpositions(t, t->cursor);
     t->cursor += l;
-    textboxfindstart(t);
     textboxpredraw(t);
 
     return true;
@@ -370,7 +347,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     textboxcalcpositions(t, t->cursor);
     t->cursor += l;
-    textboxfindstart(t);
     textboxpredraw(t);
 
     return true;
@@ -381,9 +357,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     } else if (sequencedelete(t->sequence, t->cursor, 1)) {
       textboxcalcpositions(t, t->cursor);
-
-      t->startpiece = SEQ_start;  
-      textboxfindstart(t);
       textboxpredraw(t);
       return true;
     } 
@@ -399,9 +372,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
       t->cursor--;
       textboxcalcpositions(t, t->cursor);
-
-      t->startpiece = SEQ_start;  
-      textboxfindstart(t);
       textboxpredraw(t);
       return true;
     } 
@@ -433,7 +403,6 @@ textboxscroll(struct textbox *t, int xoff, int yoff)
   if (yoff != t->yoff) {
     t->yoff = yoff;
 
-    textboxfindstart(t);
     textboxpredraw(t);
 
     return true;

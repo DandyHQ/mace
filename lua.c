@@ -590,7 +590,6 @@ ltextboxnewindex(lua_State *L)
     if (strcmp(key, "yoff") == 0) {
       i = luaL_checkinteger(L, 3);
       t->yoff = i;
-      textboxfindstart(t);
       textboxpredraw(t);
       return 0;
     }
@@ -620,7 +619,6 @@ ltextboxsetfont(lua_State *L)
 
   if (r == 0) {
     textboxcalcpositions(t, SEQ_start);
-    textboxfindstart(t);
     textboxpredraw(t);
   }
   
@@ -685,7 +683,6 @@ ltextboxremoveselection(lua_State *L)
   }
 
   textboxcalcpositions(t, start);
-  textboxfindstart(t);
   textboxpredraw(t);
 
   return 0;
@@ -706,7 +703,6 @@ ltextboxinsert(lua_State *L)
   r = sequenceinsert(t->sequence, pos, data, len);
 
   textboxcalcpositions(t, pos);
-  textboxfindstart(t);
   textboxpredraw(t);
   
   lua_pushboolean(L, r);
@@ -728,7 +724,6 @@ ltextboxdelete(lua_State *L)
   r = sequencedelete(t->sequence, start, len);
 
   textboxcalcpositions(t, start);
-  textboxfindstart(t);
   textboxpredraw(t);
   
   lua_pushboolean(L, r);
