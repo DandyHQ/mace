@@ -152,6 +152,6 @@ function paste()
 end
 
 function search()
-   print("should search")
+   print("search is not yet implimented.")
 end
 

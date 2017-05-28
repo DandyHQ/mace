@@ -293,14 +293,8 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 bool
 textboxkeypress(struct textbox *t, keycode_t k)
 {
-  bool removed = false, redraw = false;
   uint8_t s[16];
   size_t l;
-
-  if (t->selections != NULL) {
-    redraw = deleteselections(t);
-    removed = true;
-  }
 
   switch (k) {
   default:
@@ -346,11 +340,15 @@ textboxkeypress(struct textbox *t, keycode_t k)
     break;
     
   case KEY_tab:
+    if (t->selections != NULL) {
+      deleteselections(t);
+    }
+
     l = snprintf((char *) s, sizeof(s), "%s",
 		 (char *) t->tabstring);
     
     if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
-      return redraw;
+      return true;
     }
 
     textboxcalcpositions(t, t->cursor);
@@ -361,10 +359,14 @@ textboxkeypress(struct textbox *t, keycode_t k)
     return true;
 
   case KEY_return:
+    if (t->selections != NULL) {
+      deleteselections(t);
+    }
+
     l = snprintf((char *) s, sizeof(s), "\n");
 
     if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
-      return redraw;
+      return true;
     }
 
     textboxcalcpositions(t, t->cursor);
@@ -375,34 +377,32 @@ textboxkeypress(struct textbox *t, keycode_t k)
     return true;
   
   case KEY_delete:
-    if (!removed) {
-      if (sequencedelete(t->sequence, t->cursor, 1)) {
-	textboxcalcpositions(t, t->cursor);
+    if (t->selections != NULL) {
+      return deleteselections(t);
+    } else if (sequencedelete(t->sequence, t->cursor, 1)) {
+      textboxcalcpositions(t, t->cursor);
 
-	t->startpiece = SEQ_start;  
-	textboxfindstart(t);
-	textboxpredraw(t);
-	return true;
-      } else {
-	return redraw;
-      }
+      t->startpiece = SEQ_start;  
+      textboxfindstart(t);
+      textboxpredraw(t);
+      return true;
     } 
 
     break;
     
   case KEY_backspace:
-    if (!removed && t->cursor > 0) {
-      if (sequencedelete(t->sequence, t->cursor - 1, 1)) {
-	t->cursor--;
-	textboxcalcpositions(t, t->cursor);
+    if (t->selections != NULL) {
+      return deleteselections(t);
+    } else if (t->cursor > 0
+	       && sequencedelete(t->sequence, t->cursor - 1, 1)) {
 
-	t->startpiece = SEQ_start;  
-	textboxfindstart(t);
-	textboxpredraw(t);
-	return true;
-      } else {
-	return redraw;
-      }
+      t->cursor--;
+      textboxcalcpositions(t, t->cursor);
+
+      t->startpiece = SEQ_start;  
+      textboxfindstart(t);
+      textboxpredraw(t);
+      return true;
     } 
 
     break;
@@ -411,7 +411,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     break;
   }
 
-  return redraw;
+  return false;
 }
 
 bool
