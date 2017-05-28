@@ -64,8 +64,72 @@ textboxpredraw(struct textbox *t)
 size_t
 textboxfindpos(struct textbox *t, int lx, int ly)
 {
-  /* TODO */
-  return 0;
+ struct sequence *s;
+  struct piece *p;
+  int32_t code, a;
+  int ww, ay, by;
+  size_t i, g;
+
+  ay = t->font->face->size->metrics.ascender >> 6;
+  by = t->font->face->size->metrics.descender >> 6;
+	 
+  s = t->sequence;
+  p = &s->pieces[SEQ_start];
+  i = 0;
+  g = 0;
+
+  while (true) {
+    while (i < p->len && g < p->nglyphs) {
+      a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+      if (a == 0) {
+	i++;
+	continue;
+      }
+
+      /* Line Break. */
+      if (islinebreak(code,
+		      s->data + p->off + i,
+		      p->len - i, &a)) {
+
+	if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y - by) {
+	  printf("pos found on new line %i around %f\n", ly, p->glyphs[g].y);
+	  return p->pos + i;
+	}
+	
+	i += a;
+	continue;
+      }
+
+      if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
+			FT_LOAD_DEFAULT) != 0) {
+	i += a;
+	continue;
+      }
+
+      ww = t->font->face->glyph->advance.x >> 6;
+
+      if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y - by) {
+	if (p->glyphs[g].x <= lx && lx <= p->glyphs[g].x + ww) {
+	  printf("pos found\n");
+	  return p->pos + i;
+	}
+      }
+
+      i += a;
+      g++;
+    }
+
+    if (p->next != -1) {
+      p = &s->pieces[p->next];
+      i = 0;
+      g = 0;
+    } else {
+      break;
+    }
+  }
+
+  printf("pos not found, probably at end\n");
+  return p->pos + i;
 }
 
 /* TODO: improve speed. Stop it from calculating things it doesnt need
