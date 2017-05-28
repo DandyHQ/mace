@@ -31,6 +31,9 @@ lot of improvements.
 For managing a mace instance. Forwards things like user events to the
 appropriout textbox.
 
+- pane.c
+Creation, management and drawing of panes.
+
 - tab.c
 Creation, management and drawing of tabs.
 
@@ -48,12 +51,16 @@ Small collection of utf8/text functions.
 - lua.c
 Lua api mappings.
 
-- init.lua
-A basic initialization script.
-
 - xmain.c
 All X11 related things. In future there will probably be one of
 these for quarts, windows, wayland, etc.
+
+- mace.lua
+A collection of helper functions and commands that make mace usable.
+
+- macerc.lua
+A very basic initialization file.
+
 
 # Events
 
@@ -152,4 +159,3 @@ So font handling will have to change at some point.
 - [Text Piece Chain](https://github.com/martanne/vis/wiki/Text-management-using-a-piece-chain)
 - [Some interesting text management documents](https://github.com/google/xi-editor/blob/master/doc/rope_science/intro.md) 
 - [A Paper on Text Management](https://www.cs.unm.edu/~crowley/papers/sds.pdf),
-it explains pieces chains well.

@@ -162,7 +162,7 @@ findpane(struct mace *mace, int x, int y)
 
   p = mace->pane;
 
-  /* Do search if there were more panes */
+  /* Once we had multiple panes in find the one that bounds x,y. */
   
   return p;
 }

@@ -2,7 +2,7 @@
 
 ## Platforms
 
-To make it portable C11. OpenBSD, ubuntu, and fedora are targets. 
+To make it in portable C11. OpenBSD, ubuntu, and fedora are targets. 
 In future Windows and OSX support will probably be added. 
 
 ## Layouting
