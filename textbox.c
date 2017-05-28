@@ -13,7 +13,12 @@ textboxnew(struct tab *tab, struct colour *bg,
     return NULL;
   }
 
-  t->font = tab->mace->font;
+  t->font = fontcopy(tab->mace->font);
+  if (t->font == NULL) {
+    free(t);
+    return NULL;
+  }
+  
   t->sequence = seq;
   t->tab = tab;
   

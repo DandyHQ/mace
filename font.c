@@ -8,13 +8,18 @@
 
 #include <fontconfig/fontconfig.h>
 
+static char *defaultpattern = "-14";
+
+static int
+fontloadfile(struct font *font, const char *path, double size);
+
 struct font *
 fontnew(void)
 {
   struct font *f;
   int e;
 
-  f = malloc(sizeof(struct font));
+  f = calloc(1, sizeof(struct font));
   if (f == NULL) {
     return NULL;
   }
@@ -25,9 +30,32 @@ fontnew(void)
     return NULL;
   }
 
-  f->face = NULL;
+  e = fontset(f, defaultpattern);
+  if (e != 0) {
+    fontfree(f);
+    return NULL;
+  }
 
-  e = fontset(f, (const uint8_t *) "-15");
+  return f;
+}
+
+struct font *
+fontcopy(struct font *old)
+{
+  struct font *f;
+  int e;
+
+  f = fontnew();
+  if (f == NULL) {
+    return NULL;
+  }
+
+  if (old->path[0] != 0) {
+    e = fontloadfile(f, old->path, old->size);
+  } else {
+    e = fontset(f, defaultpattern);
+  }
+
   if (e != 0) {
     fontfree(f);
     return NULL;
@@ -51,61 +79,27 @@ fontfree(struct font *font)
 }
 
 int
-fontset(struct font *font, const uint8_t *spattern)
+fontloadfile(struct font *font, const char *path, double size)
 {
-  FcPattern *pat, *fontpat;
-  FcConfig *config;
-  FcResult result;
-  FcChar8 *file;
-  double size;
-  int e;
-
-  config = FcInitLoadConfigAndFonts();
-  if (config == NULL) {
-    e = -1;
-    goto err0;
+  FT_Face new;
+  
+  if (FT_New_Face(font->library, path, 0, &new) != 0) {
+    return 1;
   }
 
-  pat = FcNameParse(spattern);
-  if (pat == NULL) {
-    e = -1;
-    goto err0;
-  }
-
-  FcConfigSubstitute(config, pat, FcMatchPattern);
-  FcDefaultSubstitute(pat);
-
-  fontpat = FcFontMatch(config, pat, &result);
-  if (fontpat == NULL) {
-    e = -1;
-    goto err1;
-  }
-
-  if (FcPatternGetString(fontpat, FC_FILE, 0, &file)
-      != FcResultMatch) {
-    e = -1;
-    goto err2;
-  }
-
-  if (FcPatternGetDouble(fontpat, FC_SIZE, 0, &size)
-      != FcResultMatch) {
-    e = -1;
-    goto err2;
+  if (FT_Set_Pixel_Sizes(new, size, size) != 0) {
+    FT_Done_Face(new);
+    return 1;
   }
 
   if (font->face != NULL) {
     FT_Done_Face(font->face);
   }
 
-  e = FT_New_Face(font->library, (const char *) file, 0, &font->face);
-  if (e != 0) {
-    goto err2;
-  }
-
-  e = FT_Set_Pixel_Sizes(font->face, 0, size);
-  if (e != 0) {
-    goto err2;
-  }
+  snprintf(font->path, sizeof(font->path), "%s", path);
+  font->size = size;
+  
+  font->face = new;
 
   font->baseline = 1 + ((font->face->size->metrics.height
 			 + font->face->size->metrics.descender) >> 6);
@@ -113,13 +107,59 @@ fontset(struct font *font, const uint8_t *spattern)
   font->lineheight = 2 + (font->face->size->metrics.height >> 6);
 
   return 0;
+}
 
- err2:
-  FcPatternDestroy(fontpat);
- err1:
-  FcPatternDestroy(pat);
- err0:
-  return e;
+int
+fontset(struct font *font, const char *spattern)
+{
+  FcPattern *pat, *fontpat;
+  FcConfig *config;
+  FcResult result;
+  double size;
+  char *path;
+
+  config = FcInitLoadConfigAndFonts();
+  if (config == NULL) {
+    return 1;
+  }
+
+  pat = FcNameParse((const FcChar8 *) spattern);
+  if (pat == NULL) {
+    return 1;
+  }
+
+  FcConfigSubstitute(config, pat, FcMatchPattern);
+  FcDefaultSubstitute(pat);
+
+  fontpat = FcFontMatch(config, pat, &result);
+  if (fontpat == NULL) {
+    FcPatternDestroy(pat);
+    return 1;
+  }
+
+  if (FcPatternGetString(fontpat, FC_FILE, 0, (FcChar8 **) &path)
+      != FcResultMatch) {
+
+    FcPatternDestroy(fontpat);
+    FcPatternDestroy(pat);
+    return 1;
+  }
+
+  if (FcPatternGetDouble(fontpat, FC_SIZE, 0, &size)
+      != FcResultMatch) {
+
+    FcPatternDestroy(fontpat);
+    FcPatternDestroy(pat);
+    return 1;
+  }
+
+  if (fontloadfile(font, path, size) != 0) {
+    FcPatternDestroy(fontpat);
+    FcPatternDestroy(pat);
+    return 1;
+  }
+
+  return 0;
 }
 
 bool

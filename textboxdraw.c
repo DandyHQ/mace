@@ -3,7 +3,6 @@
 static struct colour nfg = { 0, 0, 0 };
 static struct colour sbg = { 0.5, 0.8, 0.7 };
 
-
 /* 
 
    Here be dragons. 

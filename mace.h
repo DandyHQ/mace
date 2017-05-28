@@ -54,11 +54,10 @@ struct selection {
   struct selection *next;
 };
 
-/* This is done horribly. There can only be one instance for every
-   instance of mace. I would like to be able to have each textbox have
-   its own instance, if not of library then at least of face. */
-
 struct font {
+  char path[PATH_MAX];
+  double size;
+  
   FT_Library library;
   FT_Face face;
 
@@ -155,11 +154,14 @@ command(lua_State *L, const uint8_t *s);
 struct font *
 fontnew(void);
 
+struct font *
+fontcopy(struct font *old);
+
 void
 fontfree(struct font *font);
 
 int
-fontset(struct font *font, const uint8_t *pattern);
+fontset(struct font *font, const char *pattern);
 
 bool
 loadglyph(FT_Face face, int32_t code);

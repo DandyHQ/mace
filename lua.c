@@ -233,11 +233,11 @@ static int
 lmacesetfont(lua_State *L)
 {
   struct mace *mace = obj_ref_check(L, 1, "mace");
-  const uint8_t *pattern;
+  const char *pattern;
   size_t len;
   int r;
 
-  pattern = (const uint8_t *) luaL_checklstring(L, 2, &len);
+  pattern = luaL_checklstring(L, 2, &len);
 
   r = fontset(mace->font, pattern);
 
@@ -763,7 +763,7 @@ lua_State *
 luanew(struct mace *mace)
 {
   const char *home, *xdg, *epath;
-  char path[1024];
+  char path[PATH_MAX];
   struct passwd *pw;
   lua_State *L;
 
