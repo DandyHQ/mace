@@ -1,37 +1,37 @@
 #include "mace.h"
 
 static struct colour nfg = { 0, 0, 0 };
-/*
 static struct colour sbg = { 0.5, 0.8, 0.7 };
-*/
 
-/*
 static void
-drawcursor(struct textbox *t, int x, int y)
+drawcursor(struct textbox *t, int x, int y, int h)
 {
   cairo_set_source_rgb(t->cr, 0, 0, 0);
   cairo_set_line_width (t->cr, 1.0);
 
   cairo_move_to(t->cr, x, y);
-  cairo_line_to(t->cr, x, y + t->font->lineheight - 1);
+  cairo_line_to(t->cr, x, y + h);
   cairo_stroke(t->cr);
 
   cairo_move_to(t->cr, x - 2, y);
   cairo_line_to(t->cr, x + 2, y);
   cairo_stroke(t->cr);
 
-  cairo_move_to(t->cr, x - 2, y + t->font->lineheight - 1);
-  cairo_line_to(t->cr, x + 2, y + t->font->lineheight - 1);
+  cairo_move_to(t->cr, x - 2, y + h);
+  cairo_line_to(t->cr, x + 2, y + h);
   cairo_stroke(t->cr);
 }
-*/
 
 void
 textboxpredraw(struct textbox *t)
 {
+  struct selection *sel;
   struct sequence *s;
+  struct colour *bg;
   struct piece *p;
-  size_t i;
+  int32_t code, a;
+  int ay, by, ww;
+  size_t i, g;
 
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
@@ -39,32 +39,93 @@ textboxpredraw(struct textbox *t)
   cairo_set_font_face(t->cr, t->font->cface);
   cairo_set_font_size(t->cr, t->font->size);
 
+  cairo_translate(t->cr, 0, -t->yoff);
+
+  ay = t->font->face->size->metrics.ascender >> 6;
+  by = t->font->face->size->metrics.descender >> 6;
+	 
   s = t->sequence;
   p = &s->pieces[SEQ_start];
   i = 0;
-
-  cairo_translate(t->cr, 0, -t->yoff);
+  g = 0;
 
   while (true) {
-    /* TODO: selections, cursor. */
-    cairo_set_source_rgb(t->cr, nfg.r, nfg.g, nfg.b);
-    cairo_show_glyphs(t->cr, &p->glyphs[i], p->nglyphs - i);
-    
-    if (p->next == -1) {
-      break;
-    } else {
+    while (i < p->len && g < p->nglyphs) {
+      a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+      if (a == 0) {
+	i++;
+	continue;
+      }
+
+      sel = inselections(t, p->pos + i);
+      if (sel != NULL) {
+	bg = &sbg;
+      } else {
+	bg = &t->bg;
+      }
+      
+      /* Line Break. */
+      if (p->glyphs[g].index == t->font->newlineindex) {
+	/* Update's a if need be. */
+	islinebreak(code, s->data + p->off + i, p->len - i, &a);
+
+	if (p->pos + i == t->cursor) {
+	  drawcursor(t, p->glyphs[g].x, p->glyphs[g].y - ay,
+		     ay - by);
+	}
+ 
+	i += a;
+	g++;
+	continue;
+      }
+
+      if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
+			FT_LOAD_DEFAULT) != 0) {
+	i += a;
+	continue;
+      }
+
+      ww = t->font->face->glyph->advance.x >> 6;
+
+      cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
+      cairo_rectangle(t->cr,
+		      p->glyphs[g].x, p->glyphs[g].y - ay,
+		      p->glyphs[g].x + ww, p->glyphs[g].y - by);
+
+      cairo_fill(t->cr); 
+		      
+      cairo_set_source_rgb(t->cr, nfg.r, nfg.g, nfg.b);
+      cairo_show_glyphs(t->cr, &p->glyphs[g], 1);
+
+      if (p->pos + i == t->cursor) {
+	drawcursor(t, p->glyphs[g].x, p->glyphs[g].y - ay,
+		   ay - by);
+      }
+      
+      i += a;
+      g++;
+    }
+
+    if (p->next != -1) {
       p = &s->pieces[p->next];
       i = 0;
+      g = 0;
+    } else {
+      break;
     }
   }
 
+  if (p->pos + i == t->cursor) {
+    printf("should draw cursor at end\n");
+  }
+ 
   cairo_translate(t->cr, 0, t->yoff);
 } 
 
 size_t
 textboxfindpos(struct textbox *t, int lx, int ly)
 {
- struct sequence *s;
+  struct sequence *s;
   struct piece *p;
   int32_t code, a;
   int ww, ay, by;
