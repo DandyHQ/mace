@@ -110,8 +110,6 @@ fontloadfile(struct font *font, const char *path, double size)
 
   font->lineheight = 2 + (font->face->size->metrics.height >> 6);
 
-  font->newlineindex = FT_Get_Char_Index(font->face, '\n');
-
   return 0;
 }
 

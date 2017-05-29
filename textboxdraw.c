@@ -1,6 +1,7 @@
 #include "mace.h"
 
 /* TODO: 
+
    Improve speed. Stop textboxcalcpositions from calculating 
    things it doesnt need to. eg: just push pieces down rather than 
    recalculating their width. 
@@ -138,7 +139,7 @@ textboxpredraw(struct textbox *t)
       }
 
       /* Line Break. */
-      if (p->glyphs[g].index == t->font->newlineindex) {
+      if (p->glyphs[g].index == 0) {
 	if (start < g) {
 	  drawglyphs(t, &p->glyphs[start], g - start,
 		     &nfg, bg, ay, by);
@@ -196,6 +197,14 @@ textboxpredraw(struct textbox *t)
     }
   }
 
+  if (p->pos + i == t->cursor) {
+    /* TODO: Figure out end position */
+    /*
+    drawcursor(t, p->glyphs[g].x, p->glyphs[g].y - ay,
+	       ay + by);
+    */
+  }
+
   cairo_translate(t->cr, 0, t->yoff);
 } 
 
@@ -227,7 +236,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
       }
 
       /* Line Break. */
-      if (p->glyphs[g].index == t->font->newlineindex) {
+      if (p->glyphs[g].index == 0) {
 	/* Update's a if need be. */
 	islinebreak(code, s->data + p->off + i, p->len - i, &a);
 
@@ -300,7 +309,7 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 		      s->data + p->off + i,
 		      p->len - i, &a)) {
 
-	p->glyphs[g].index = t->font->newlineindex;
+	p->glyphs[g].index = 0;
 	p->glyphs[g].x = x;
 	p->glyphs[g].y = y;
 
