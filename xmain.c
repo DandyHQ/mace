@@ -206,9 +206,6 @@ eventLoop(void)
     case MotionNotify:
       redraw = xhandlemotion(&e.xmotion);     
       break;
-
-    default:
-      printf("unknown event %i\n", e.type);
     }
 
     if (redraw) {
