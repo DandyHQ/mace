@@ -1,5 +1,15 @@
 #include "mace.h"
 
+/* TODO: 
+   Improve speed. Stop textboxcalcpositions from calculating 
+   things it doesnt need to. eg: just push pieces down rather than 
+   recalculating their width. 
+
+   Reimpliment something like textboxfindstart to stop drawing
+   unnessesary glyphs.
+*/
+
+
 static struct colour nfg = { 0, 0, 0 };
 static struct colour sbg = { 0.5, 0.8, 0.7 };
 
@@ -22,16 +32,63 @@ drawcursor(struct textbox *t, int x, int y, int h)
   cairo_stroke(t->cr);
 }
 
+static void
+drawglyphs(struct textbox *t, cairo_glyph_t *glyphs, size_t len,
+	   struct colour *fg, struct colour *bg,
+	   int ay, int by)
+{
+  cairo_text_extents_t extents;
+  size_t g, start;
+
+  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
+
+  /* Go through glyphs and find lines, draw background. */
+  start = 0;
+  for (g = 0; g < len; g++) {
+    if (glyphs[g].x != 0) {
+      continue;
+    }
+
+    cairo_rectangle(t->cr,
+		  glyphs[start].x,
+		  glyphs[start].y - ay,
+		  t->linewidth - glyphs[start].x,
+		  ay + by);
+		  
+    cairo_fill(t->cr);
+
+    start = g;
+  }
+
+  /* Draw background of remaining glyphs. */
+
+  if (start < g) {
+    cairo_glyph_extents(t->cr, &glyphs[start], g - start, &extents);
+
+    cairo_rectangle(t->cr,
+		  glyphs[start].x,
+		  glyphs[start].y - ay,
+		  extents.x_advance,
+		  ay + by);
+		  
+    cairo_fill(t->cr);
+  }
+
+  /* Draw glyphs */
+  cairo_set_source_rgb(t->cr, fg->r, fg->g, fg->b);
+  cairo_show_glyphs(t->cr, glyphs, len);
+}
+
 void
 textboxpredraw(struct textbox *t)
 {
-  struct selection *sel;
+  struct selection *sel, *nsel;
   struct sequence *s;
+  size_t i, g, start;
   struct colour *bg;
   struct piece *p;
   int32_t code, a;
-  int ay, by, ww;
-  size_t i, g;
+  int ay, by;
 
   cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(t->cr);
@@ -41,84 +98,104 @@ textboxpredraw(struct textbox *t)
 
   cairo_translate(t->cr, 0, -t->yoff);
 
-  ay = t->font->face->size->metrics.ascender >> 6;
-  by = t->font->face->size->metrics.descender >> 6;
+  ay = (t->font->face->size->metrics.ascender >> 6) + 1;
+  by = -(t->font->face->size->metrics.descender >> 6) + 1;
 	 
   s = t->sequence;
   p = &s->pieces[SEQ_start];
   i = 0;
   g = 0;
+  start = 0;
+
+  sel = NULL;
+  bg = &t->bg;
 
   while (true) {
-    while (i < p->len && g < p->nglyphs) {
+    while (i < p->len && g < p->nglyphs
+	   && p->glyphs[g].y < t->yoff + t->maxheight) {
+
       a = utf8iterate(s->data + p->off + i, p->len - i, &code);
       if (a == 0) {
 	i++;
 	continue;
       }
 
-      sel = inselections(t, p->pos + i);
-      if (sel != NULL) {
-	bg = &sbg;
-      } else {
-	bg = &t->bg;
+      nsel = inselections(t, p->pos + i);
+      if (nsel != sel) {
+	if (start < g) {
+	  drawglyphs(t, &p->glyphs[start], g - start,
+		     &nfg, bg, ay, by);
+	}
+
+	start = g;
+
+	sel = nsel;
+	if (sel != NULL) {
+	  bg = &sbg;
+	} else {
+	  bg = &t->bg;
+	}
       }
-      
+
       /* Line Break. */
       if (p->glyphs[g].index == t->font->newlineindex) {
+	if (start < g) {
+	  drawglyphs(t, &p->glyphs[start], g - start,
+		     &nfg, bg, ay, by);
+	}
+
+	if (sel != NULL) {
+	  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
+	  cairo_rectangle(t->cr,
+			  p->glyphs[g].x,
+			  p->glyphs[g].y - ay,
+			  t->linewidth - p->glyphs[g].x,
+			  ay + by);
+		  
+	  cairo_fill(t->cr); 
+	}
+	
+	if (p->pos + i == t->cursor) {
+	  drawcursor(t, p->glyphs[g].x, p->glyphs[g].y - ay,
+		     ay + by);
+	}
+
 	/* Update's a if need be. */
 	islinebreak(code, s->data + p->off + i, p->len - i, &a);
 
-	if (p->pos + i == t->cursor) {
-	  drawcursor(t, p->glyphs[g].x, p->glyphs[g].y - ay,
-		     ay - by);
-	}
- 
-	i += a;
-	g++;
-	continue;
-      }
+	start = g + 1;
 
-      if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
-			FT_LOAD_DEFAULT) != 0) {
-	i += a;
-	continue;
-      }
+      } else if (p->pos + i == t->cursor) {
+	drawglyphs(t, &p->glyphs[start], g - start + 1,
+		   &nfg, bg, ay, by);
 
-      ww = t->font->face->glyph->advance.x >> 6;
-
-      cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
-      cairo_rectangle(t->cr,
-		      p->glyphs[g].x, p->glyphs[g].y - ay,
-		      p->glyphs[g].x + ww, p->glyphs[g].y - by);
-
-      cairo_fill(t->cr); 
-		      
-      cairo_set_source_rgb(t->cr, nfg.r, nfg.g, nfg.b);
-      cairo_show_glyphs(t->cr, &p->glyphs[g], 1);
-
-      if (p->pos + i == t->cursor) {
 	drawcursor(t, p->glyphs[g].x, p->glyphs[g].y - ay,
-		   ay - by);
+		   ay + by);
+
+	start = g + 1;
       }
-      
+
       i += a;
       g++;
     }
 
-    if (p->next != -1) {
+    if (start + 1 < g) {
+      drawglyphs(t, &p->glyphs[start], g - start,
+		 &nfg, bg, ay, by);
+    }
+
+    if (g < p->nglyphs && p->glyphs[g].y >= t->yoff + t->maxheight) {
+      break;
+    } else if (p->next != -1) {
       p = &s->pieces[p->next];
       i = 0;
+      start = 0;
       g = 0;
     } else {
       break;
     }
   }
 
-  if (p->pos + i == t->cursor) {
-    printf("should draw cursor at end\n");
-  }
- 
   cairo_translate(t->cr, 0, t->yoff);
 } 
 
@@ -131,10 +208,10 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   int ww, ay, by;
   size_t i, g;
 
-  ly -= t->yoff;
+  ly += t->yoff;
   
-  ay = t->font->face->size->metrics.ascender >> 6;
-  by = t->font->face->size->metrics.descender >> 6;
+  ay = (t->font->face->size->metrics.ascender >> 6) + 1;
+  by = -(t->font->face->size->metrics.descender >> 6) + 1;
 	 
   s = t->sequence;
   p = &s->pieces[SEQ_start];
@@ -154,7 +231,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 	/* Update's a if need be. */
 	islinebreak(code, s->data + p->off + i, p->len - i, &a);
 
-	if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y - by) {
+	if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y + by) {
 	  return p->pos + i;
 	} else {
 	  i += a;
@@ -171,7 +248,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
       ww = t->font->face->glyph->advance.x >> 6;
 
-      if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y - by) {
+      if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y + by) {
 	if (p->glyphs[g].x <= lx && lx <= p->glyphs[g].x + ww) {
 	  return p->pos + i;
 	}
@@ -192,10 +269,6 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
   return p->pos + i;
 }
-
-/* TODO: improve speed. Stop it from calculating things it doesnt need
-   to. eg: just push pieces down rather than recalculating their
-   width. */
 
 void
 textboxcalcpositions(struct textbox *t, size_t pos)
