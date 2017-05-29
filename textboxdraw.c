@@ -70,6 +70,8 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   int ww, ay, by;
   size_t i, g;
 
+  ly -= t->yoff;
+  
   ay = t->font->face->size->metrics.ascender >> 6;
   by = t->font->face->size->metrics.descender >> 6;
 	 
@@ -87,17 +89,17 @@ textboxfindpos(struct textbox *t, int lx, int ly)
       }
 
       /* Line Break. */
-      if (islinebreak(code,
-		      s->data + p->off + i,
-		      p->len - i, &a)) {
+      if (p->glyphs[g].index == t->font->newlineindex) {
+	/* Update's a if need be. */
+	islinebreak(code, s->data + p->off + i, p->len - i, &a);
 
 	if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y - by) {
-	  printf("pos found on new line %i around %f\n", ly, p->glyphs[g].y);
 	  return p->pos + i;
+	} else {
+	  i += a;
+	  g++;
+	  continue;
 	}
-	
-	i += a;
-	continue;
       }
 
       if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
@@ -110,7 +112,6 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
       if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y - by) {
 	if (p->glyphs[g].x <= lx && lx <= p->glyphs[g].x + ww) {
-	  printf("pos found\n");
 	  return p->pos + i;
 	}
       }
@@ -128,7 +129,6 @@ textboxfindpos(struct textbox *t, int lx, int ly)
     }
   }
 
-  printf("pos not found, probably at end\n");
   return p->pos + i;
 }
 
@@ -166,9 +166,15 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 		      s->data + p->off + i,
 		      p->len - i, &a)) {
 
+	p->glyphs[g].index = t->font->newlineindex;
+	p->glyphs[g].x = x;
+	p->glyphs[g].y = y;
+
 	x = 0;
 	y += t->font->lineheight;
 	i += a;
+	g++;
+
 	continue;
       }
 

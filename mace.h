@@ -87,6 +87,7 @@ struct font {
   cairo_font_face_t *cface;
 
   int baseline, lineheight;
+  int32_t newlineindex;
 };
 
 struct textbox {
