@@ -12,6 +12,9 @@ Atom.
 #### To Do
 
 * Split-screen interface
+* Undo/Redo
+* Multiple Selections (?)
+* Lots of small things.
 
 ## Screenshot
 ![Screenshot](https://github.com/DandyHQ/mace/blob/master/docs/screenshot.png)
@@ -55,6 +58,7 @@ $ mkdir build
 $ meson build
 $ ninja -C build
 
+# To run
 $ ./build/mace
 
 # or to install
@@ -63,8 +67,6 @@ $ ./build/mace
 $ mace
 
 ```
-
-The last command launches Mace.
 
 If you'd like to run the test suite to ensure Mace is functioning 
 correctly, they can be run from ninja using:

@@ -17,8 +17,9 @@ if not lua.found()
 	lua = dependency('lua', version : '>=5.2.4')
 endif
 
-path = get_option('datadir') + '/mace' 
 #path = join_paths(get_option('datadir'), 'mace')
+# Ubuntu has a very old version of meson which doesn't have join_paths.
+path = get_option('datadir') + '/mace'
 
 conf_data = configuration_data()
 conf_data.set('version', '0.1.0')
