@@ -84,6 +84,7 @@ void
 textboxpredraw(struct textbox *t)
 {
   struct selection *sel, *nsel;
+  cairo_text_extents_t extents;
   struct sequence *s;
   size_t i, g, start;
   struct colour *bg;
@@ -180,14 +181,25 @@ textboxpredraw(struct textbox *t)
       g++;
     }
 
-    if (start + 1 < g) {
+    if (start < g) {
       drawglyphs(t, &p->glyphs[start], g - start,
 		 &nfg, bg, ay, by);
     }
 
+    /* Kinda hacky. Draws the cursor if it is one past the end. */
+    if (p->pos + i + 1 == t->cursor) {
+      if (g > 0 && g - 1 < p->nglyphs) {
+	cairo_glyph_extents(t->cr, &p->glyphs[g-1], 1, &extents);
+
+	drawcursor(t, p->glyphs[g-1].x + extents.x_advance,
+		   p->glyphs[g-1].y - ay,
+		   ay + by);
+      }
+    }
+
     if (g < p->nglyphs && p->glyphs[g].y >= t->yoff + t->maxheight) {
       break;
-    } else if (p->next != -1) {
+    } else if (p->next != SEQ_end) {
       p = &s->pieces[p->next];
       i = 0;
       start = 0;
@@ -195,14 +207,6 @@ textboxpredraw(struct textbox *t)
     } else {
       break;
     }
-  }
-
-  if (p->pos + i == t->cursor) {
-    /* TODO: Figure out end position */
-    /*
-    drawcursor(t, p->glyphs[g].x, p->glyphs[g].y - ay,
-	       ay + by);
-    */
   }
 
   cairo_translate(t->cr, 0, t->yoff);

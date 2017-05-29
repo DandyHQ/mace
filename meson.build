@@ -48,9 +48,9 @@ executable('mace', install: true,
 
 	   dependencies: [
 	     x11,
-	     cairo,
 	     ft,
 	     fc,
+	     cairo,
 	     lua,
 	   ],
 	  )

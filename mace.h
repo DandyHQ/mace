@@ -1,10 +1,10 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <cairo.h>
-#include <cairo-ft.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
+#include <cairo.h>
+#include <cairo-ft.h>
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -83,6 +83,7 @@ struct font {
   double size;
   
   FT_Library library;
+
   FT_Face face;
   cairo_font_face_t *cface;
 
@@ -126,8 +127,8 @@ struct textbox {
 
   /* Used for prerendering textbox's. Probably doesn't help too 
      much. */
-  cairo_t *cr;
   cairo_surface_t *sfc;
+  cairo_t *cr;
 };
 
 struct tab {

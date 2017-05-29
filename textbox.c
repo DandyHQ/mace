@@ -16,7 +16,7 @@ textboxnew(struct tab *tab, struct colour *bg,
     free(t);
     return NULL;
   }
-  
+
   t->sequence = seq;
   t->tab = tab;
   
