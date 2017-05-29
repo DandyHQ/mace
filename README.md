@@ -27,6 +27,8 @@ There are many key features left to add to Mace for it to make Alpha:
 * Smart indenting
 * Keybord shortcuts
 * Session management
+* Multiple selections
+* Lots of small things.
 
 ## Building
 
@@ -67,6 +69,7 @@ $ mkdir build
 $ meson build
 $ ninja -C build
 
+# To run
 $ ./build/mace
 
 # or to install
@@ -76,10 +79,7 @@ $ mace
 
 ```
 
-The last command launches Mace.
-
-If you'd like to run the test suite to ensure Mace is functioning
-correctly, they can be run from ninja using:
+If you'd like to run the test suite to ensure Mace is functioning correctly, they can be run from ninja using:
 
 ```
 $ ninja -C build test
