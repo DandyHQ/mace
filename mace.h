@@ -68,7 +68,7 @@ typedef enum { SELECTION_left, SELECTION_right } selection_t;
 struct selection {
   struct textbox *textbox;
 
-  int32_t start, end;
+  size_t start, end;
   selection_t direction;
 
   struct selection *next;
@@ -98,7 +98,7 @@ struct textbox {
   struct selection *csel, *selections;
   /* Has csel selected more than the one glyph. If it hasn't then the
      selection is removed when the button is lifted. */
-  bool cselisvalid; 
+  size_t newselpos;
   
   struct sequence *sequence;
 
@@ -110,7 +110,7 @@ struct textbox {
 
   /* This must be on a unicode code point boundry or it will not be
      drawn. */
-  int32_t cursor;
+  size_t cursor;
 
   /* Maximum width a line can be. */
   int linewidth;
@@ -352,7 +352,7 @@ textboxpredraw(struct textbox *t);
 
 
 struct selection *
-selectionnew(struct textbox *t, int32_t pos);
+selectionnew(struct textbox *t, size_t pos);
 
 void
 selectionfree(struct selection *s);
@@ -361,13 +361,13 @@ selectionfree(struct selection *s);
    changed, false otherwise. */
 
 bool
-selectionupdate(struct selection *s, int32_t pos);
+selectionupdate(struct selection *s, size_t pos);
 
 /* Checks if the position pos in the textbox t is in a selection,
    returns the selection if it is. */
 
 struct selection *
-inselections(struct textbox *t, int32_t pos);
+inselections(struct textbox *t, size_t pos);
 
 
 

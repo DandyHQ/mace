@@ -22,6 +22,7 @@ textboxnew(struct tab *tab, struct colour *bg,
   
   t->cursor = 0;
 
+  t->newselpos = SIZE_MAX;
   t->csel = NULL;
   t->selections = NULL;
 
@@ -123,7 +124,9 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   case 1:
     t->tab->mace->focus = t;
 
-    t->cursor = pos;
+    /* Remove current selections.
+       Should probably remove the selections from this tabs other 
+       textbox. */
 
     sel = t->selections;
     t->selections = NULL;
@@ -133,16 +136,21 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       selectionfree(sel);
       sel = nsel;
     }
-    
-    t->csel = t->selections = selectionnew(t, pos);
-    t->cselisvalid = false;
+
+    t->cursor = pos;
+    t->newselpos = pos;
 
     textboxpredraw(t);
+
     return true;
 
   case 3:
     sel = inselections(t, pos);
     if (sel != NULL) {
+      /* I think this is broken. Need to remove the selection from 
+	 selections. This also has something to do with a memory
+	 corruption on ubuntu. Doesn't seem to have any problems on
+	 OpenBSD though. */
       start = sel->start;
       len = sel->end - sel->start + 1;
     } else if (!sequencefindword(t->sequence, pos, &start, &len)) {
@@ -172,19 +180,9 @@ bool
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
-  if (!t->cselisvalid && t->csel != NULL) {
-
-    t->selections = t->selections->next;
-    selectionfree(t->csel);
-    t->csel = NULL;
-
-    textboxpredraw(t);
-
-    return true;
-  } else {
-    t->csel = NULL;
-    return false;
-  }
+  t->csel = NULL;
+  t->newselpos = SIZE_MAX;
+  return false;
 }
 
 bool
@@ -192,19 +190,34 @@ textboxmotion(struct textbox *t, int x, int y)
 {
   size_t pos;
 
-  if (t->csel == NULL) {
-    return false;
-  }
+  if (t->newselpos != SIZE_MAX) {
+    t->csel = selectionnew(t, t->newselpos);
+    if (t->csel == NULL) {
+      return false;
+    }
 
-  pos = textboxfindpos(t, x, y);
+    t->newselpos = SIZE_MAX;
 
-  if (selectionupdate(t->csel, pos)) {
-    t->cselisvalid = true;
+    pos = textboxfindpos(t, x, y);
+    selectionupdate(t->csel, pos);
+    
+    t->csel->next = t->selections;
+    t->selections = t->csel;
     textboxpredraw(t);
     return true;
-  } else {
-    return false;
+
+  } else if (t->csel != NULL) {
+    pos = textboxfindpos(t, x, y);
+
+    if (selectionupdate(t->csel, pos)) {
+      /* TODO: set cursor to pos + next code point length */
+      t->cursor = pos;
+      textboxpredraw(t);
+      return true;
+    }
   }
+  
+  return false;
 }
 
 static bool

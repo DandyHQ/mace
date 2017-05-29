@@ -108,7 +108,7 @@ fontloadfile(struct font *font, const char *path, double size)
   font->baseline = 1 + ((font->face->size->metrics.height
 			 + font->face->size->metrics.descender) >> 6);
 
-  font->lineheight = 2 + (font->face->size->metrics.height >> 6);
+  font->lineheight = (font->face->size->metrics.height >> 6);
 
   return 0;
 }

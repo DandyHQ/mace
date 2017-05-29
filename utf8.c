@@ -1,7 +1,7 @@
 #include "utf8.h"
 
 bool
-islinebreak(int32_t code, uint8_t *s, int32_t max, int32_t *l)
+islinebreak(int32_t code, const uint8_t *s, int32_t max, int32_t *l)
 {
   size_t a;
   
@@ -78,7 +78,7 @@ utf8decodebyte(uint8_t b, size_t *l)
 }
 
 size_t
-utf8iterate(uint8_t *s, size_t slen, int32_t *code)
+utf8iterate(const uint8_t *s, size_t slen, int32_t *code)
 {
   size_t len, i, type;
 
@@ -106,7 +106,7 @@ utf8iterate(uint8_t *s, size_t slen, int32_t *code)
 }
 
 size_t
-utf8codepoints(uint8_t *s, size_t len)
+utf8codepoints(const uint8_t *s, size_t len)
 {
   size_t i, j, a;
   int32_t code;

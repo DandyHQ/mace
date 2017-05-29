@@ -1,9 +1,8 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "sequence.h"
-
-/* TODO: what should happen when out of memory? */
 
 struct sequence *
 sequencenew(uint8_t *data, size_t len)
@@ -23,6 +22,8 @@ sequencenew(uint8_t *data, size_t len)
 
   s->plen = 3;
 
+  /* This is pretty ugly. */
+  
   s->pieces[SEQ_start].off = 0;
   s->pieces[SEQ_start].pos = 0;
   s->pieces[SEQ_start].len = 0;
@@ -34,8 +35,12 @@ sequencenew(uint8_t *data, size_t len)
   s->pieces[SEQ_end].off = 0;
   s->pieces[SEQ_end].pos = 0;
   s->pieces[SEQ_end].len = 0;
-  s->pieces[SEQ_end].nglyphs = 0;
-  s->pieces[SEQ_end].glyphs = NULL;
+  s->pieces[SEQ_end].nglyphs = 1;
+  s->pieces[SEQ_end].glyphs = calloc(1, sizeof(cairo_glyph_t));
+  if (s->pieces[SEQ_end].glyphs == NULL) {
+    sequencefree(s);
+    return NULL;
+  }
   s->pieces[SEQ_end].prev = SEQ_start;
   s->pieces[SEQ_end].next = -1;
 
@@ -52,7 +57,8 @@ sequencenew(uint8_t *data, size_t len)
 	     sizeof(cairo_glyph_t));
 
     if (s->pieces[SEQ_first].glyphs == NULL) {
-      /* What should happen here? */
+      sequencefree(s);
+      return NULL;
     }
  
     s->pieces[SEQ_start].next = SEQ_first;
@@ -91,6 +97,9 @@ sequencefree(struct sequence *s)
 static void
 shiftpieces(struct sequence *s, ssize_t p, size_t pos)
 {
+  p = SEQ_start;
+  pos = 0;
+  
   while (p != -1) {
     s->pieces[p].pos = pos;
     pos += s->pieces[p].len;
@@ -122,6 +131,15 @@ sequencefindpiece(struct sequence *s, size_t pos, size_t *i)
 static ssize_t
 pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 {
+  cairo_glyph_t *glyphs;
+  size_t nglyphs;
+
+  nglyphs = utf8codepoints(s->data + off, len);
+  glyphs = calloc(nglyphs, sizeof(cairo_glyph_t));
+  if (glyphs == NULL) {
+    return -1;
+  }
+
   if (s->plen + 1 >= s->pmax) {
     s->pieces = realloc(s->pieces,
 			sizeof(struct piece) * (s->plen + 10));
@@ -137,15 +155,8 @@ pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
   s->pieces[s->plen].pos = pos;
   s->pieces[s->plen].off = off;
   s->pieces[s->plen].len = len;
-
-  s->pieces[s->plen].nglyphs = utf8codepoints(s->data + off, len);
-  s->pieces[s->plen].glyphs =
-    calloc(s->pieces[s->plen].nglyphs,
-	   sizeof(cairo_glyph_t));
-
-  if (s->pieces[s->plen].glyphs == NULL) {
-    /* What should happen here? */
-  }
+  s->pieces[s->plen].nglyphs = nglyphs;
+  s->pieces[s->plen].glyphs = glyphs;
 
   return s->plen++;
 }
@@ -180,11 +191,23 @@ static bool
 sequenceappend(struct sequence *s, ssize_t p, size_t pos,
 	       const uint8_t *data, size_t len)
 {
+  cairo_glyph_t *glyphs;
+  size_t nglyphs;
+  
   if (p != SEQ_start && p != SEQ_end
       && s->pieces[p].pos + s->pieces[p].len == pos
       && s->pieces[p].off + s->pieces[p].len == s->dlen) {
 
+    printf("can grow last piece\n");
+    
+    nglyphs = s->pieces[p].nglyphs + utf8codepoints(data, len);
+    glyphs = calloc(nglyphs, sizeof(cairo_glyph_t));
+    if (glyphs == NULL) {
+      return false;
+    }
+   
     if (!appenddata(s, data, len)) {
+      free(glyphs);
       return false;
     }
 
@@ -194,15 +217,8 @@ sequenceappend(struct sequence *s, ssize_t p, size_t pos,
       free(s->pieces[p].glyphs);
     }
 
-    s->pieces[p].nglyphs =
-      utf8codepoints(s->data + s->pieces[p].off, s->pieces[p].len);
-
-    s->pieces[p].glyphs =
-      calloc(s->pieces[p].nglyphs, sizeof(cairo_glyph_t));
-
-    if (s->pieces[p].glyphs == NULL) {
-      /* What should happen here? */
-    }
+    s->pieces[p].nglyphs = nglyphs;
+    s->pieces[p].glyphs = glyphs;
 
     shiftpieces(s, p, s->pieces[p].pos);
 
@@ -219,10 +235,14 @@ sequenceinsert(struct sequence *s, size_t pos,
   ssize_t p, pprev, pnext, n, l, r;
   size_t i;
 
+  printf("insert into seq of len %zu at  %zu\n", sequencegetlen(s), pos);
+
   p = piecefind(s, SEQ_start, pos, &i);
   if (p == -1) {
     return false;
   }
+
+  printf("after/in piece %li\n", p);
 
   if (sequenceappend(s, p, pos, data, len)) {
     return true;
@@ -232,12 +252,12 @@ sequenceinsert(struct sequence *s, size_t pos,
   pnext = s->pieces[p].next;
 
   if (!appenddata(s, data, len)) {
-    /* Should free n */
     return false;
   }
 
   n = pieceadd(s, pos, s->dlen - len, len);
   if (p == -1) {
+    /* Should free appended data? */
     return false;
   }
 
@@ -479,47 +499,35 @@ size_t
 sequenceget(struct sequence *s, size_t pos,
 	    uint8_t *buf, size_t len)
 {
-  size_t i, l, b, p, ret;
+  size_t i, ii, l;
+  ssize_t p;
 
-  i = 0;
-  for (p = SEQ_start; p != -1; p = s->pieces[p].next) {
+  printf("get %zu len %zu\n", pos, len);
 
-    if (i > pos + len) {
-      break;
-    } else if (i + s->pieces[p].len < pos) {
-      i += s->pieces[p].len;
-      continue;
-    }
+  p = piecefind(s, SEQ_start, pos, &i);
+  if (p == -1) {
+    return 0;
+  }
 
-    if (i < pos) {
-      b = pos - i;
+  ii = 0;
+  while (p != -1 && ii < len) {
+    if (ii + s->pieces[p].len >= len) {
+      l = len - ii;
     } else {
-      b = 0;
+      l = s->pieces[p].len - i;
     }
 
-    if (i + s->pieces[p].len - pos >= len) {
-      l = pos + len - i - b;
-    } else {
-      l = s->pieces[p].len - b;
-    }
-
-    memmove(buf + (i + b - pos),
-	    s->data + s->pieces[p].off + b,
+    memmove(buf + ii,
+	    s->data + s->pieces[p].off + i,
 	    l);
 
-    i += b + l;
+    ii += l;
+    p = s->pieces[p].next;
+    i = 0;
   }
 
-  if (i <= pos) {
-    ret = 0;
-    i = pos;
-  } else {
-    ret = i - pos;
-  }
-
-  memset(buf + (i - pos), 0, len + 1 - (i - pos));
-
-  return ret;
+  buf[ii] = 0;
+  return ii;
 }
 
 size_t

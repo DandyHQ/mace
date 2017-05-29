@@ -1,7 +1,7 @@
 #include "mace.h"
 
 struct selection *
-selectionnew(struct textbox *t, int32_t pos)
+selectionnew(struct textbox *t, size_t pos)
 {
   struct selection *s;
 
@@ -28,7 +28,7 @@ selectionfree(struct selection *s)
 }
 
 bool
-selectionupdate(struct selection *s, int32_t pos)
+selectionupdate(struct selection *s, size_t pos)
 {
   if (s->direction == SELECTION_right) {
     if (pos < s->start) {
@@ -58,7 +58,7 @@ selectionupdate(struct selection *s, int32_t pos)
 }
 
 struct selection *
-inselections(struct textbox *t, int32_t pos)
+inselections(struct textbox *t, size_t pos)
 {
   struct selection *s;
 

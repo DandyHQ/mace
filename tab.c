@@ -8,7 +8,8 @@
 static struct colour bg   = { 1, 1, 1 };
 static struct colour abg  = { 0.86, 0.94, 1 };
 
-static const uint8_t actionstart[] = ": save open close eval quit";
+static const uint8_t actionstart[] =
+  ": save open close cut copy paste eval";
 
 struct tab *
 tabnew(struct mace *mace,
@@ -56,7 +57,7 @@ tabnew(struct mace *mace,
     return NULL;
   }
 
-  t->action->cursor = nlen + sizeof(actionstart);
+  t->action->cursor = sequencegetlen(actionseq);
 
   t->main = textboxnew(t, &bg, mainseq);
   if (t->main == NULL) {
@@ -110,6 +111,10 @@ tabnewfromfile(struct mace *mace,
   }
 
   dlen = st.st_size;
+  if (dlen == 0) {
+    close(fd);
+    return tabnewempty(mace, name, nlen);
+  }
 
   data = malloc(dlen);
   if (data == NULL) {

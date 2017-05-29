@@ -20,16 +20,16 @@ drawcursor(struct textbox *t, int x, int y, int h)
   cairo_set_source_rgb(t->cr, 0, 0, 0);
   cairo_set_line_width (t->cr, 1.0);
 
-  cairo_move_to(t->cr, x, y);
-  cairo_line_to(t->cr, x, y + h);
+  cairo_move_to(t->cr, x, y + 1);
+  cairo_line_to(t->cr, x, y + h - 2);
   cairo_stroke(t->cr);
 
-  cairo_move_to(t->cr, x - 2, y);
-  cairo_line_to(t->cr, x + 2, y);
+  cairo_move_to(t->cr, x - 2, y + 1);
+  cairo_line_to(t->cr, x + 2, y + 1);
   cairo_stroke(t->cr);
 
-  cairo_move_to(t->cr, x - 2, y + h);
-  cairo_line_to(t->cr, x + 2, y + h);
+  cairo_move_to(t->cr, x - 2, y + h - 2);
+  cairo_line_to(t->cr, x + 2, y + h - 2);
   cairo_stroke(t->cr);
 }
 
@@ -45,7 +45,7 @@ drawglyphs(struct textbox *t, cairo_glyph_t *glyphs, size_t len,
 
   /* Go through glyphs and find lines, draw background. */
   start = 0;
-  for (g = 0; g < len; g++) {
+  for (g = 1; g < len; g++) {
     if (glyphs[g].x != 0) {
       continue;
     }
@@ -84,7 +84,6 @@ void
 textboxpredraw(struct textbox *t)
 {
   struct selection *sel, *nsel;
-  cairo_text_extents_t extents;
   struct sequence *s;
   size_t i, g, start;
   struct colour *bg;
@@ -100,8 +99,8 @@ textboxpredraw(struct textbox *t)
 
   cairo_translate(t->cr, 0, -t->yoff);
 
-  ay = (t->font->face->size->metrics.ascender >> 6) + 1;
-  by = -(t->font->face->size->metrics.descender >> 6) + 1;
+  ay = (t->font->face->size->metrics.ascender >> 6);
+  by = -(t->font->face->size->metrics.descender >> 6);
 	 
   s = t->sequence;
   p = &s->pieces[SEQ_start];
@@ -186,20 +185,9 @@ textboxpredraw(struct textbox *t)
 		 &nfg, bg, ay, by);
     }
 
-    /* Kinda hacky. Draws the cursor if it is one past the end. */
-    if (p->pos + i + 1 == t->cursor) {
-      if (g > 0 && g - 1 < p->nglyphs) {
-	cairo_glyph_extents(t->cr, &p->glyphs[g-1], 1, &extents);
-
-	drawcursor(t, p->glyphs[g-1].x + extents.x_advance,
-		   p->glyphs[g-1].y - ay,
-		   ay + by);
-      }
-    }
-
     if (g < p->nglyphs && p->glyphs[g].y >= t->yoff + t->maxheight) {
       break;
-    } else if (p->next != SEQ_end) {
+    } else if (p->next != -1) {
       p = &s->pieces[p->next];
       i = 0;
       start = 0;
@@ -209,6 +197,14 @@ textboxpredraw(struct textbox *t)
     }
   }
 
+  if (t->cursor == sequencegetlen(s)) {
+    p = &s->pieces[SEQ_end];
+    drawcursor(t,
+	       p->glyphs[0].x,
+	       p->glyphs[0].y - ay,
+	       ay + by);
+  }
+  
   cairo_translate(t->cr, 0, t->yoff);
 } 
 
@@ -223,8 +219,8 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
   ly += t->yoff;
   
-  ay = (t->font->face->size->metrics.ascender >> 6) + 1;
-  by = -(t->font->face->size->metrics.descender >> 6) + 1;
+  ay = (t->font->face->size->metrics.ascender >> 6);
+  by = -(t->font->face->size->metrics.descender >> 6);
 	 
   s = t->sequence;
   p = &s->pieces[SEQ_start];
@@ -280,7 +276,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
     }
   }
 
-  return p->pos + i;
+  return sequencegetlen(s) - 1;
 }
 
 void
@@ -353,15 +349,18 @@ textboxcalcpositions(struct textbox *t, size_t pos)
       g++;
     }
 
-    if (g != p->nglyphs) {
-      p->nglyphs = g;
-    }
-
     if (p->next != -1) {
+      p->nglyphs = g;
       p = &s->pieces[p->next];
       i = 0;
       g = 0;
+
     } else {
+      /* End which has one glyph. */
+      p->glyphs[0].index = 0;
+      p->glyphs[0].x = x;
+      p->glyphs[0].y = y;
+      
       break;
     }
   }
