@@ -17,11 +17,13 @@ if not lua.found()
 	lua = dependency('lua', version : '>=5.2.4')
 endif
 
-path = join_paths(get_option('datadir'), 'mace')
+path = get_option('datadir') + '/mace' 
+#path = join_paths(get_option('datadir'), 'mace')
 
 conf_data = configuration_data()
 conf_data.set('version', '0.1.0')
-conf_data.set('path', join_paths(get_option('prefix'), path))
+#conf_data.set('path', join_paths(get_option('prefix'), path))
+conf_data.set('path', get_option('prefix') + '/' + path)
 
 configure_file(input : 'config.h.in',
 	       output : 'config.h',
