@@ -3,6 +3,16 @@
 A modern Unix text editor taking inspiration from Acme, Emacs and
 Atom.
 
+## Features
+
+* Basic text editing
+* Customisable command bar
+* Support for custom commands
+
+#### To Do
+
+* Split-screen interface
+
 ## Screenshot
 ![Screenshot](https://github.com/DandyHQ/mace/blob/master/docs/screenshot.png)
 
@@ -37,7 +47,7 @@ Mace requires the following dependencies:
 
 ### Compiling
 
-Once you have the dependencies install, Mace can be compiled as 
+Once you have the dependencies installed, Mace can be compiled as 
 follows:
 
 ```
@@ -57,7 +67,7 @@ $ mace
 The last command launches Mace.
 
 If you'd like to run the test suite to ensure Mace is functioning 
-correctly. They can be run from ninja using:
+correctly, they can be run from ninja using:
 
 ```
 $ ninja -C build test
