@@ -3,18 +3,30 @@
 A modern Unix text editor taking inspiration from Acme, Emacs and
 Atom.
 
-## Features
-
-* Basic text editing
-* Customisable command bar
-* Support for custom commands
-
-#### To Do
-
-* Split-screen interface
-
 ## Screenshot
 ![Screenshot](https://github.com/DandyHQ/mace/blob/master/docs/screenshot.png)
+
+## About
+
+Mace is a programer's text editor that supports the following features:
+
+* Executing any text in any window as a command
+* Customisable hot bar for regularly used commands
+* Support for writing custom commands and adding them to the current session
+* Tabbed interface
+
+## To Do
+
+There are many key features left to add to Mace for it to make Alpha:
+
+* Tiling interface (development delayed)
+* Support Undoing edits
+* Remove Lua runtime
+* Utf8
+* Syntax highlighting
+* Smart indenting
+* Keybord shortcuts
+* Session management
 
 ## Building
 
@@ -26,14 +38,14 @@ Mace requires the following dependencies:
  - freetype2
  - cairo
  - lua 5.3
- 
-#### Ubuntu 16.04 
+
+#### Ubuntu 16.04
 
 ```
 # apt install meson libx11-dev libcairo2-dev lua5.3-dev
 ```
 
-#### Fedora 25 
+#### Fedora 25
 
 ```
 # dnf install meson libX11-devel cairo-devel lua-devel
@@ -47,7 +59,7 @@ Mace requires the following dependencies:
 
 ### Compiling
 
-Once you have the dependencies installed, Mace can be compiled as 
+Once you have the dependencies installed, Mace can be compiled as
 follows:
 
 ```
@@ -66,9 +78,21 @@ $ mace
 
 The last command launches Mace.
 
-If you'd like to run the test suite to ensure Mace is functioning 
+If you'd like to run the test suite to ensure Mace is functioning
 correctly, they can be run from ninja using:
 
 ```
 $ ninja -C build test
 ```
+
+## Documentation
+
+Mace documentation is in the [docs](docs) folder.
+
+## Issues & Support
+
+Please [file](https://github.com/DandyHQ/mace/issues) any bugs or feature requests.
+
+## Contributing
+
+The Mace developers welcomes contributions in the form of Pull Requests.
