@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -198,8 +197,6 @@ sequenceappend(struct sequence *s, ssize_t p, size_t pos,
       && s->pieces[p].pos + s->pieces[p].len == pos
       && s->pieces[p].off + s->pieces[p].len == s->dlen) {
 
-    printf("can grow last piece\n");
-    
     nglyphs = s->pieces[p].nglyphs + utf8codepoints(data, len);
     glyphs = calloc(nglyphs, sizeof(cairo_glyph_t));
     if (glyphs == NULL) {
@@ -235,14 +232,10 @@ sequenceinsert(struct sequence *s, size_t pos,
   ssize_t p, pprev, pnext, n, l, r;
   size_t i;
 
-  printf("insert into seq of len %zu at  %zu\n", sequencegetlen(s), pos);
-
   p = piecefind(s, SEQ_start, pos, &i);
   if (p == -1) {
     return false;
   }
-
-  printf("after/in piece %li\n", p);
 
   if (sequenceappend(s, p, pos, data, len)) {
     return true;
@@ -502,8 +495,6 @@ sequenceget(struct sequence *s, size_t pos,
   size_t i, ii, l;
   ssize_t p;
 
-  printf("get %zu len %zu\n", pos, len);
-
   p = piecefind(s, SEQ_start, pos, &i);
   if (p == -1) {
     return 0;
@@ -511,7 +502,7 @@ sequenceget(struct sequence *s, size_t pos,
 
   ii = 0;
   while (p != -1 && ii < len) {
-    if (ii + s->pieces[p].len >= len) {
+    if (ii + s->pieces[p].len - i >= len) {
       l = len - ii;
     } else {
       l = s->pieces[p].len - i;

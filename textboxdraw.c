@@ -276,7 +276,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
     }
   }
 
-  return sequencegetlen(s) - 1;
+  return sequencegetlen(s);
 }
 
 void

@@ -45,7 +45,7 @@ tabnew(struct mace *mace,
   
   if (!sequenceinsert(actionseq, nlen,
 		      actionstart,
-		      sizeof(actionstart))) {
+		      strlen((const char *) actionstart))) {
     tabfree(t);
     return NULL;
   }
