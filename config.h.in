@@ -1,2 +1,5 @@
 #define VERSION_STR "@version@"
 #define MACE_PATH "@path@"
+
+#define DEFAULT_TABWIDTH 8
+#define DEFAULT_FONT_PATTERN "-14"

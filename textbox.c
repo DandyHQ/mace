@@ -35,8 +35,6 @@ textboxnew(struct tab *tab, struct colour *bg,
 
   t->maxheight = 0;
 
-  snprintf((char *) t->tabstring, sizeof(t->tabstring), "  ");
-
   memmove(&t->bg, bg, sizeof(struct colour));
 
   return t;
@@ -334,8 +332,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
       deleteselections(t);
     }
 
-    l = snprintf((char *) s, sizeof(s), "%s",
-		 (char *) t->tabstring);
+    l = snprintf((char *) s, sizeof(s), "\t");
     
     if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
       return true;

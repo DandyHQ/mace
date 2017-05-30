@@ -88,6 +88,8 @@ struct font {
   cairo_font_face_t *cface;
 
   int baseline, lineheight;
+  size_t tabwidth;
+  int tabwidthpixels;
 };
 
 struct textbox {
@@ -101,12 +103,6 @@ struct textbox {
   size_t newselpos;
   
   struct sequence *sequence;
-
-  /* A string that is inserted when the tab key is pressed. This is a
-     temperary measure. I don't know if this should be global or per
-     textbox. */
-#define TABMAX 32
-  uint8_t tabstring[TABMAX];
 
   /* This must be on a unicode code point boundry or it will not be
      drawn. */
@@ -223,6 +219,9 @@ fontfree(struct font *font);
 
 int
 fontset(struct font *font, const char *pattern);
+
+int
+fontsettabwidth(struct font *font, size_t spaces);
 
 bool
 loadglyph(FT_Face face, int32_t code);

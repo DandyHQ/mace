@@ -8,8 +8,6 @@
 
 #include <fontconfig/fontconfig.h>
 
-static char *defaultpattern = "-14";
-
 static int
 fontloadfile(struct font *font, const char *path, double size);
 
@@ -30,7 +28,9 @@ fontnew(void)
     return NULL;
   }
 
-  e = fontset(f, defaultpattern);
+  f->tabwidth = DEFAULT_TABWIDTH;
+
+  e = fontset(f, DEFAULT_FONT_PATTERN);
   if (e != 0) {
     fontfree(f);
     return NULL;
@@ -43,20 +43,19 @@ struct font *
 fontcopy(struct font *old)
 {
   struct font *f;
-  int e;
 
+  if (old->path[0] == 0) {
+    return NULL;
+  }
+  
   f = fontnew();
   if (f == NULL) {
     return NULL;
   }
 
-  if (old->path[0] != 0) {
-    e = fontloadfile(f, old->path, old->size);
-  } else {
-    e = fontset(f, defaultpattern);
-  }
+  f->tabwidth = old->tabwidth;
 
-  if (e != 0) {
+  if (fontloadfile(f, old->path, old->size) != 0) {
     fontfree(f);
     return NULL;
   }
@@ -109,6 +108,8 @@ fontloadfile(struct font *font, const char *path, double size)
 			 + font->face->size->metrics.descender) >> 6);
 
   font->lineheight = (font->face->size->metrics.height >> 6);
+
+  fontsettabwidth(font, font->tabwidth);
 
   return 0;
 }
@@ -163,6 +164,26 @@ fontset(struct font *font, const char *spattern)
     return 1;
   }
 
+  return 0;
+}
+
+int
+fontsettabwidth(struct font *font, size_t spaces)
+{
+  FT_UInt i;
+
+  i = FT_Get_Char_Index(font->face, ' ');
+  if (i == 0) {
+    return -1;
+  }
+
+  if (FT_Load_Glyph(font->face, i, FT_LOAD_DEFAULT) != 0) {
+    return -1;
+  }
+
+  font->tabwidth = spaces;
+  font->tabwidthpixels = (font->face->glyph->advance.x >> 6) * spaces;
+   
   return 0;
 }
 

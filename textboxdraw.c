@@ -51,10 +51,10 @@ drawglyphs(struct textbox *t, cairo_glyph_t *glyphs, size_t len,
     }
 
     cairo_rectangle(t->cr,
-		  glyphs[start].x,
-		  glyphs[start].y - ay,
-		  t->linewidth - glyphs[start].x,
-		  ay + by);
+		    glyphs[start].x,
+		    glyphs[start].y - ay,
+		    t->linewidth - glyphs[start].x,
+		    ay + by);
 		  
     cairo_fill(t->cr);
 
@@ -67,10 +67,10 @@ drawglyphs(struct textbox *t, cairo_glyph_t *glyphs, size_t len,
     cairo_glyph_extents(t->cr, &glyphs[start], g - start, &extents);
 
     cairo_rectangle(t->cr,
-		  glyphs[start].x,
-		  glyphs[start].y - ay,
-		  extents.x_advance,
-		  ay + by);
+		    glyphs[start].x,
+		    glyphs[start].y - ay,
+		    extents.x_advance,
+		    ay + by);
 		  
     cairo_fill(t->cr);
   }
@@ -139,11 +139,13 @@ textboxpredraw(struct textbox *t)
       }
 
       /* Line Break. */
-      if (p->glyphs[g].index == 0) {
+      if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
 	if (start < g) {
 	  drawglyphs(t, &p->glyphs[start], g - start,
 		     &nfg, bg, ay, by);
 	}
+
+	start = g + 1;
 
 	if (sel != NULL) {
 	  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
@@ -156,24 +158,38 @@ textboxpredraw(struct textbox *t)
 	  cairo_fill(t->cr); 
 	}
 	
-	if (p->pos + i == t->cursor) {
-	  drawcursor(t, p->glyphs[g].x, p->glyphs[g].y - ay,
-		     ay + by);
+      } else if (code == '\t') {
+	if (start < g) {
+	  drawglyphs(t, &p->glyphs[start], g - start,
+		     &nfg, bg, ay, by);
 	}
 
-	/* Update's a if need be. */
-	islinebreak(code, s->data + p->off + i, p->len - i, &a);
+	start = g + 1;
+
+	if (sel != NULL) {
+	  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
+	  cairo_rectangle(t->cr,
+			  p->glyphs[g].x,
+			  p->glyphs[g].y - ay,
+			  t->font->tabwidthpixels,
+			  ay + by);
+		  
+	  cairo_fill(t->cr); 
+	}
+      }
+
+      if (p->pos + i == t->cursor) {
+	if (start <= g) {
+	  drawglyphs(t, &p->glyphs[start], g - start + 1,
+		     &nfg, bg, ay, by);
+	}
 
 	start = g + 1;
 
-      } else if (p->pos + i == t->cursor) {
-	drawglyphs(t, &p->glyphs[start], g - start + 1,
-		   &nfg, bg, ay, by);
-
-	drawcursor(t, p->glyphs[g].x, p->glyphs[g].y - ay,
+	drawcursor(t,
+		   p->glyphs[g].x,
+		   p->glyphs[g].y - ay,
 		   ay + by);
-
-	start = g + 1;
       }
 
       i += a;
@@ -235,34 +251,39 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 	continue;
       }
 
-      /* Line Break. */
-      if (p->glyphs[g].index == 0) {
-	/* Update's a if need be. */
-	islinebreak(code, s->data + p->off + i, p->len - i, &a);
+      if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
+	if (p->glyphs[g].y - ay <= ly &&
+	    ly <= p->glyphs[g].y + by) {
 
-	if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y + by) {
 	  return p->pos + i;
-	} else {
+	}
+
+      } else if (code == '\t') {
+	if (p->glyphs[g].y - ay <= ly &&
+	    ly <= p->glyphs[g].y + by &&
+	    p->glyphs[g].x <= lx &&
+	    lx <= p->glyphs[g].x + t->font->tabwidthpixels) {
+
+	  return p->pos + i;
+	}
+      } else {
+	if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
+			  FT_LOAD_DEFAULT) != 0) {
 	  i += a;
-	  g++;
 	  continue;
 	}
-      }
 
-      if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
-			FT_LOAD_DEFAULT) != 0) {
-	i += a;
-	continue;
-      }
+	ww = t->font->face->glyph->advance.x >> 6;
 
-      ww = t->font->face->glyph->advance.x >> 6;
+	if (p->glyphs[g].y - ay <= ly &&
+	    ly <= p->glyphs[g].y + by &&
+	    p->glyphs[g].x <= lx &&
+	    lx <= p->glyphs[g].x + ww) {
 
-      if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y + by) {
-	if (p->glyphs[g].x <= lx && lx <= p->glyphs[g].x + ww) {
 	  return p->pos + i;
 	}
       }
-
+      
       i += a;
       g++;
     }
@@ -303,8 +324,7 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 	i++;
 	continue;
       }
-
-      /* Line Break. */
+      
       if (islinebreak(code,
 		      s->data + p->off + i,
 		      p->len - i, &a)) {
@@ -315,36 +335,47 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 
 	x = 0;
 	y += t->font->lineheight;
-	i += a;
-	g++;
 
-	continue;
+      } else if (code == '\t') {
+	if (x + t->font->tabwidthpixels >= t->linewidth) {
+	  x = 0;
+	  y += t->font->lineheight;
+	}
+
+	p->glyphs[g].index = 0;
+	p->glyphs[g].x = x; 
+	p->glyphs[g].y = y;
+
+	x += t->font->tabwidthpixels;
+
+      } else {
+
+	p->glyphs[g].index = FT_Get_Char_Index(t->font->face, code);
+	if (p->glyphs[g].index == 0) {
+	  i += a;
+	  continue;
+	}
+
+	if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
+			  FT_LOAD_DEFAULT) != 0) {
+	  i += a;
+	  continue;
+	}
+
+	ww = t->font->face->glyph->advance.x >> 6;
+
+	/* Wrap Line. */
+	if (x + ww >= t->linewidth) {
+	  x = 0;
+	  y += t->font->lineheight;
+	}
+
+	p->glyphs[g].x = x;
+	p->glyphs[g].y = y;
+
+	x += ww;
       }
-
-      p->glyphs[g].index = FT_Get_Char_Index(t->font->face, code);
-      if (p->glyphs[g].index == 0) {
-	i += a;
-	continue;
-      }
-
-      if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
-			FT_LOAD_DEFAULT) != 0) {
-	i += a;
-	continue;
-      }
-
-      ww = t->font->face->glyph->advance.x >> 6;
-
-      /* Wrap Line. */
-      if (x + ww >= t->linewidth) {
-	x = 0;
-	y += t->font->lineheight;
-      }
-
-      p->glyphs[g].x = x;
-      p->glyphs[g].y = y;
-
-      x += ww;
+      
       i += a;
       g++;
     }
