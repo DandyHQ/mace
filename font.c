@@ -105,8 +105,14 @@ fontloadfile(struct font *font, const char *path, double size)
      hb_ft_font_create_referenced but fuck Ubuntu. */
 
   font->hbfont = hb_ft_font_create(font->face, NULL);
+/*
+  I could swear I needed this before.
   hb_ft_font_set_load_flags(font->hbfont, FT_LOAD_DEFAULT);
-  
+  But Ubuntu Trusty's version of harfbuzz doesn't have it and it 
+  seems to work without it on OpenBSD.
+  I hate libraries.
+ */
+ 
   font->baseline = 1 + ((font->face->size->metrics.height
 			 + font->face->size->metrics.descender) >> 6);
 
