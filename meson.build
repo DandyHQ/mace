@@ -10,6 +10,8 @@ x11        = dependency('x11')
 ft         = dependency('freetype2')
 fc         = dependency('fontconfig')
 
+hb         = dependency('harfbuzz-icu')
+
 cairo      = dependency('cairo')
 
 lua        = dependency('lua53', required: false)
@@ -53,6 +55,7 @@ executable('mace', install: true,
 	     x11,
 	     ft,
 	     fc,
+             hb,
 	     cairo,
 	     lua,
 	   ],

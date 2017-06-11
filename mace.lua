@@ -52,8 +52,6 @@ function save()
    
    str = m:get(0, l)
 
-   print("saving", filename)
-
    file = assert(io.open(filename, "w"))
 
    assert(file:write(str))

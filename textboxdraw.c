@@ -1,4 +1,7 @@
 #include "mace.h"
+#include <hb.h>
+#include <hb-ft.h>
+#include <hb-icu.h>
 
 /* TODO: 
 
@@ -8,6 +11,12 @@
 
    Reimpliment something like textboxfindstart to stop drawing
    unnessesary glyphs.
+
+   I don't like how tabs or newlines are handled. It would possibly 
+   be better to have each piece have another array of extra 
+   information about the glyphs containing width, maybe height, 
+   maybe colour. This way all glyphs could be handled in a uniform
+   way.
 */
 
 
@@ -124,6 +133,7 @@ textboxpredraw(struct textbox *t)
       nsel = inselections(t, p->pos + i);
       if (nsel != sel) {
 	if (start < g) {
+          /* Draw the undrawn glyphs with the previous selection. */
 	  drawglyphs(t, &p->glyphs[start], g - start,
 		     &nfg, bg, ay, by);
 	}
@@ -148,6 +158,7 @@ textboxpredraw(struct textbox *t)
 	start = g + 1;
 
 	if (sel != NULL) {
+          /* Draw selection on rest of line. */
 	  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
 	  cairo_rectangle(t->cr,
 			  p->glyphs[g].x,
@@ -167,6 +178,7 @@ textboxpredraw(struct textbox *t)
 	start = g + 1;
 
 	if (sel != NULL) {
+          /* Draw selection on tab. */
 	  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
 	  cairo_rectangle(t->cr,
 			  p->glyphs[g].x,
@@ -266,23 +278,22 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
 	  return p->pos + i;
 	}
-      } else {
-	if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
-			  FT_LOAD_DEFAULT) != 0) {
-	  i += a;
-	  continue;
+      } else if (p->glyphs[g].y - ay <= ly &&
+                ly <= p->glyphs[g].y + by &&
+                p->glyphs[g].x <= lx) {
+
+		if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
+			FT_LOAD_DEFAULT) != 0) {
+			i += a;
+			continue;
+		}
+
+		ww = t->font->face->glyph->advance.x >> 6;
+
+		if (lx <= p->glyphs[g].x + ww) {
+			return p->pos + i;
+		}
 	}
-
-	ww = t->font->face->glyph->advance.x >> 6;
-
-	if (p->glyphs[g].y - ay <= ly &&
-	    ly <= p->glyphs[g].y + by &&
-	    p->glyphs[g].x <= lx &&
-	    lx <= p->glyphs[g].x + ww) {
-
-	  return p->pos + i;
-	}
-      }
       
       i += a;
       g++;
@@ -300,24 +311,96 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   return sequencegetlen(s);
 }
 
+static size_t
+placeglyphs(struct textbox *t, uint8_t *text, size_t ntext,
+            hb_buffer_t *hbbuf, hb_font_t *hbfont, 
+            cairo_glyph_t *glyphs, size_t nglyphs,
+            int *x, int *y, int linewidth)
+{
+	hb_glyph_position_t *pos;
+	hb_glyph_info_t *info;
+	unsigned int c;
+	size_t g;
+        int ww;
+
+	hb_buffer_add_utf8(hbbuf, (const char *) text, ntext, 0, ntext);
+	hb_buffer_guess_segment_properties(hbbuf);
+	hb_shape(hbfont, hbbuf, NULL, 0);
+
+	info = hb_buffer_get_glyph_infos(hbbuf, &c);
+	pos = hb_buffer_get_glyph_positions(hbbuf, &c);
+
+	/* If c is greater then we have a problem. So just ignore the extra glyphs. */
+	if (c < nglyphs) {
+		nglyphs = c;
+	}
+
+	for (g = 0; g < nglyphs; g++) {
+		if (info[g].codepoint == 0) {
+			printf("glyph %zu has zero codepoint!, should go at %i,%i\n", g, *x, *y);
+		}
+
+		ww = pos[g].x_advance >> 6;
+
+		if (*x + ww >= linewidth) {
+			*x = 0;
+			*y += t->font->lineheight;
+		}
+
+		glyphs[g].index = info[g].codepoint;
+		glyphs[g].x = *x + (pos[g].x_offset >> 6);
+		glyphs[g].y = *y - (pos[g].y_offset >> 6);
+
+		*x += ww;
+		*y -= pos[g].y_advance >> 6;
+	}
+
+	hb_buffer_clear_contents(hbbuf);
+
+	return nglyphs;
+}
+
+
 void
 textboxcalcpositions(struct textbox *t, size_t pos)
 {
   struct sequence *s;
+  hb_buffer_t *hbbuf;
+  hb_font_t *hbfont;
   struct piece *p;
   int32_t code, a;
-  int x, y, ww;
-  size_t i, g;
+  int x, y;
+  size_t i, g, startg, starti;
   
+  hbbuf = hb_buffer_create();
+
+  hbfont = hb_ft_font_create_referenced(t->font->face);
+  hb_ft_font_set_load_flags(hbfont, FT_LOAD_DEFAULT);
+
+  hb_buffer_set_unicode_funcs(hbbuf, hb_icu_get_unicode_funcs());
+
+
   s = t->sequence;
   p = &s->pieces[SEQ_start];
   i = 0;
   g = 0;
+  startg = 0;
+  starti = 0;
 
   x = 0;
   y = t->font->baseline;
   
   while (true) {
+
+    if (p->next == -1) {
+      /* End which has one glyph. */
+      p->glyphs[0].index = 0;
+      p->glyphs[0].x = x;
+      p->glyphs[0].y = y;
+      
+      break;
+    }
+
     while (i < p->len && g < p->nglyphs) {
       a = utf8iterate(s->data + p->off + i, p->len - i, &code);
       if (a == 0) {
@@ -329,6 +412,14 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 		      s->data + p->off + i,
 		      p->len - i, &a)) {
 
+        if (startg < g) {
+            g = startg + placeglyphs(t, s->data + p->off + starti, i - starti,
+ 		                    hbbuf, hbfont, &p->glyphs[startg], g - startg,
+                                     &x, &y, t->linewidth);
+        }
+
+        printf("newline glyph at %zu\n", g);
+
 	p->glyphs[g].index = 0;
 	p->glyphs[g].x = x;
 	p->glyphs[g].y = y;
@@ -336,7 +427,17 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 	x = 0;
 	y += t->font->lineheight;
 
+        startg = g + 1;
+        starti = i + a;
+
       } else if (code == '\t') {
+
+        if (startg < g) {
+            g = startg + placeglyphs(t, s->data + p->off + starti, i - starti,
+		             	hbbuf, hbfont, &p->glyphs[startg], g - startg,
+                                     &x, &y, t->linewidth);
+        }
+
 	if (x + t->font->tabwidthpixels >= t->linewidth) {
 	  x = 0;
 	  y += t->font->lineheight;
@@ -348,52 +449,30 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 
 	x += t->font->tabwidthpixels;
 
-      } else {
-
-	p->glyphs[g].index = FT_Get_Char_Index(t->font->face, code);
-	if (p->glyphs[g].index == 0) {
-	  i += a;
-	  continue;
-	}
-
-	if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
-			  FT_LOAD_DEFAULT) != 0) {
-	  i += a;
-	  continue;
-	}
-
-	ww = t->font->face->glyph->advance.x >> 6;
-
-	/* Wrap Line. */
-	if (x + ww >= t->linewidth) {
-	  x = 0;
-	  y += t->font->lineheight;
-	}
-
-	p->glyphs[g].x = x;
-	p->glyphs[g].y = y;
-
-	x += ww;
+        startg = g + 1;
+        starti = i + a;
       }
-      
+
       i += a;
       g++;
     }
 
-    if (p->next != -1) {
-      p->nglyphs = g;
-      p = &s->pieces[p->next];
-      i = 0;
-      g = 0;
-
-    } else {
-      /* End which has one glyph. */
-      p->glyphs[0].index = 0;
-      p->glyphs[0].x = x;
-      p->glyphs[0].y = y;
-      
-      break;
+    if (startg < p->nglyphs && starti < p->len) {
+      g = startg + placeglyphs(t, s->data + p->off + starti, p->len - starti,
+		               hbbuf, hbfont, &p->glyphs[startg], p->nglyphs - startg,
+                               &x, &y, t->linewidth);
     }
+
+    if (g < p->nglyphs) {
+      printf("changing number of glyphs to %zu from %zu\n", g, p->nglyphs);
+      /* p->nglyphs = g; */
+    }
+
+    p = &s->pieces[p->next];
+    i = 0;
+    g = 0;
+    startg = 0;
+    starti = 0;
   }
 
   t->height = y - (t->font->face->size->metrics.descender >> 6);

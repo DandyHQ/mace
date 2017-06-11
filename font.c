@@ -28,7 +28,7 @@ fontnew(void)
     return NULL;
   }
 
-  f->tabwidth = DEFAULT_TABWIDTH;
+  f->tabwidth = DEFAULT_TAB_WIDTH;
 
   e = fontset(f, DEFAULT_FONT_PATTERN);
   if (e != 0) {

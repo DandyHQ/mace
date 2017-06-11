@@ -72,6 +72,7 @@ macenew(void)
   struct mace *m;
   struct tab *t;
   uint8_t *buf;
+  size_t l;
 
   m = calloc(1, sizeof(struct mace));
   if (m == NULL) {
@@ -96,9 +97,9 @@ macenew(void)
     return NULL;
   }
 
-  memmove(buf, message, sizeof(message));
+  l = snprintf((char *) buf, sizeof(message), "%s", message);
   
-  s = sequencenew(buf, sizeof(message));
+  s = sequencenew(buf, l);
   if (s == NULL) {
     free(buf);
     macefree(m);
