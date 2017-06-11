@@ -100,7 +100,11 @@ fontloadfile(struct font *font, const char *path, double size)
     cairo_ft_font_face_create_for_ft_face(font->face,
 					  FT_LOAD_DEFAULT);
 
-  font->hbfont = hb_ft_font_create_referenced(font->face);
+  /* Harfbuzz has horrible documentation so I'm not sure If we need
+     to give a destructor function. I would prefer to use 
+     hb_ft_font_create_referenced but fuck Ubuntu. */
+
+  font->hbfont = hb_ft_font_create(font->face, NULL);
   hb_ft_font_set_load_flags(font->hbfont, FT_LOAD_DEFAULT);
   
   font->baseline = 1 + ((font->face->size->metrics.height
