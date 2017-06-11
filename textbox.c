@@ -11,12 +11,8 @@ textboxnew(struct tab *tab, struct colour *bg,
     return NULL;
   }
 
-  t->font = fontcopy(tab->mace->font);
-  if (t->font == NULL) {
-    free(t);
-    return NULL;
-  }
-
+  t->font = tab->mace->font;
+  
   t->sequence = seq;
   t->tab = tab;
   
@@ -56,8 +52,6 @@ textboxfree(struct textbox *t)
 
   sequencefree(t->sequence);
 
-  fontfree(t->font);
-  
   if (t->cr != NULL) {
     cairo_destroy(t->cr);
   }

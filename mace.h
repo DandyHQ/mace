@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
+#include <hb.h>
 #include <cairo.h>
 #include <cairo-ft.h>
 #include <lua.h>
@@ -75,8 +76,7 @@ struct selection {
 };
 
 /* A wrapper around freetype with functions that use fontconfig to
-   load fonts from patterns. Each textbox has it's own font
-   structure. This is probably inefficent but I will keep it for now. */
+   load fonts from patterns. */
 
 struct font {
   char path[PATH_MAX];
@@ -86,6 +86,7 @@ struct font {
 
   FT_Face face;
   cairo_font_face_t *cface;
+  hb_font_t *hbfont;
 
   int baseline, lineheight;
   size_t tabwidth;
@@ -210,9 +211,6 @@ command(lua_State *L, const uint8_t *s);
 
 struct font *
 fontnew(void);
-
-struct font *
-fontcopy(struct font *old);
 
 void
 fontfree(struct font *font);

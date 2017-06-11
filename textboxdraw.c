@@ -150,7 +150,7 @@ textboxpredraw(struct textbox *t)
 
       /* Line Break. */
       if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
-	if (start < g) {
+  	if (start < g) {
 	  drawglyphs(t, &p->glyphs[start], g - start,
 		     &nfg, bg, ay, by);
 	}
@@ -279,21 +279,21 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 	  return p->pos + i;
 	}
       } else if (p->glyphs[g].y - ay <= ly &&
-                ly <= p->glyphs[g].y + by &&
-                p->glyphs[g].x <= lx) {
+		 ly <= p->glyphs[g].y + by &&
+		 p->glyphs[g].x <= lx) {
 
-		if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
-			FT_LOAD_DEFAULT) != 0) {
-			i += a;
-			continue;
-		}
-
-		ww = t->font->face->glyph->advance.x >> 6;
-
-		if (lx <= p->glyphs[g].x + ww) {
-			return p->pos + i;
-		}
+	if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
+			  FT_LOAD_DEFAULT) != 0) {
+	  i += a;
+	  continue;
 	}
+
+	ww = t->font->face->glyph->advance.x >> 6;
+
+	if (lx <= p->glyphs[g].x + ww) {
+	  return p->pos + i;
+	}
+      }
       
       i += a;
       g++;
@@ -312,52 +312,49 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 }
 
 static size_t
-placeglyphs(struct textbox *t, uint8_t *text, size_t ntext,
-            hb_buffer_t *hbbuf, hb_font_t *hbfont, 
+placeglyphs(struct textbox *t, hb_buffer_t *hbbuf,
+	    uint8_t *text, size_t ntext,
             cairo_glyph_t *glyphs, size_t nglyphs,
-            int *x, int *y, int linewidth)
+            int *x, int *y)
 {
-	hb_glyph_position_t *pos;
-	hb_glyph_info_t *info;
-	unsigned int c;
-	size_t g;
-        int ww;
+  hb_glyph_position_t *pos;
+  hb_glyph_info_t *info;
+  unsigned int c;
+  size_t g;
+  int ww;
 
-	hb_buffer_add_utf8(hbbuf, (const char *) text, ntext, 0, ntext);
-	hb_buffer_guess_segment_properties(hbbuf);
-	hb_shape(hbfont, hbbuf, NULL, 0);
+  hb_buffer_add_utf8(hbbuf, (const char *) text, ntext, 0, ntext);
+  hb_buffer_guess_segment_properties(hbbuf);
+  hb_shape(t->font->hbfont, hbbuf, NULL, 0);
 
-	info = hb_buffer_get_glyph_infos(hbbuf, &c);
-	pos = hb_buffer_get_glyph_positions(hbbuf, &c);
+  info = hb_buffer_get_glyph_infos(hbbuf, &c);
+  pos = hb_buffer_get_glyph_positions(hbbuf, &c);
 
-	/* If c is greater then we have a problem. So just ignore the extra glyphs. */
-	if (c < nglyphs) {
-		nglyphs = c;
-	}
+  /* If c is greater then we have a problem. 
+     So just ignore the extra glyphs. */
+  if (c < nglyphs) {
+    nglyphs = c;
+  }
 
-	for (g = 0; g < nglyphs; g++) {
-		if (info[g].codepoint == 0) {
-			printf("glyph %zu has zero codepoint!, should go at %i,%i\n", g, *x, *y);
-		}
+  for (g = 0; g < nglyphs; g++) {
+    ww = pos[g].x_advance >> 6;
 
-		ww = pos[g].x_advance >> 6;
+    if (*x + ww >= t->linewidth) {
+      *x = 0;
+      *y += t->font->lineheight;
+    }
 
-		if (*x + ww >= linewidth) {
-			*x = 0;
-			*y += t->font->lineheight;
-		}
+    glyphs[g].index = info[g].codepoint;
+    glyphs[g].x = *x + (pos[g].x_offset >> 6);
+    glyphs[g].y = *y - (pos[g].y_offset >> 6);
 
-		glyphs[g].index = info[g].codepoint;
-		glyphs[g].x = *x + (pos[g].x_offset >> 6);
-		glyphs[g].y = *y - (pos[g].y_offset >> 6);
+    *x += ww;
+    *y -= pos[g].y_advance >> 6;
+  }
 
-		*x += ww;
-		*y -= pos[g].y_advance >> 6;
-	}
+  hb_buffer_clear_contents(hbbuf);
 
-	hb_buffer_clear_contents(hbbuf);
-
-	return nglyphs;
+  return nglyphs;
 }
 
 
@@ -366,19 +363,14 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 {
   struct sequence *s;
   hb_buffer_t *hbbuf;
-  hb_font_t *hbfont;
   struct piece *p;
   int32_t code, a;
   int x, y;
   size_t i, g, startg, starti;
   
   hbbuf = hb_buffer_create();
-
-  hbfont = hb_ft_font_create_referenced(t->font->face);
-  hb_ft_font_set_load_flags(hbfont, FT_LOAD_DEFAULT);
-
-  hb_buffer_set_unicode_funcs(hbbuf, hb_icu_get_unicode_funcs());
-
+  hb_buffer_set_unicode_funcs(hbbuf,
+			      hb_icu_get_unicode_funcs());
 
   s = t->sequence;
   p = &s->pieces[SEQ_start];
@@ -413,12 +405,13 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 		      p->len - i, &a)) {
 
         if (startg < g) {
-            g = startg + placeglyphs(t, s->data + p->off + starti, i - starti,
- 		                    hbbuf, hbfont, &p->glyphs[startg], g - startg,
-                                     &x, &y, t->linewidth);
+	  g = startg + placeglyphs(t, hbbuf,
+				   s->data + p->off + starti,
+				   i - starti,
+				   &p->glyphs[startg],
+				   g - startg,
+				   &x, &y);
         }
-
-        printf("newline glyph at %zu\n", g);
 
 	p->glyphs[g].index = 0;
 	p->glyphs[g].x = x;
@@ -427,15 +420,18 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 	x = 0;
 	y += t->font->lineheight;
 
-        startg = g + 1;
-        starti = i + a;
+        startg = ++g;
+        starti = (i += a);
 
       } else if (code == '\t') {
 
         if (startg < g) {
-            g = startg + placeglyphs(t, s->data + p->off + starti, i - starti,
-		             	hbbuf, hbfont, &p->glyphs[startg], g - startg,
-                                     &x, &y, t->linewidth);
+	  g = startg + placeglyphs(t, hbbuf, 
+				   s->data + p->off + starti,
+				   i - starti,
+				   &p->glyphs[startg],
+				   g - startg,
+				   &x, &y);
         }
 
 	if (x + t->font->tabwidthpixels >= t->linewidth) {
@@ -449,23 +445,22 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 
 	x += t->font->tabwidthpixels;
 
-        startg = g + 1;
-        starti = i + a;
-      }
+        startg = ++g;
+        starti = (i += a);
 
-      i += a;
-      g++;
+      } else {
+        i += a;
+        g++;
+      }
     }
 
     if (startg < p->nglyphs && starti < p->len) {
-      g = startg + placeglyphs(t, s->data + p->off + starti, p->len - starti,
-		               hbbuf, hbfont, &p->glyphs[startg], p->nglyphs - startg,
-                               &x, &y, t->linewidth);
-    }
-
-    if (g < p->nglyphs) {
-      printf("changing number of glyphs to %zu from %zu\n", g, p->nglyphs);
-      /* p->nglyphs = g; */
+      g = startg + placeglyphs(t, hbbuf,
+			       s->data + p->off + starti,
+			       p->len - starti,
+			       &p->glyphs[startg],
+			       p->nglyphs - startg,
+                               &x, &y);
     }
 
     p = &s->pieces[p->next];
@@ -476,5 +471,7 @@ textboxcalcpositions(struct textbox *t, size_t pos)
   }
 
   t->height = y - (t->font->face->size->metrics.descender >> 6);
+
+  hb_buffer_destroy(hbbuf);
 }
 

@@ -7,6 +7,7 @@
 #include "config.h"
 
 #include <fontconfig/fontconfig.h>
+#include <hb-ft.h>
 
 static int
 fontloadfile(struct font *font, const char *path, double size);
@@ -39,33 +40,17 @@ fontnew(void)
   return f;
 }
 
-struct font *
-fontcopy(struct font *old)
-{
-  struct font *f;
-
-  if (old->path[0] == 0) {
-    return NULL;
-  }
-  
-  f = fontnew();
-  if (f == NULL) {
-    return NULL;
-  }
-
-  f->tabwidth = old->tabwidth;
-
-  if (fontloadfile(f, old->path, old->size) != 0) {
-    fontfree(f);
-    return NULL;
-  }
-
-  return f;
-}
-
 void
 fontfree(struct font *font)
 {
+  if (font->hbfont != NULL) {
+    hb_font_destroy(font->hbfont);
+  }
+
+  if (font->cface != NULL) {
+    cairo_font_face_destroy(font->cface);
+  }
+  
   if (font->face != NULL) {
     FT_Done_Face(font->face);
   }
@@ -91,8 +76,19 @@ fontloadfile(struct font *font, const char *path, double size)
     return 1;
   }
 
+  if (font->hbfont != NULL) {
+    hb_font_destroy(font->hbfont);
+    font->hbfont = NULL;
+  }
+
+  if (font->cface != NULL) {
+    cairo_font_face_destroy(font->cface);
+    font->cface = NULL;
+  }
+  
   if (font->face != NULL) {
     FT_Done_Face(font->face);
+    font->face = NULL;
   }
 
   snprintf(font->path, sizeof(font->path), "%s", path);
@@ -104,6 +100,9 @@ fontloadfile(struct font *font, const char *path, double size)
     cairo_ft_font_face_create_for_ft_face(font->face,
 					  FT_LOAD_DEFAULT);
 
+  font->hbfont = hb_ft_font_create_referenced(font->face);
+  hb_ft_font_set_load_flags(font->hbfont, FT_LOAD_DEFAULT);
+  
   font->baseline = 1 + ((font->face->size->metrics.height
 			 + font->face->size->metrics.descender) >> 6);
 

@@ -38,6 +38,7 @@ Mace requires the following dependencies:
  - xlib
  - fontconfig
  - freetype2
+ - harfbuzz
  - cairo
  - lua 5.3
 
