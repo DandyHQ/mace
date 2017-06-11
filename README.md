@@ -45,19 +45,19 @@ Mace requires the following dependencies:
 #### Ubuntu 16.04
 
 ```
-# apt install meson libx11-dev libcairo2-dev lua5.3-dev
+# apt install meson libx11-dev libharfbuzz-dev libharfbuzz-icu0 libcairo2-dev lua5.3-dev
 ```
 
 #### Fedora 25
 
 ```
-# dnf install meson libX11-devel cairo-devel lua-devel
+# dnf install meson libX11-devel harfbuzz-devel harfbuzz-icu cairo-devel lua-devel
 ```
 
 #### OpenBSD 6.1
 
 ```
-# pkg_add cairo lua%5.3
+# pkg_add harfbuzz cairo lua%5.3
 ```
 
 ### Compiling
