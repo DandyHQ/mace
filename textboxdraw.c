@@ -160,7 +160,7 @@ textboxpredraw(struct textbox *t)
 
 				if (sel != NULL) {
           /* Draw selection on rest of line. */
-/*
+
 					cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
 					cairo_rectangle(t->cr,
 					                p->glyphs[g].x,
@@ -169,7 +169,6 @@ textboxpredraw(struct textbox *t)
 					                ay + by);
 		  
 					cairo_fill(t->cr); 
-*/
 				}
 	
       } else if (code == '\t') {
@@ -182,7 +181,6 @@ textboxpredraw(struct textbox *t)
 
 				if (sel != NULL) {
           /* Draw selection on tab. */
-/*
 					cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
 					cairo_rectangle(t->cr,
 					                p->glyphs[g].x,
@@ -191,7 +189,6 @@ textboxpredraw(struct textbox *t)
 					                ay + by);
 		  
 					cairo_fill(t->cr); 
-*/
 				}
       }
 
