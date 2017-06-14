@@ -56,7 +56,7 @@ drawglyphs(struct textbox *t, cairo_glyph_t *glyphs, size_t len,
   /* Go through glyphs and find lines, draw background. */
   start = 0;
   for (g = 1; g < len; g++) {
-    if (glyphs[g].x != 0) {
+    if (glyphs[g].x != PAD) {
       continue;
     }
 
@@ -160,6 +160,7 @@ textboxpredraw(struct textbox *t)
 
 				if (sel != NULL) {
           /* Draw selection on rest of line. */
+/*
 					cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
 					cairo_rectangle(t->cr,
 					                p->glyphs[g].x,
@@ -168,6 +169,7 @@ textboxpredraw(struct textbox *t)
 					                ay + by);
 		  
 					cairo_fill(t->cr); 
+*/
 				}
 	
       } else if (code == '\t') {
@@ -180,6 +182,7 @@ textboxpredraw(struct textbox *t)
 
 				if (sel != NULL) {
           /* Draw selection on tab. */
+/*
 					cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
 					cairo_rectangle(t->cr,
 					                p->glyphs[g].x,
@@ -188,6 +191,7 @@ textboxpredraw(struct textbox *t)
 					                ay + by);
 		  
 					cairo_fill(t->cr); 
+*/
 				}
       }
 
