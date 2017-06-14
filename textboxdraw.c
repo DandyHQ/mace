@@ -19,6 +19,7 @@
    way.
 */
 
+#define PAD 5
 
 static struct colour nfg = { 0, 0, 0 };
 static struct colour sbg = { 0.5, 0.8, 0.7 };
@@ -62,7 +63,7 @@ drawglyphs(struct textbox *t, cairo_glyph_t *glyphs, size_t len,
     cairo_rectangle(t->cr,
 		    glyphs[start].x,
 		    glyphs[start].y - ay,
-		    t->linewidth - glyphs[start].x,
+		    t->linewidth - PAD - glyphs[start].x,
 		    ay + by);
 		  
     cairo_fill(t->cr);
@@ -126,82 +127,82 @@ textboxpredraw(struct textbox *t)
 
       a = utf8iterate(s->data + p->off + i, p->len - i, &code);
       if (a == 0) {
-	i++;
-	continue;
+				i++;
+				continue;
       }
 
       nsel = inselections(t, p->pos + i);
       if (nsel != sel) {
-	if (start < g) {
+				if (start < g) {
           /* Draw the undrawn glyphs with the previous selection. */
-	  drawglyphs(t, &p->glyphs[start], g - start,
-		     &nfg, bg, ay, by);
-	}
+					drawglyphs(t, &p->glyphs[start], g - start,
+					           &nfg, bg, ay, by);
+				}
 
-	start = g;
+				start = g;
 
-	sel = nsel;
-	if (sel != NULL) {
-	  bg = &sbg;
-	} else {
-	  bg = &t->bg;
-	}
+				sel = nsel;
+				if (sel != NULL) {
+					bg = &sbg;
+				} else {
+					bg = &t->bg;
+				}
       }
 
       /* Line Break. */
       if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
-  	if (start < g) {
-	  drawglyphs(t, &p->glyphs[start], g - start,
-		     &nfg, bg, ay, by);
-	}
+				if (start < g) {
+					drawglyphs(t, &p->glyphs[start], g - start,
+					           &nfg, bg, ay, by);
+				}
 
-	start = g + 1;
+				start = g + 1;
 
-	if (sel != NULL) {
+				if (sel != NULL) {
           /* Draw selection on rest of line. */
-	  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
-	  cairo_rectangle(t->cr,
-			  p->glyphs[g].x,
-			  p->glyphs[g].y - ay,
-			  t->linewidth - p->glyphs[g].x,
-			  ay + by);
+					cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
+					cairo_rectangle(t->cr,
+					                p->glyphs[g].x,
+					                p->glyphs[g].y - ay,
+					                t->linewidth - PAD - p->glyphs[g].x,
+					                ay + by);
 		  
-	  cairo_fill(t->cr); 
-	}
+					cairo_fill(t->cr); 
+				}
 	
       } else if (code == '\t') {
-	if (start < g) {
-	  drawglyphs(t, &p->glyphs[start], g - start,
-		     &nfg, bg, ay, by);
-	}
+				if (start < g) {
+					drawglyphs(t, &p->glyphs[start], g - start,
+					           &nfg, bg, ay, by);
+				}
 
-	start = g + 1;
+				start = g + 1;
 
-	if (sel != NULL) {
+				if (sel != NULL) {
           /* Draw selection on tab. */
-	  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
-	  cairo_rectangle(t->cr,
-			  p->glyphs[g].x,
-			  p->glyphs[g].y - ay,
-			  t->font->tabwidthpixels,
-			  ay + by);
+					cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
+					cairo_rectangle(t->cr,
+					                p->glyphs[g].x,
+													p->glyphs[g].y - ay,
+													t->font->tabwidthpixels,
+					                ay + by);
 		  
-	  cairo_fill(t->cr); 
-	}
+					cairo_fill(t->cr); 
+				}
       }
 
       if (p->pos + i == t->cursor) {
-	if (start <= g) {
-	  drawglyphs(t, &p->glyphs[start], g - start + 1,
-		     &nfg, bg, ay, by);
-	}
+				if (start <= g) {
+					drawglyphs(t, &p->glyphs[start], g - start + 1,
+					           &nfg, bg, ay, by);
+				}
 
-	start = g + 1;
+				start = g + 1;
 
-	drawcursor(t,
-		   p->glyphs[g].x,
-		   p->glyphs[g].y - ay,
-		   ay + by);
+				drawcursor(t,
+						   p->glyphs[g].x,
+						   p->glyphs[g].y - ay,
+				       ay + by);
       }
 
       i += a;
@@ -210,7 +211,7 @@ textboxpredraw(struct textbox *t)
 
     if (start < g) {
       drawglyphs(t, &p->glyphs[start], g - start,
-		 &nfg, bg, ay, by);
+			           &nfg, bg, ay, by);
     }
 
     if (g < p->nglyphs && p->glyphs[g].y >= t->yoff + t->maxheight) {
@@ -259,40 +260,40 @@ textboxfindpos(struct textbox *t, int lx, int ly)
     while (i < p->len && g < p->nglyphs) {
       a = utf8iterate(s->data + p->off + i, p->len - i, &code);
       if (a == 0) {
-	i++;
-	continue;
+				i++;
+				continue;
       }
 
       if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
-	if (p->glyphs[g].y - ay <= ly &&
-	    ly <= p->glyphs[g].y + by) {
+				if (p->glyphs[g].y - ay <= ly &&
+				    ly <= p->glyphs[g].y + by) {
 
-	  return p->pos + i;
-	}
+					return p->pos + i;
+				}
 
       } else if (code == '\t') {
-	if (p->glyphs[g].y - ay <= ly &&
-	    ly <= p->glyphs[g].y + by &&
-	    p->glyphs[g].x <= lx &&
-	    lx <= p->glyphs[g].x + t->font->tabwidthpixels) {
+				if (p->glyphs[g].y - ay <= ly &&
+				    ly <= p->glyphs[g].y + by &&
+				    p->glyphs[g].x <= lx &&
+				    lx <= p->glyphs[g].x + t->font->tabwidthpixels) {
 
-	  return p->pos + i;
-	}
+					return p->pos + i;
+				}
       } else if (p->glyphs[g].y - ay <= ly &&
-		 ly <= p->glyphs[g].y + by &&
-		 p->glyphs[g].x <= lx) {
+				         ly <= p->glyphs[g].y + by &&
+				         p->glyphs[g].x <= lx) {
 
-	if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
-			  FT_LOAD_DEFAULT) != 0) {
-	  i += a;
-	  continue;
-	}
+				if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
+			      FT_LOAD_DEFAULT) != 0) {
+					i += a;
+					continue;
+				}
 
-	ww = t->font->face->glyph->advance.x >> 6;
+				ww = t->font->face->glyph->advance.x >> 6;
 
-	if (lx <= p->glyphs[g].x + ww) {
-	  return p->pos + i;
-	}
+				if (lx <= p->glyphs[g].x + ww) {
+					return p->pos + i;
+				}
       }
       
       i += a;
@@ -339,8 +340,8 @@ placeglyphs(struct textbox *t, hb_buffer_t *hbbuf,
   for (g = 0; g < nglyphs; g++) {
     ww = pos[g].x_advance >> 6;
 
-    if (*x + ww >= t->linewidth) {
-      *x = 0;
+    if (*x + ww >= t->linewidth - PAD) {
+      *x = PAD;
       *y += t->font->lineheight;
     }
 
@@ -356,7 +357,6 @@ placeglyphs(struct textbox *t, hb_buffer_t *hbbuf,
 
   return nglyphs;
 }
-
 
 void
 textboxcalcpositions(struct textbox *t, size_t pos)
@@ -379,7 +379,7 @@ textboxcalcpositions(struct textbox *t, size_t pos)
   startg = 0;
   starti = 0;
 
-  x = 0;
+  x = PAD;
   y = t->font->baseline;
   
   while (true) {
@@ -396,8 +396,8 @@ textboxcalcpositions(struct textbox *t, size_t pos)
     while (i < p->len && g < p->nglyphs) {
       a = utf8iterate(s->data + p->off + i, p->len - i, &code);
       if (a == 0) {
-	i++;
-	continue;
+				i++;
+				continue;
       }
       
       if (islinebreak(code,
@@ -405,20 +405,21 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 		      p->len - i, &a)) {
 
         if (startg < g) {
-	  g = startg + placeglyphs(t, hbbuf,
-				   s->data + p->off + starti,
-				   i - starti,
-				   &p->glyphs[startg],
-				   g - startg,
-				   &x, &y);
+					g = startg + 
+					    placeglyphs(t, hbbuf,
+					                s->data + p->off + starti,
+				                  i - starti,
+				                  &p->glyphs[startg],
+				                  g - startg,
+				                  &x, &y);
         }
 
-	p->glyphs[g].index = 0;
-	p->glyphs[g].x = x;
-	p->glyphs[g].y = y;
+				p->glyphs[g].index = 0;
+				p->glyphs[g].x = x;
+				p->glyphs[g].y = y;
 
-	x = 0;
-	y += t->font->lineheight;
+				x = PAD;
+				y += t->font->lineheight;
 
         startg = ++g;
         starti = (i += a);
@@ -426,24 +427,25 @@ textboxcalcpositions(struct textbox *t, size_t pos)
       } else if (code == '\t') {
 
         if (startg < g) {
-	  g = startg + placeglyphs(t, hbbuf, 
-				   s->data + p->off + starti,
-				   i - starti,
-				   &p->glyphs[startg],
-				   g - startg,
-				   &x, &y);
-        }
+        	g = startg + 
+					    placeglyphs(t, hbbuf,
+					                s->data + p->off + starti,
+				                  i - starti,
+				                  &p->glyphs[startg],
+				                  g - startg,
+				                  &x, &y);
+				}
 
-	if (x + t->font->tabwidthpixels >= t->linewidth) {
-	  x = 0;
-	  y += t->font->lineheight;
-	}
+				if (x + t->font->tabwidthpixels >= t->linewidth - PAD) {
+					x = PAD;
+					y += t->font->lineheight;
+				}
 
-	p->glyphs[g].index = 0;
-	p->glyphs[g].x = x; 
-	p->glyphs[g].y = y;
+				p->glyphs[g].index = 0;
+				p->glyphs[g].x = x; 
+				p->glyphs[g].y = y;
 
-	x += t->font->tabwidthpixels;
+				x += t->font->tabwidthpixels;
 
         startg = ++g;
         starti = (i += a);
@@ -455,12 +457,13 @@ textboxcalcpositions(struct textbox *t, size_t pos)
     }
 
     if (startg < p->nglyphs && starti < p->len) {
-      g = startg + placeglyphs(t, hbbuf,
+      g = startg + 
+			    placeglyphs(t, hbbuf,
 			       s->data + p->off + starti,
 			       p->len - starti,
 			       &p->glyphs[startg],
 			       p->nglyphs - startg,
-                               &x, &y);
+             &x, &y);
     }
 
     p = &s->pieces[p->next];
