@@ -46,6 +46,7 @@ iswordbreak(int32_t code)
   default:
     return false;
 
+	case '\t':
   case '\n':
   case ' ':
     return true;

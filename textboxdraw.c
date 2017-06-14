@@ -313,15 +313,30 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 }
 
 static size_t
+findlinebreak(hb_glyph_info_t *info, uint8_t *text, 
+              size_t max, size_t min)
+{
+	while (max > min + 1) {
+		if (iswordbreak(text[info[max].cluster])) {
+			return max;
+		} else {
+			max--;
+		}
+	}
+
+	return min + 1;
+}
+
+static size_t
 placeglyphs(struct textbox *t, hb_buffer_t *hbbuf,
-	    uint8_t *text, size_t ntext,
+            uint8_t *text, size_t ntext,
             cairo_glyph_t *glyphs, size_t nglyphs,
             int *x, int *y)
 {
   hb_glyph_position_t *pos;
   hb_glyph_info_t *info;
   unsigned int c;
-  size_t g;
+  size_t g, linestart;
   int ww;
 
   hb_buffer_add_utf8(hbbuf, (const char *) text, ntext, 0, ntext);
@@ -337,12 +352,18 @@ placeglyphs(struct textbox *t, hb_buffer_t *hbbuf,
     nglyphs = c;
   }
 
+	linestart = 0;
   for (g = 0; g < nglyphs; g++) {
     ww = pos[g].x_advance >> 6;
 
     if (*x + ww >= t->linewidth - PAD) {
       *x = PAD;
       *y += t->font->lineheight;
+
+			g = findlinebreak(info, text, g, linestart);
+
+			linestart = g;
+			ww = pos[g].x_advance >> 6;
     }
 
     glyphs[g].index = info[g].codepoint;
