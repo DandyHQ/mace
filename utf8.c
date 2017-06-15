@@ -39,20 +39,46 @@ islinebreak(int32_t code, const uint8_t *s, int32_t max, int32_t *l)
   }
 }
 
+/* Where could we get a proper list for this? Do libraries exist
+	for such things? */
+
+static int32_t wordbreaks[] = {
+	'\t',
+	'\n',
+	' ',
+	',',
+	'.',
+	'(',
+	')',
+	'[',
+	']',
+	'|',
+	'!',
+	'@',
+	'#',
+	'$',
+	'%',
+	'^',
+	'&',
+	'+',
+	':',
+	';',
+	'\'',
+	'"',
+};
+
 bool
 iswordbreak(int32_t code)
 {
-  switch (code) {
-  default:
-    return false;
+	int i;
 
-	case '\t':
-  case '\n':
-  case ' ':
-    return true;
+	for (i = 0; i < sizeof(wordbreaks)/sizeof(wordbreaks[0]); i++) {
+		if (code == wordbreaks[i]) {
+			return true;
+		}
+	}
 
-    /* TODO: other word breaks. */
-  }
+	return false;
 }
 
 /*

@@ -317,15 +317,19 @@ static size_t
 findlinebreak(hb_glyph_info_t *info, uint8_t *text, 
               size_t max, size_t min)
 {
-	while (max > min + 1) {
-		if (iswordbreak(text[info[max].cluster])) {
-			return max;
-		} else {
-			max--;
+	size_t i;
+	
+	if (max == 0) {
+		return max;
+	}
+
+	for (i = max - 1; i > min; i--) {
+		if (iswordbreak(text[info[i].cluster])) {
+			return i + 1;
 		}
 	}
 
-	return min + 1;
+	return max;
 }
 
 static size_t
