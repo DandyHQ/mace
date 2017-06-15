@@ -1,7 +1,8 @@
 #include "mace.h"
 
 struct selection *
-selectionnew(struct textbox *t, size_t pos)
+selectionadd(struct textbox *t, selection_t type,
+             size_t pos1, size_t pos2)
 {
   struct selection *s;
 
@@ -11,18 +12,39 @@ selectionnew(struct textbox *t, size_t pos)
   }
 
   s->textbox = t;
-  s->start = pos;
-  s->end = pos;
-  s->direction = SELECTION_right;
-  s->next = NULL;
+	s->type = type;
+
+	if (pos1 < pos2) {
+  	s->start = pos1;
+  	s->end = pos2;
+ 	 s->direction = SELECTION_right;
+	} else {
+		s->start = pos2;
+		s->end = pos1;
+		s->direction = SELECTION_left;
+	}
+
+  s->next = t->selections;
+	t->selections = s;
   
   return s;
 }
 
 void
-selectionfree(struct selection *s)
+selectionremove(struct textbox *t, struct selection *s)
 {
-  luaremove(s->textbox->tab->mace->lua, s);
+	struct selection *p;
+
+	if (t->selections == s) {
+		t->selections = s->next;
+	} else {
+		for (p = t->selections; p->next != s && p->next != NULL; p = p->next)
+			;
+
+		if (p->next == s) {
+			p->next = s->next;
+		}
+	}
 
   free(s);
 }

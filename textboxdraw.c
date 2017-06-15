@@ -23,6 +23,7 @@
 
 static struct colour nfg = { 0, 0, 0 };
 static struct colour sbg = { 0.5, 0.8, 0.7 };
+static struct colour cbg = { 0.9, 0.5, 0.2 };
 
 static void
 drawcursor(struct textbox *t, int x, int y, int h)
@@ -143,7 +144,14 @@ textboxpredraw(struct textbox *t)
 
 				sel = nsel;
 				if (sel != NULL) {
-					bg = &sbg;
+					switch (sel->type) {
+					case SELECTION_normal:
+						bg = &sbg;
+						break;
+					case SELECTION_command:
+						bg = &cbg;
+						break;
+					}
 				} else {
 					bg = &t->bg;
 				}

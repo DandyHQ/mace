@@ -39,7 +39,7 @@ function getfilename(tab)
 end
 
 function save()
-   local tab = mace.focus.tab
+   local tab = mace.mousefocus.tab
    local m = tab.main
 
    filename = getfilename(tab)
@@ -64,14 +64,14 @@ function openfile(filename)
    if t == nil then
       t = mace:newemptytab(filename)
       if t == nil then
-	 return
+				return
       end
    end
    
-   local pane = mace.focus.tab.pane
+   local pane = mace.keyfocus.tab.pane
    pane:addtab(t, -1)
    pane.focus = t
-   mace.focus = t.main
+   mace.keyfocus = t.main
 end
 
 function open()
@@ -84,20 +84,14 @@ function open()
 end
 
 function close()
-   local t = mace.focus.tab
-   local p = t.pane
+	local t = mace.mousefocus.tab
+	local p = t.pane
 
-   t:close()
+	t:close()
 
-   if p.tabs == nil then
-      t = mace:newemptytab("*scratch*")
-      p:addtab(t, 0)
-
-      p.focus = t
-      if mace.focus == nil then
-	 mace.focus = t.main
-      end
-   end
+	if p.tabs == nil then
+		p:close()
+	end
 end
 
 function cut()
@@ -120,7 +114,8 @@ function cut()
    t:removeselection(final)
 
    if final.start <= t.cursor
-   and t.cursor <= final.start + final.len then
+       and
+       t.cursor <= final.start + final.len then
 
       t.cursor = final.start
    end
@@ -143,8 +138,7 @@ function copy()
 end
 
 function paste()
-
-   t = mace.focus
+   t = mace.keyfocus
    t:insert(t.cursor, clipboard)
    t.cursor = t.cursor + clipboard:len()
 end

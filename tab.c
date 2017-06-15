@@ -177,7 +177,7 @@ tabresize(struct tab *t, int x, int y, int w, int h)
     return false;
   }
 
-  if (!textboxresize(t->main, w - SCROLL_WIDTH, h)) {
+  if (!textboxresize(t->main, w - SCROLL_WIDTH, h - t->action->height)) {
     return false;
   }
 
@@ -224,9 +224,11 @@ tabbuttonpress(struct tab *t, int x, int y,
   int yoff;
   
   if (y < t->action->height) {
+		t->mace->mousefocus = t->action;
     return textboxbuttonpress(t->action, x, y, button);
 
   } else if (x < t->width - SCROLL_WIDTH) {
+		t->mace->mousefocus = t->main;
     return textboxbuttonpress(t->main, x, y - t->action->height - 1,
 			      button);
   } else {
@@ -234,28 +236,6 @@ tabbuttonpress(struct tab *t, int x, int y,
 		  / (float) (t->height - t->action->height));
 
     return textboxscroll(t->main, 0, yoff);
-  }
-}
-
-bool
-tabbuttonrelease(struct tab *t, int x, int y,
-	   unsigned int button)
-{
-  if (t->mace->focus == t->action) {
-    return textboxbuttonrelease(t->action, x, y, button);
-  } else {
-    return textboxbuttonrelease(t->main, x, y - t->action->height - 1,
-				button);
-  }
-}
-
-bool
-tabmotion(struct tab *t, int x, int y)
-{
-  if (t->mace->focus == t->action) {
-    return textboxmotion(t->action, x, y);
-  } else {
-    return textboxmotion(t->main, x, y - t->action->height - 1);
   }
 }
 

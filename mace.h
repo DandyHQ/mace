@@ -54,27 +54,6 @@ struct colour {
   double r, g, b;
 };
 
-/* Used by textbox's to store a linked list of current
-   selections. Currently you can only have one selection so it doesn't
-   need to be a list, but if future I think it would be cool to have a
-   multiple selections. 
-
-   I am starting to think it would be best to only have on selection 
-   per mace instance, at least for now. Maybe this should be 
-   discussed. 
-*/
-
-typedef enum { SELECTION_left, SELECTION_right } selection_t;
-
-struct selection {
-  struct textbox *textbox;
-
-  size_t start, end;
-  selection_t direction;
-
-  struct selection *next;
-};
-
 /* A wrapper around freetype with functions that use fontconfig to
    load fonts from patterns. */
 
@@ -93,16 +72,30 @@ struct font {
   int tabwidthpixels;
 };
 
+/* We need to find a better way to handle selections. This is awful. */
+
+typedef enum { SELECTION_left, SELECTION_right } selection_direction_t;
+typedef enum { SELECTION_normal, SELECTION_command } selection_t;
+
+struct selection {
+	struct textbox *textbox;
+	selection_t type;
+
+	size_t start, end;
+	selection_direction_t direction;
+	
+	struct selection *next;
+};
+
 struct textbox {
   struct tab *tab;
   
   struct font *font;
 
   struct selection *csel, *selections;
-  /* Has csel selected more than the one glyph. If it hasn't then the
-     selection is removed when the button is lifted. */
-  size_t newselpos;
-  
+
+	size_t newselpos;
+
   struct sequence *sequence;
 
   /* This must be on a unicode code point boundry or it will not be
@@ -111,6 +104,7 @@ struct textbox {
 
   /* Maximum width a line can be. */
   int linewidth;
+
   /* Current height of the text in the textbox. This has nothing to do
      with the size of sfc. */
   int height;
@@ -170,8 +164,8 @@ struct mace {
   lua_State *lua;
   
   struct pane *pane;
-  /* Currently focused textbox. */
-  struct textbox *focus;
+
+  struct textbox *keyfocus, *mousefocus;
 };
 
 
@@ -295,14 +289,6 @@ bool
 tabbuttonpress(struct tab *t, int x, int y,
 	       unsigned int button);
 
-bool
-tabbuttonrelease(struct tab *t, int x, int y,
-		 unsigned int button);
-
-bool
-tabmotion(struct tab *t, int x, int y);
-
-
 
 
 struct textbox *
@@ -347,25 +333,18 @@ textboxcalcpositions(struct textbox *t, size_t pos);
 void
 textboxpredraw(struct textbox *t);
 
-
 struct selection *
-selectionnew(struct textbox *t, size_t pos);
+selectionadd(struct textbox *t, selection_t type, 
+             size_t pos1, size_t pos2);
 
 void
-selectionfree(struct selection *s);
-
-/* Updates the selection to include pos, returns true if something
-   changed, false otherwise. */
+selectionremove(struct textbox *t, struct selection *s);
 
 bool
 selectionupdate(struct selection *s, size_t pos);
 
-/* Checks if the position pos in the textbox t is in a selection,
-   returns the selection if it is. */
-
 struct selection *
 inselections(struct textbox *t, size_t pos);
-
 
 
 /* Handle UI events. Return true if mace needs to be redrawn */

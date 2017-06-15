@@ -39,17 +39,12 @@ textboxnew(struct tab *tab, struct colour *bg,
 void
 textboxfree(struct textbox *t)
 {
-  struct selection *sel, *nsel;
-
   luaremove(t->tab->mace->lua, t);
 
-  sel = t->selections;
-  while (sel != NULL) {
-    nsel = sel->next;
-    selectionfree(sel);
-    sel = nsel;
-  }
-
+	while (t->selections != NULL) {
+		selectionremove(t, t->selections);
+	}
+  
   sequencefree(t->sequence);
 
   if (t->cr != NULL) {
@@ -106,28 +101,18 @@ bool
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
-  struct selection *sel, *nsel;
+  struct selection *sel;
   size_t pos, start, len;
-  uint8_t *buf;
 
   pos = textboxfindpos(t, x, y);
   
   switch (button) {
   case 1:
-    t->tab->mace->focus = t;
+    t->tab->mace->keyfocus = t;
 
-    /* Remove current selections.
-       Should probably remove the selections from this tabs other 
-       textbox. */
-
-    sel = t->selections;
-    t->selections = NULL;
-
-    while (sel != NULL) {
-      nsel = sel->next;
-      selectionfree(sel);
-      sel = nsel;
-    }
+		while (t->selections != NULL) {
+			selectionremove(t, t->selections);
+		}
 
     t->cursor = pos;
     t->newselpos = pos;
@@ -139,30 +124,20 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   case 3:
     sel = inselections(t, pos);
     if (sel != NULL) {
-      /* I think this is broken. Need to remove the selection from 
-	 selections. This also has something to do with a memory
-	 corruption on ubuntu. Doesn't seem to have any problems on
-	 OpenBSD though. */
-      start = sel->start;
-      len = sel->end - sel->start + 1;
-    } else if (!sequencefindword(t->sequence, pos, &start, &len)) {
-      return false;
-    }
+      sel->type = SELECTION_command;
 
-    buf = malloc(len + 1);
-    if (buf == NULL) {
-      return false;
-    }
+			textboxpredraw(t);
+			return true;
 
-    if (sequenceget(t->sequence, start, buf, len) == 0) {
-      return false;
-    }
+    } else if (sequencefindword(t->sequence, pos, &start, &len)) {
+			sel = selectionadd(t, SELECTION_command, start, start + len - 1);
 
-    command(t->tab->mace->lua, buf);
+			textboxpredraw(t);
+      return true;
 
-    free(buf);
-
-    return true;
+    } else {
+			return false;
+		}
   }
 
   return false;
@@ -172,8 +147,60 @@ bool
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
+	struct selection *sel, *next;
+	size_t pos, start, len;
+  uint8_t *buf;
+
+  pos = textboxfindpos(t, x, y);
+
   t->csel = NULL;
   t->newselpos = SIZE_MAX;
+
+	switch (button) {
+	case 1:
+	case 2:
+		break;
+
+	case 3:
+		sel = inselections(t, pos);
+		if (sel != NULL && sel->type == SELECTION_command) {
+			start = sel->start;
+			len = sel->end - start + 1;
+		} else {
+			len = 0;
+		}
+
+		sel = t->selections;
+		while (sel != NULL) {
+			next = sel->next;
+
+			if (sel->type == SELECTION_command) {
+				selectionremove(t, sel);
+			}
+
+			sel = next;
+		}
+
+		textboxpredraw(t);
+
+    if (len != 0) {
+			buf = malloc(len);
+   	 if (buf == NULL) {
+  	  	return false;
+ 	   }
+
+   	 if (sequenceget(t->sequence, start, buf, len) == 0) {
+   	   return false;
+  	  }
+
+	    command(t->tab->mace->lua, buf);
+
+  	  free(buf);
+		}
+
+    return true;
+	}
+
   return false;
 }
 
@@ -183,18 +210,18 @@ textboxmotion(struct textbox *t, int x, int y)
   size_t pos;
 
   if (t->newselpos != SIZE_MAX) {
-    t->csel = selectionnew(t, t->newselpos);
+		pos = textboxfindpos(t, x, y);
+		if (pos == t->newselpos) {
+			return false;
+		}
+
+    t->csel = selectionadd(t, SELECTION_normal, t->newselpos, pos);
     if (t->csel == NULL) {
       return false;
     }
 
     t->newselpos = SIZE_MAX;
-
-    pos = textboxfindpos(t, x, y);
-    selectionupdate(t->csel, pos);
-    
-    t->csel->next = t->selections;
-    t->selections = t->csel;
+        
     textboxpredraw(t);
     return true;
 
@@ -215,7 +242,7 @@ textboxmotion(struct textbox *t, int x, int y)
 static bool
 deleteselections(struct textbox *t)
 {
-  struct selection *sel, *nsel;
+  struct selection *sel;
   size_t start;
   
   start = t->sequence->pieces[SEQ_end].pos;
@@ -238,10 +265,7 @@ deleteselections(struct textbox *t)
       t->cursor = sel->start;
     }
 
-    nsel = sel->next;
-    t->selections = nsel;
-    selectionfree(sel);
-    sel = nsel;
+    selectionremove(t, sel);
   }
 
   textboxcalcpositions(t, start);

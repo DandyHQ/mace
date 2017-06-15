@@ -116,11 +116,11 @@ paneremovetab(struct pane *p, struct tab *t)
     /* This could be improved */
     p->focus = p->tabs;
 
-    if (p->mace->focus == t->action || p->mace->focus == t->main) {
+    if (p->mace->mousefocus == t->action || p->mace->keyfocus == t->main) {
       if (p->focus != NULL) {
-				p->mace->focus = p->focus->main;
+				p->mace->mousefocus = p->mace->keyfocus = p->focus->main;
       } else {
-				p->mace->focus = NULL;
+				p->mace->mousefocus = p->mace->keyfocus = NULL;
       }
     }
   }
@@ -145,26 +145,27 @@ tablistbuttonpress(struct pane *p, int px, int py, int button)
     while (i < t->nlen) {
       a = utf8iterate(t->name + i, t->nlen - i, &code);
       if (a == 0) {
-	i++;
-	continue;
+				i++;
+				continue;
       }
 
       if (!loadglyph(p->mace->font->face, code)) {
-	i += a;
-	continue;
+				i += a;
+				continue;
       }
 
       ww = p->mace->font->face->glyph->advance.x >> 6;
 
       x += ww;
       if (px < x) {
-	if (p->focus != t) {
-	  p->focus = t;
-	  p->mace->focus = t->main;
-	  return true;
-	} else {
-	  return false;
-	}
+				if (p->focus != t) {
+					p->focus = t;
+					p->mace->mousefocus = NULL;
+					p->mace->keyfocus = t->main;
+					return true;
+				} else {
+					return false;
+				}
       }
 
       i += a;

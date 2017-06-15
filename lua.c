@@ -200,8 +200,13 @@ lmaceindex(lua_State *L)
       return 1;
     }
     
-    if (strcmp(key, "focus") == 0) {
-      obj_ref_new(L, mace->focus, "mace.textbox");
+    if (strcmp(key, "mousefocus") == 0) {
+      obj_ref_new(L, mace->mousefocus, "mace.textbox");
+      return 1;
+    }
+
+		if (strcmp(key, "keyfocus") == 0) {
+      obj_ref_new(L, mace->keyfocus, "mace.textbox");
       return 1;
     }
 
@@ -224,11 +229,18 @@ lmacenewindex(lua_State *L)
   if (lua_isstring(L, 2)) {
     key = lua_tostring(L, 2);
 
-    if (strcmp(key, "focus") == 0) {
+    if (strcmp(key, "mousefocus") == 0) {
       tb = obj_ref_check(L, 3, "mace.textbox");
-      mace->focus = tb;
+      mace->mousefocus = tb;
       return 0;
     }
+
+		if (strcmp(key, "keyfocus") == 0) {
+      tb = obj_ref_check(L, 3, "mace.textbox");
+      mace->keyfocus = tb;
+      return 0;
+    }
+
   }
     
   return newindexcommon(L);
@@ -313,9 +325,9 @@ lmaceselections(lua_State *L)
   lua_newtable(L);
 
   i = 1; /* Apparently lua arrays start at 1 */
-  if (mace->focus != NULL) {
-    i = pushtextboxselections(L, i, mace->focus->tab->action);
-    i = pushtextboxselections(L, i, mace->focus->tab->main);
+  if (mace->keyfocus != NULL) {
+    i = pushtextboxselections(L, i, mace->keyfocus->tab->action);
+    i = pushtextboxselections(L, i, mace->keyfocus->tab->main);
   }
 
   return 1;
@@ -417,12 +429,24 @@ lpaneremovetab(lua_State *L)
   return 0;
 }
 
+static int
+lpaneclose(lua_State *L)
+{
+	struct pane *p = obj_ref_check(L, 1, "mace.pane");
+
+	/* Not much else to do */
+	p->mace->running = false;
+
+	return 0;
+}
+
 static const struct luaL_Reg pane_funcs[] = {
   { "__tostring",      lpanetostring },
   { "__index",         lpaneindex },
   { "__newindex",      lpanenewindex },
   { "addtab",          lpaneaddtab },
   { "removetab",       lpaneremovetab },
+	{ "close",           lpaneclose },
   { NULL, NULL }
 };
 
@@ -494,7 +518,7 @@ ltabclose(lua_State *L)
   if (t->pane != NULL) {
     paneremovetab(t->pane, t);
   }
-  
+
   tabfree(t);
 
   return 0;
@@ -612,7 +636,7 @@ ltextboxselections(lua_State *L)
 static int
 ltextboxremoveselection(lua_State *L)
 {
-  struct selection *sel, *psel;
+  struct selection *sel;
   struct textbox *t, *st;
   size_t start, len;
 
@@ -632,19 +656,12 @@ ltextboxremoveselection(lua_State *L)
     return 0;
   }
 
-  psel = NULL;
   for (sel = t->selections; sel != NULL; sel = sel->next) {
     if (sel->start != start) continue;
     if (sel->end != start + len - 1) continue;
     if (sel->textbox != st) continue;
 
-    if (psel == NULL) {
-      t->selections = sel->next;
-    } else {
-      psel->next = sel->next;
-    }
-
-    selectionfree(sel);
+    selectionremove(t, sel);
     break;
   }
 
