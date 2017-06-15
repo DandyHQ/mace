@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <libgen.h>
 #include <err.h>
 
 #include <X11/Xlib.h>
@@ -223,8 +224,10 @@ eventLoop(void)
 int
 main(int argc, char **argv)
 {
-  int width, height;
-  
+  int width, height, i;
+	struct tab *t;
+	char *name;
+
   width = 800;
   height = 500;
   
@@ -257,6 +260,28 @@ main(int argc, char **argv)
   if (mace == NULL) {
     errx(1, "Failed to initalize mace!");
   }
+
+	for (i = 1; i < argc; i++) {
+		name = basename(argv[i]);
+		printf("opening '%s' with name '%s'\n", argv[i], name);
+		t = tabnewfromfile(mace, (uint8_t *) name, strlen(name), 
+		                   (uint8_t *) argv[i], strlen(argv[i]));
+
+		if (t == NULL) {
+			continue;
+		}
+
+		paneaddtab(mace->pane, t, -1);
+		mace->pane->focus = t;
+		mace->focus = t->main;
+	}
+
+	/* This is ugly. Removes default tab is files were opened. */
+	if (mace->pane->focus != mace->pane->tabs) {
+		t = mace->pane->tabs;
+		paneremovetab(mace->pane, t);
+		tabfree(t);
+	}
 
   xresize(width, height);
 

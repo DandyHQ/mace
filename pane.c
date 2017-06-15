@@ -118,9 +118,9 @@ paneremovetab(struct pane *p, struct tab *t)
 
     if (p->mace->focus == t->action || p->mace->focus == t->main) {
       if (p->focus != NULL) {
-	p->mace->focus = p->focus->main;
+				p->mace->focus = p->focus->main;
       } else {
-	p->mace->focus = NULL;
+				p->mace->focus = NULL;
       }
     }
   }
