@@ -383,7 +383,7 @@ placeglyphs(struct textbox *t,
 void
 textboxcalcpositions(struct textbox *t, size_t pos)
 {
-  size_t i, g, startg, starti;
+  size_t i, g, startg;
   struct sequence *s;
   struct piece *p;
   int32_t code, a;
@@ -394,7 +394,6 @@ textboxcalcpositions(struct textbox *t, size_t pos)
   i = 0;
   g = 0;
   startg = 0;
-  starti = 0;
 
   x = PAD;
   y = t->font->baseline;
@@ -436,7 +435,6 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 				y += t->font->lineheight;
 
         startg = g + 1;
-        starti = i + a;
 
       } else if (code == '\t') {
 
@@ -459,7 +457,6 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 				x += t->font->tabwidthpixels;
 
         startg = g + 1;
-        starti = i + a;
 
       } else {
 				p->glyphs[g].index = code;
@@ -480,7 +477,6 @@ textboxcalcpositions(struct textbox *t, size_t pos)
     i = 0;
     g = 0;
     startg = 0;
-    starti = 0;
   }
 
   t->height = y - (t->font->face->size->metrics.descender >> 6);
