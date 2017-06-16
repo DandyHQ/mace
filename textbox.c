@@ -106,11 +106,14 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   
   switch (button) {
   case 1:
-    t->tab->mace->keyfocus = t;
-
-    while (t->selections != NULL) {
-      selectionremove(t, t->selections);
+    while (t->tab->mace->keyfocus->selections != NULL) {
+      selectionremove(t->tab->mace->keyfocus,
+		      t->tab->mace->keyfocus->selections);
     }
+
+    textboxpredraw(t->tab->mace->keyfocus);
+    
+    t->tab->mace->keyfocus = t;
 
     t->cursor = pos;
     t->newselpos = pos;

@@ -74,9 +74,46 @@ cmdsave(struct mace *m)
 }
 
 static void
+openselection(struct mace *m, struct selection *s)
+{
+  uint8_t name[PATH_MAX];
+  struct tab *t;
+  size_t len;
+
+  len = s->end - s->start + 1;
+  len = sequenceget(s->textbox->sequence, s->start, name, len);
+
+  t = tabnewfromfile(m, name, len);
+  if (t == NULL) {
+    return;
+  }
+
+  paneaddtab(s->textbox->tab->pane, t, -1);
+
+  s->textbox->tab->pane->focus = t;
+  m->keyfocus = t->main;
+  m->mousefocus = t->main;
+}
+
+static void
 cmdopen(struct mace *m)
 {
+  struct selection *s;
+  struct tab *t;
 
+  if (m->keyfocus == NULL) {
+    return;
+  }
+
+  t = m->keyfocus->tab;
+
+  for (s = t->action->selections; s != NULL; s = s->next) {
+    openselection(m, s);
+  }
+
+  for (s = t->main->selections; s != NULL; s = s->next) {
+    openselection(m, s);
+  }
 }
 
 static void

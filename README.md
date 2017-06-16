@@ -12,7 +12,6 @@ Mace is a programer's text editor that supports the following features:
 
 * Executing any text in any window as a command
 * Customisable hot bar for regularly used commands
-* Support for writing custom commands and adding them to the current session
 * Tabbed interface
 
 ## To Do
@@ -92,5 +91,8 @@ Mace documentation is in the [docs](docs) folder.
 Please [file](https://github.com/DandyHQ/mace/issues) any bugs or feature requests.
 
 ## Contributing
+
+The Mace developers welcomes contributions in the form of Pull Requests.
+ng
 
 The Mace developers welcomes contributions in the form of Pull Requests.
