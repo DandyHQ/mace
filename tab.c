@@ -103,7 +103,7 @@ tabnewfromfile(struct mace *mace,
   int fd;
 
 	/* I am not sure if basename allocates name or if it is a slice of filename. */
-	name = (uint8_t *) basename((const char *) filename);
+	name = (uint8_t *) basename((char *) filename);
 	
   fd = open((const char *) filename, O_RDONLY);
   if (fd < 0) {
