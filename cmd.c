@@ -12,6 +12,9 @@ struct cmd {
 	void (*func)(struct mace *mace);
 };
 
+static uint8_t *clipboard = NULL;
+static size_t clipboardlen = 0;
+
 static size_t
 getfilename(struct tab *t, uint8_t *buf, size_t len)
 {
@@ -140,19 +143,86 @@ cmdclose(struct mace *m)
 static void
 cmdcut(struct mace *m)
 {
+  struct textbox *t;
+  struct selection *s, *n;
 
+  if (m->keyfocus == NULL) {
+    return;
+  }
+
+  t = m->keyfocus;
+
+  for (s = t->selections; s != NULL; s = n) {
+    n = s->next;
+    if (s->type != SELECTION_normal) continue;
+
+    clipboardlen = s->end - s->start + 1;
+    clipboard = realloc(clipboard, clipboardlen);
+    if (clipboard == NULL) {
+      clipboardlen = 0;
+      return;
+    }
+
+    clipboardlen = sequenceget(t->sequence, s->start,
+			       clipboard, clipboardlen);
+
+    sequencedelete(t->sequence, s->start, clipboardlen);
+    
+    if (s->start <= t->cursor || t->cursor <= s->end) {
+      t->cursor = s->start;
+    }
+
+    selectionremove(t, s);
+  }
+
+  textboxcalcpositions(t, 0);
+  textboxpredraw(t);
 }
 
 static void
 cmdcopy(struct mace *m)
 {
+  struct textbox *t;
+  struct selection *s;
 
+  if (m->keyfocus == NULL) {
+    return;
+  }
+
+  t = m->keyfocus;
+
+  for (s = t->selections; s != NULL; s = s->next) {
+    if (s->type != SELECTION_normal) continue;
+    
+    clipboardlen = s->end - s->start + 1;
+    clipboard = realloc(clipboard, clipboardlen);
+    if (clipboard == NULL) {
+      clipboardlen = 0;
+      return;
+    }
+
+    clipboardlen = sequenceget(t->sequence, s->start,
+			       clipboard, clipboardlen);
+
+    printf("clipboard now contains '%s'\n", clipboard);
+  }
 }
 
 static void
 cmdpaste(struct mace *m)
 {
+  struct textbox *t;
+  
+  if (m->keyfocus == NULL || clipboard == NULL) {
+    return;
+  }
 
+  t = m->keyfocus;
+  sequenceinsert(t->sequence, t->cursor, clipboard, clipboardlen);
+  t->cursor += clipboardlen;
+  
+  textboxcalcpositions(t, t->cursor);
+  textboxpredraw(t);
 }
 
 static struct cmd cmds[] = {
