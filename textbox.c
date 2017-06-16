@@ -197,7 +197,6 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
       /* TODO: Show an error somehow if this returns false. */
       command(t->tab->mace, buf);
 
-      printf("command returned\n");
       free(buf);
     }
 

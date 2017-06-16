@@ -203,8 +203,6 @@ cmdcopy(struct mace *m)
 
     clipboardlen = sequenceget(t->sequence, s->start,
 			       clipboard, clipboardlen);
-
-    printf("clipboard now contains '%s'\n", clipboard);
   }
 }
 
@@ -241,8 +239,7 @@ command(struct mace *mace, const uint8_t *s)
 	
 	for (i = 0; i < sizeof(cmds) / sizeof(struct cmd); i++) {
 		if (strcmp((const char *) s, cmds[i].name) == 0) {
-		  cmds[i].func(mace);
-		  printf("command returned to cmd\n");
+ 		  cmds[i].func(mace);
 			return true;
 		}
 	}
