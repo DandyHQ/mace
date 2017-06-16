@@ -236,6 +236,7 @@ paneremovetab(struct pane *p, struct tab *t);
 struct tab *
 tabnew(struct mace *mace,
        const uint8_t *name, size_t nlen,
+       const uint8_t *filename, size_t flen,
        struct sequence *mainseq);
 
 struct tab *

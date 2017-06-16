@@ -82,7 +82,8 @@ macenew(void)
     return NULL;
   }
 
-  t = tabnew(m, name, strlen((const char *) name), s);
+  t = tabnew(m, name, strlen((const char *) name),
+	     name, strlen((const char *) name), s);
   if (t == NULL) {
     macefree(m);
     return NULL;

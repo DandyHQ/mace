@@ -15,6 +15,7 @@ static const uint8_t actionstart[] =
 struct tab *
 tabnew(struct mace *mace,
        const uint8_t *name, size_t nlen,
+       const uint8_t *filename, size_t flen,
        struct sequence *mainseq)
 {
   struct sequence *actionseq;
@@ -39,12 +40,12 @@ tabnew(struct mace *mace,
     return NULL;
   }
 
-  if (!sequenceinsert(actionseq, 0, name, nlen)) {
+  if (!sequenceinsert(actionseq, 0, filename, flen)) {
     tabfree(t);
     return NULL;
   }
   
-  if (!sequenceinsert(actionseq, nlen,
+  if (!sequenceinsert(actionseq, flen,
 		      actionstart,
 		      strlen((const char *) actionstart))) {
     tabfree(t);
@@ -80,7 +81,7 @@ tabnewempty(struct mace *mace, const uint8_t *name, size_t nlen)
     return NULL;
   }
 
-  t = tabnew(mace, name, nlen, seq);
+  t = tabnew(mace, name, nlen, name, nlen, seq);
   if (t == NULL) {
     sequencefree(seq);
     return NULL;
@@ -94,15 +95,16 @@ tabnewfromfile(struct mace *mace,
                const uint8_t *filename, size_t flen)
 {
   struct sequence *seq;
-	const uint8_t *name;
+	uint8_t *name;
   uint8_t *data;
   struct stat st;
   struct tab *t;
   size_t dlen;
   int fd;
 
-	name = (const uint8_t *) basename((const char *) filename);
-
+	/* I am not sure if basename allocates name or if it is a slice of filename. */
+	name = (uint8_t *) basename((const char *) filename);
+	
   fd = open((const char *) filename, O_RDONLY);
   if (fd < 0) {
     return NULL;
@@ -139,7 +141,7 @@ tabnewfromfile(struct mace *mace,
     return NULL;
   }
 
-  t = tabnew(mace, name, strlen((char *) name), seq);
+  t = tabnew(mace, name, strlen((char *) name), filename, flen, seq);
   if (t == NULL) {
     sequencefree(seq);
     return NULL;

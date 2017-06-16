@@ -64,13 +64,16 @@ cmdsave(struct mace *m)
 
   len = sequenceget(s, 0, buf, len);
   
-  fd = open((char *) filename, O_WRONLY|O_CREAT, 0666);
+  fd = open((char *) filename, O_WRONLY|O_TRUNC|O_CREAT, 0666);
   if (fd < 0) {
+    printf("Failed to open %s\n", filename);
     free(buf);
     return;
   }
 
-  write(fd, buf, len);
+  if (write(fd, buf, len) != len) {
+    printf("Failed to write to %s\n", filename);
+  }
 
   close(fd);
   free(buf);
