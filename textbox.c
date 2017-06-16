@@ -39,9 +39,9 @@ textboxnew(struct tab *tab, struct colour *bg,
 void
 textboxfree(struct textbox *t)
 {
-	while (t->selections != NULL) {
-		selectionremove(t, t->selections);
-	}
+  while (t->selections != NULL) {
+    selectionremove(t, t->selections);
+  }
   
   sequencefree(t->sequence);
 
@@ -108,9 +108,9 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   case 1:
     t->tab->mace->keyfocus = t;
 
-		while (t->selections != NULL) {
-			selectionremove(t, t->selections);
-		}
+    while (t->selections != NULL) {
+      selectionremove(t, t->selections);
+    }
 
     t->cursor = pos;
     t->newselpos = pos;
@@ -124,18 +124,18 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     if (sel != NULL) {
       sel->type = SELECTION_command;
 
-			textboxpredraw(t);
-			return true;
+      textboxpredraw(t);
+      return true;
 
     } else if (sequencefindword(t->sequence, pos, &start, &len)) {
-			sel = selectionadd(t, SELECTION_command, start, start + len - 1);
+      sel = selectionadd(t, SELECTION_command, start, start + len - 1);
 
-			textboxpredraw(t);
+      textboxpredraw(t);
       return true;
 
     } else {
-			return false;
-		}
+      return false;
+    }
   }
 
   return false;
@@ -145,8 +145,8 @@ bool
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
-	struct selection *sel, *next;
-	size_t pos, start, len;
+  struct selection *sel, *next;
+  size_t pos, start, len;
   uint8_t *buf;
 
   pos = textboxfindpos(t, x, y);
@@ -154,50 +154,53 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
   t->csel = NULL;
   t->newselpos = SIZE_MAX;
 
-	switch (button) {
-	case 1:
-	case 2:
-		break;
+  switch (button) {
+  case 1:
+  case 2:
+    break;
 
-	case 3:
-		sel = inselections(t, pos);
-		if (sel != NULL && sel->type == SELECTION_command) {
-			start = sel->start;
-			len = sel->end - start + 1;
-		} else {
-			len = 0;
-		}
+  case 3:
+    sel = inselections(t, pos);
+    if (sel != NULL && sel->type == SELECTION_command) {
+      start = sel->start;
+      len = sel->end - start + 1;
+    } else {
+      len = 0;
+    }
 
-		sel = t->selections;
-		while (sel != NULL) {
-			next = sel->next;
+    sel = t->selections;
+    while (sel != NULL) {
+      next = sel->next;
 
-			if (sel->type == SELECTION_command) {
-				selectionremove(t, sel);
-			}
+      if (sel->type == SELECTION_command) {
+	selectionremove(t, sel);
+      }
 
-			sel = next;
-		}
+      sel = next;
+    }
 
-		textboxpredraw(t);
+    textboxpredraw(t);
 
     if (len != 0) {
-			buf = malloc(len);
-   	 if (buf == NULL) {
-  	  	return false;
- 	   }
+      buf = malloc(len);
+      if (buf == NULL) {
+	return false;
+      }
 
-   	 if (sequenceget(t->sequence, start, buf, len) == 0) {
-   	   return false;
-  	  }
+      if (sequenceget(t->sequence, start, buf, len) == 0) {
+	return false;
+      }
 
-	    command(t->tab->mace, buf);
+      /* TODO: Show an error somehow if this returns false. */
+      command(t->tab->mace, buf);
 
-  	  free(buf);
-		}
+      printf("command returned\n");
+      free(buf);
+    }
+
 
     return true;
-	}
+  }
 
   return false;
 }
@@ -208,10 +211,10 @@ textboxmotion(struct textbox *t, int x, int y)
   size_t pos;
 
   if (t->newselpos != SIZE_MAX) {
-		pos = textboxfindpos(t, x, y);
-		if (pos == t->newselpos) {
-			return false;
-		}
+    pos = textboxfindpos(t, x, y);
+    if (pos == t->newselpos) {
+      return false;
+    }
 
     t->csel = selectionadd(t, SELECTION_normal, t->newselpos, pos);
     if (t->csel == NULL) {
@@ -253,8 +256,8 @@ deleteselections(struct textbox *t)
     }
 
     if (!sequencedelete(t->sequence,
-			                  sel->start,
-			                  sel->end - sel->start + 1)) {
+			sel->start,
+			sel->end - sel->start + 1)) {
 
       return false;
     }

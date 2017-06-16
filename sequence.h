@@ -62,7 +62,7 @@ sequencedelete(struct sequence *s, size_t pos, size_t len);
 
 bool
 sequencefindword(struct sequence *s, size_t pos,
-		 size_t *start, size_t *len);
+                 size_t *start, size_t *len);
 
 /* Fulls out buf with the contentes of the sequence starting at pos
    and going for at most len bytes, buf must be of at least len + 1
@@ -70,7 +70,7 @@ sequencefindword(struct sequence *s, size_t pos,
 
 size_t
 sequenceget(struct sequence *s, size_t pos,
-	    uint8_t *buf, size_t len);
+            uint8_t *buf, size_t len);
 
 ssize_t
 sequencefindpiece(struct sequence *s, size_t pos, size_t *i);

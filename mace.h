@@ -175,7 +175,7 @@ macefree(struct mace *mace);
 void
 macequit(struct mace *mace);
 
-void
+bool
 command(struct mace *mace, const uint8_t *cmd);
 
 
