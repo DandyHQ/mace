@@ -20,8 +20,6 @@ panefree(struct pane *p)
 {
   struct tab *t, *n;
   
-  luaremove(p->mace->lua, p);
-
   t = p->tabs;
   while (t != NULL) {
     n = t->next;

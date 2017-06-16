@@ -21,7 +21,6 @@ There are many key features left to add to Mace for it to make Alpha:
 
 * Tiling interface (development delayed)
 * Support Undoing edits
-* Remove Lua runtime
 * Utf8
 * Syntax highlighting
 * Smart indenting
@@ -38,26 +37,24 @@ Mace requires the following dependencies:
  - xlib
  - fontconfig
  - freetype2
- - harfbuzz
  - cairo
- - lua 5.3
 
 #### Ubuntu 16.04
 
 ```
-# apt install meson libx11-dev libharfbuzz-dev libharfbuzz-icu0 libcairo2-dev lua5.3-dev
+# apt install meson libx11-dev libcairo2-dev
 ```
 
 #### Fedora 25
 
 ```
-# dnf install meson libX11-devel harfbuzz-devel harfbuzz-icu cairo-devel lua-devel
+# dnf install meson libX11-devel cairo-devel
 ```
 
 #### OpenBSD 6.1
 
 ```
-# pkg_add harfbuzz cairo lua%5.3
+# pkg_add cairo
 ```
 
 ### Compiling

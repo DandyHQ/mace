@@ -16,13 +16,7 @@ static uint8_t message[] =
   "not a very useful or interesting one. Next I will introduce you "
   "to commands."
   "\n\n"
-  "Now select the text on the next line, be careful not "
-  "to select any white space on either side of it:"
-  "\n\n"
-  MACE_PATH
-  "/macerc.lua"
-  "\n\n"
-  "Now right click open: open"
+  "TODO: Have some examples of commands."
   "\n\n"
   "What should have happened is that you now have a new tab, filled "
   "with the contents of your default init file. What happened under the "
@@ -33,25 +27,7 @@ static uint8_t message[] =
   "\n\n"
   "In the action bar above, you can see a variety of other commands. "
   "The save, open, close, cut, copy, paste and quit all do what you "
-  "would expect. With the eval command you can add new functions or evaluate "
-  "lua code in runtime without editing a file."
-  "\n\n"
-  "I'll give you an example. Currently the only way to scroll in "
-  "Mace is by using a scroll wheel, which is pretty slow and "
-  "frustraiting. Say you decide you want to be able to scroll by "
-  "50px a click. So let's add a function to do just that. Select the "
-  "text below and click eval in your action bar:"
-  "\n\n"
-  "function scroll()\n"
-  "    tb = mace.mousefocus.tab.main\n"
-  "    tb.yoff = tb.yoff + 50\n"
-  "end"
-  "\n\n"
-  "Now type scroll in the action bar of this tab, or another tab. "
-  "Now right click on it. What should happen is your tab's main text "
-  "box should have scrolled down 50 pixels. Hopefully you can see "
-  "the use of this. Have a look in " MACE_PATH "/mace.lua for some "
-  "examples of scripting Mace."
+  "would expect."
   "\n\n"
   "If you edit a file and want to save it you can right click on "
   "save, which you could type yourself anywhere in the tab, or it "
@@ -81,12 +57,6 @@ macenew(void)
 
   m->font = fontnew();
   if (m->font == NULL) {
-    macefree(m);
-    return NULL;
-  }
-
-  m->lua = luanew(m);
-  if (m->lua == NULL) {
     macefree(m);
     return NULL;
   }
@@ -123,8 +93,6 @@ macenew(void)
   m->pane->focus = t;
 
   m->running = true;
-
-  lualoadrc(m->lua);
   
   return m;
 }
@@ -140,10 +108,6 @@ macefree(struct mace *m)
 {
   if (m->pane != NULL) {
     panefree(m->pane);
-  }
-
-  if (m->lua != NULL) {
-    luafree(m->lua);
   }
 
   if (m->font != NULL) {

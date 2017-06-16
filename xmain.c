@@ -226,7 +226,6 @@ main(int argc, char **argv)
 {
   int width, height, i;
 	struct tab *t;
-	char *name;
 
   width = 800;
   height = 500;
@@ -262,11 +261,7 @@ main(int argc, char **argv)
   }
 
 	for (i = 1; i < argc; i++) {
-		name = basename(argv[i]);
-		printf("opening '%s' with name '%s'\n", argv[i], name);
-		t = tabnewfromfile(mace, (uint8_t *) name, strlen(name), 
-		                   (uint8_t *) argv[i], strlen(argv[i]));
-
+		t = tabnewfromfile(mace, (uint8_t *) argv[i], strlen(argv[i]));
 		if (t == NULL) {
 			continue;
 		}

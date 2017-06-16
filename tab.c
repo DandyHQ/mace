@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <libgen.h>
 
 #include "mace.h"
 
@@ -9,7 +10,7 @@ static struct colour bg   = { 1, 1, 1 };
 static struct colour abg  = { 0.86, 0.94, 1 };
 
 static const uint8_t actionstart[] =
-  ": save open close cut copy paste eval";
+  ": save open close cut copy paste";
 
 struct tab *
 tabnew(struct mace *mace,
@@ -90,15 +91,17 @@ tabnewempty(struct mace *mace, const uint8_t *name, size_t nlen)
 
 struct tab *
 tabnewfromfile(struct mace *mace,
-	       const uint8_t *name, size_t nlen,
-	       const uint8_t *filename, size_t flen)
+               const uint8_t *filename, size_t flen)
 {
   struct sequence *seq;
-  struct stat st;
+	const uint8_t *name;
   uint8_t *data;
+  struct stat st;
   struct tab *t;
   size_t dlen;
   int fd;
+
+	name = (const uint8_t *) basename((const char *) filename);
 
   fd = open((const char *) filename, O_RDONLY);
   if (fd < 0) {
@@ -113,7 +116,7 @@ tabnewfromfile(struct mace *mace,
   dlen = st.st_size;
   if (dlen == 0) {
     close(fd);
-    return tabnewempty(mace, name, nlen);
+    return tabnewempty(mace, name, strlen((char *) name));
   }
 
   data = malloc(dlen);
@@ -136,7 +139,7 @@ tabnewfromfile(struct mace *mace,
     return NULL;
   }
 
-  t = tabnew(mace, name, nlen, seq);
+  t = tabnew(mace, name, strlen((char *) name), seq);
   if (t == NULL) {
     sequencefree(seq);
     return NULL;
@@ -148,8 +151,6 @@ tabnewfromfile(struct mace *mace,
 void
 tabfree(struct tab *t)
 {
-  luaremove(t->mace->lua, t);
-
   if (t->action != NULL) {
     textboxfree(t->action);
   }

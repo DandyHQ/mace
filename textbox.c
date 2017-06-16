@@ -39,8 +39,6 @@ textboxnew(struct tab *tab, struct colour *bg,
 void
 textboxfree(struct textbox *t)
 {
-  luaremove(t->tab->mace->lua, t);
-
 	while (t->selections != NULL) {
 		selectionremove(t, t->selections);
 	}
@@ -193,7 +191,7 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
    	   return false;
   	  }
 
-	    command(t->tab->mace->lua, buf);
+	    command(t->tab->mace, buf);
 
   	  free(buf);
 		}
@@ -255,8 +253,8 @@ deleteselections(struct textbox *t)
     }
 
     if (!sequencedelete(t->sequence,
-			sel->start,
-			sel->end - sel->start + 1)) {
+			                  sel->start,
+			                  sel->end - sel->start + 1)) {
 
       return false;
     }

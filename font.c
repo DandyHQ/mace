@@ -7,7 +7,6 @@
 #include "config.h"
 
 #include <fontconfig/fontconfig.h>
-#include <hb-ft.h>
 
 static int
 fontloadfile(struct font *font, const char *path, double size);
@@ -43,10 +42,6 @@ fontnew(void)
 void
 fontfree(struct font *font)
 {
-  if (font->hbfont != NULL) {
-    hb_font_destroy(font->hbfont);
-  }
-
   if (font->cface != NULL) {
     cairo_font_face_destroy(font->cface);
   }
@@ -66,7 +61,7 @@ int
 fontloadfile(struct font *font, const char *path, double size)
 {
   FT_Face new;
-  
+
   if (FT_New_Face(font->library, path, 0, &new) != 0) {
     return 1;
   }
@@ -74,11 +69,6 @@ fontloadfile(struct font *font, const char *path, double size)
   if (FT_Set_Pixel_Sizes(new, size, size) != 0) {
     FT_Done_Face(new);
     return 1;
-  }
-
-  if (font->hbfont != NULL) {
-    hb_font_destroy(font->hbfont);
-    font->hbfont = NULL;
   }
 
   if (font->cface != NULL) {
@@ -99,19 +89,6 @@ fontloadfile(struct font *font, const char *path, double size)
   font->cface =
     cairo_ft_font_face_create_for_ft_face(font->face,
 					  FT_LOAD_DEFAULT);
-
-  /* Harfbuzz has horrible documentation so I'm not sure If we need
-     to give a destructor function. I would prefer to use 
-     hb_ft_font_create_referenced but fuck Ubuntu. */
-
-  font->hbfont = hb_ft_font_create(font->face, NULL);
-/*
-  I could swear I needed this before.
-  hb_ft_font_set_load_flags(font->hbfont, FT_LOAD_DEFAULT);
-  But Ubuntu Trusty's version of harfbuzz doesn't have it and it 
-  seems to work without it on OpenBSD.
-  I hate libraries.
- */
  
   font->baseline = 1 + ((font->face->size->metrics.height
 			 + font->face->size->metrics.descender) >> 6);

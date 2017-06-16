@@ -1,7 +1,4 @@
 #include "mace.h"
-#include <hb.h>
-#include <hb-ft.h>
-#include <hb-icu.h>
 
 /* TODO: 
 
@@ -29,7 +26,7 @@ static void
 drawcursor(struct textbox *t, int x, int y, int h)
 {
   cairo_set_source_rgb(t->cr, 0, 0, 0);
-  cairo_set_line_width (t->cr, 1.0);
+  cairo_set_line_width (t->cr, 1.3);
 
   cairo_move_to(t->cr, x, y + 1);
   cairo_line_to(t->cr, x, y + h - 2);
@@ -321,90 +318,76 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   return sequencegetlen(s);
 }
 
-static size_t
-findlinebreak(hb_glyph_info_t *info, uint8_t *text, 
-              size_t max, size_t min)
-{
-	size_t i;
-	
-	if (max == 0) {
-		return max;
-	}
-
-	for (i = max - 1; i > min; i--) {
-		if (iswordbreak(text[info[i].cluster])) {
-			return i + 1;
-		}
-	}
-
-	return max;
-}
-
-static size_t
-placeglyphs(struct textbox *t, hb_buffer_t *hbbuf,
-            uint8_t *text, size_t ntext,
+static void
+placeglyphs(struct textbox *t, 
             cairo_glyph_t *glyphs, size_t nglyphs,
             int *x, int *y)
 {
-  hb_glyph_position_t *pos;
-  hb_glyph_info_t *info;
-  unsigned int c;
-  size_t g, linestart;
+  size_t g, gg, linestart, lineend;
+	int32_t index;
   int ww;
 
-  hb_buffer_add_utf8(hbbuf, (const char *) text, ntext, 0, ntext);
-  hb_buffer_guess_segment_properties(hbbuf);
-  hb_shape(t->font->hbfont, hbbuf, NULL, 0);
-
-  info = hb_buffer_get_glyph_infos(hbbuf, &c);
-  pos = hb_buffer_get_glyph_positions(hbbuf, &c);
-
-  /* If c is greater then we have a problem. 
-     So just ignore the extra glyphs. */
-  if (c < nglyphs) {
-    nglyphs = c;
-  }
-
 	linestart = 0;
-  for (g = 0; g < nglyphs; g++) {
-    ww = pos[g].x_advance >> 6;
+	lineend = 0;
+	g = 0;
+
+  while (g < nglyphs) {
+		index = FT_Get_Char_Index(t->font->face, glyphs[g].index);
+		if (FT_Load_Glyph(t->font->face, index, FT_LOAD_DEFAULT) != 0) {
+			fprintf(stderr, "Error loading glyph %i\n", index);
+			g++;
+			continue;
+		}
+
+    ww = t->font->face->glyph->advance.x >> 6;
 
     if (*x + ww >= t->linewidth - PAD) {
-      *x = PAD;
-      *y += t->font->lineheight;
+			*x = PAD;
+			*y += t->font->lineheight;
 
-			g = findlinebreak(info, text, g, linestart);
+			if (linestart < lineend) {
+				/* Only attempt word breaks if there are words to break. */
 
-			linestart = g;
-			ww = pos[g].x_advance >> 6;
-    }
+				for (gg = lineend; gg < g; gg++) {
+					glyphs[gg].x = *x;
+					glyphs[gg].y = *y;
+				
+					if (FT_Load_Glyph(t->font->face, 
+					                  glyphs[gg].index, 
+					                  FT_LOAD_DEFAULT) != 0) {
 
-    glyphs[g].index = info[g].codepoint;
-    glyphs[g].x = *x + (pos[g].x_offset >> 6);
-    glyphs[g].y = *y - (pos[g].y_offset >> 6);
+						fprintf(stderr, "Error loading glyph %i\n", index);
+						gg++;
+						continue;
+					}
+
+					*x += t->font->face->glyph->advance.x >> 6;
+				}
+			}
+
+			linestart = lineend;
+
+    } else if (iswordbreak(glyphs[g].index)) {
+			lineend = g + 1;
+		}
+
+    glyphs[g].index = index;
+    glyphs[g].x = *x;
+    glyphs[g].y = *y;
 
     *x += ww;
-    *y -= pos[g].y_advance >> 6;
+		g++;
   }
-
-  hb_buffer_clear_contents(hbbuf);
-
-  return nglyphs;
 }
 
 void
 textboxcalcpositions(struct textbox *t, size_t pos)
 {
+  size_t i, g, startg, starti;
   struct sequence *s;
-  hb_buffer_t *hbbuf;
   struct piece *p;
   int32_t code, a;
   int x, y;
-  size_t i, g, startg, starti;
-  
-  hbbuf = hb_buffer_create();
-  hb_buffer_set_unicode_funcs(hbbuf,
-			      hb_icu_get_unicode_funcs());
 
   s = t->sequence;
   p = &s->pieces[SEQ_start];
@@ -439,13 +422,10 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 		      p->len - i, &a)) {
 
         if (startg < g) {
-					g = startg + 
-					    placeglyphs(t, hbbuf,
-					                s->data + p->off + starti,
-				                  i - starti,
-				                  &p->glyphs[startg],
-				                  g - startg,
-				                  &x, &y);
+					placeglyphs(t, 
+				              &p->glyphs[startg],
+				              g - startg,
+				              &x, &y);
         }
 
 				p->glyphs[g].index = 0;
@@ -455,16 +435,13 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 				x = PAD;
 				y += t->font->lineheight;
 
-        startg = ++g;
-        starti = (i += a);
+        startg = g + 1;
+        starti = i + a;
 
       } else if (code == '\t') {
 
         if (startg < g) {
-        	g = startg + 
-					    placeglyphs(t, hbbuf,
-					                s->data + p->off + starti,
-				                  i - starti,
+					placeglyphs(t, 
 				                  &p->glyphs[startg],
 				                  g - startg,
 				                  &x, &y);
@@ -481,20 +458,19 @@ textboxcalcpositions(struct textbox *t, size_t pos)
 
 				x += t->font->tabwidthpixels;
 
-        startg = ++g;
-        starti = (i += a);
+        startg = g + 1;
+        starti = i + a;
 
       } else {
-        i += a;
-        g++;
-      }
+				p->glyphs[g].index = code;
+			}
+
+      i += a;
+      g++;
     }
 
-    if (startg < p->nglyphs && starti < p->len) {
-      g = startg + 
-			    placeglyphs(t, hbbuf,
-			       s->data + p->off + starti,
-			       p->len - starti,
+    if (startg < p->nglyphs) {
+      placeglyphs(t,
 			       &p->glyphs[startg],
 			       p->nglyphs - startg,
              &x, &y);
@@ -508,7 +484,5 @@ textboxcalcpositions(struct textbox *t, size_t pos)
   }
 
   t->height = y - (t->font->face->size->metrics.descender >> 6);
-
-  hb_buffer_destroy(hbbuf);
 }
 

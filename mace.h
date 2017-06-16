@@ -3,12 +3,8 @@
 #include <stdint.h>
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
-#include <hb.h>
 #include <cairo.h>
 #include <cairo-ft.h>
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
 #ifndef PATH_MAX
 /* Linux has PATH_MAX defined under <linux/limits.h>, OpenBSD has it
@@ -65,7 +61,6 @@ struct font {
 
   FT_Face face;
   cairo_font_face_t *cface;
-  hb_font_t *hbfont;
 
   int baseline, lineheight;
   size_t tabwidth;
@@ -161,7 +156,6 @@ struct mace {
   bool running;
 
   struct font *font;
-  lua_State *lua;
   
   struct pane *pane;
 
@@ -181,25 +175,8 @@ macefree(struct mace *mace);
 void
 macequit(struct mace *mace);
 
-
-
-lua_State *
-luanew(struct mace *mace);
-
 void
-luafree(lua_State *L);
-
-/* Loads a config file from where ever it can find it. */
-void
-lualoadrc(lua_State *L);
-
-/* Structs that lua uses must call this before freeing themselves. */
-/* Currently pane, tabs, and textboxs. */
-void
-luaremove(lua_State *L, void *addr);
-
-void
-command(lua_State *L, const uint8_t *s);
+command(struct mace *mace, const uint8_t *cmd);
 
 
 
@@ -263,12 +240,11 @@ tabnew(struct mace *mace,
 
 struct tab *
 tabnewempty(struct mace *mace,
-	    const uint8_t *name, size_t nlen);
+            const uint8_t *name, size_t nlen);
 
 struct tab *
 tabnewfromfile(struct mace *mace,
-	       const uint8_t *name, size_t nlen,
-	       const uint8_t *filename, size_t flen);
+               const uint8_t *filename, size_t flen);
 
 void
 tabfree(struct tab *t);
