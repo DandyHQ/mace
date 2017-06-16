@@ -119,7 +119,22 @@ cmdopen(struct mace *m)
 static void
 cmdclose(struct mace *m)
 {
+  struct pane *p;
+  struct tab *t;
 
+  if (m->mousefocus == NULL) {
+    return;
+  }
+
+  t = m->mousefocus->tab;
+  p = t->pane;
+
+  paneremovetab(p, t);
+  tabfree(t);
+
+  if (p->tabs == NULL) {
+    m->running = false;
+  }
 }
 
 static void
