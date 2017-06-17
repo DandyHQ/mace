@@ -121,6 +121,8 @@ tabnewfromfile(struct mace *mace,
     return tabnewempty(mace, name, strlen((char *) name));
   }
 
+	printf("new tab has size %zu\n", dlen);
+
   data = malloc(dlen);
   if (data == NULL) {
     close(fd);

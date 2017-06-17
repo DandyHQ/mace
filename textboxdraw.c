@@ -285,9 +285,9 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
 					return p->pos + i;
 				}
+
       } else if (p->glyphs[g].y - ay <= ly &&
-				         ly <= p->glyphs[g].y + by &&
-				         p->glyphs[g].x <= lx) {
+				         ly <= p->glyphs[g].y + by) {
 
 				if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
 			      FT_LOAD_DEFAULT) != 0) {
