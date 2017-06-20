@@ -59,7 +59,7 @@ tabnew(struct mace *mace,
     return NULL;
   }
 
-  t->action->cursor = sequencegetlen(actionseq);
+  t->action->cursor = sequencelen(actionseq);
 
   t->main = textboxnew(t, &bg, mainseq);
   if (t->main == NULL) {

@@ -72,8 +72,5 @@ size_t
 sequenceget(struct sequence *s, size_t pos,
             uint8_t *buf, size_t len);
 
-ssize_t
-sequencefindpiece(struct sequence *s, size_t pos, size_t *i);
-
 size_t
-sequencegetlen(struct sequence *s);
+sequencelen(struct sequence *s);

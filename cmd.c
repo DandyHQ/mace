@@ -54,7 +54,7 @@ cmdsave(struct mace *m)
   }
 
   s = m->mousefocus->tab->main->sequence;
-  len = sequencegetlen(s);
+  len = sequencelen(s);
 
   buf = malloc(len);
   if (buf == NULL) {
@@ -159,7 +159,7 @@ cmdcut(struct mace *m)
   }
 
   t = m->keyfocus;
-	start = sequencegetlen(t->sequence);
+	start = sequencelen(t->sequence);
 
   for (s = t->selections; s != NULL; s = n) {
     n = s->next;

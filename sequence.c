@@ -121,12 +121,6 @@ piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
   return -1;
 }
 
-ssize_t
-sequencefindpiece(struct sequence *s, size_t pos, size_t *i)
-{
-  return piecefind(s, SEQ_start, pos, i);
-}
-
 static ssize_t
 pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 {
@@ -522,7 +516,7 @@ sequenceget(struct sequence *s, size_t pos,
 }
 
 size_t
-sequencegetlen(struct sequence *s)
+sequencelen(struct sequence *s)
 {
   return s->pieces[SEQ_end].pos;
 }

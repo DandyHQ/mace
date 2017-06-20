@@ -243,7 +243,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
     }
   }
 
-  if (t->cursor == sequencegetlen(s)) {
+  if (t->cursor == sequencelen(s)) {
     p = &s->pieces[SEQ_end];
     drawcursor(t, cr,
 	       p->glyphs[0].x,
@@ -251,7 +251,6 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 	       ay + by);
   }
   
-  //cairo_translate(cr, 0, t->yoff);
 	cairo_restore(cr);
 } 
 
@@ -331,7 +330,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
     }
   }
 
-  return sequencegetlen(s);
+  return sequencelen(s);
 }
 
 static void
