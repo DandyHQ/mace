@@ -290,12 +290,14 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 				}
 
       } else if (code == '\t') {
-				if (p->glyphs[g].y - ay <= ly &&
-				    ly <= p->glyphs[g].y + by &&
-				    p->glyphs[g].x <= lx &&
-				    lx <= p->glyphs[g].x + t->font->tabwidthpixels) {
-
-					return p->pos + i;
+				if (p->glyphs[g].y - ay <= ly &&  ly <= p->glyphs[g].y + by) {					
+						if (p->glyphs[g].x <= lx) {
+							if (lx <= p->glyphs[g].x + t->font->tabwidthpixels * 0.75f) {
+								return p->pos + i;
+							} else if (lx <= p->glyphs[g].x + t->font->tabwidthpixels) {
+								return p->pos + i + a;
+							}
+						}
 				}
 
       } else if (p->glyphs[g].y - ay <= ly &&
@@ -309,8 +311,10 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
 				ww = t->font->face->glyph->advance.x >> 6;
 
-				if (lx <= p->glyphs[g].x + ww) {
+				if (lx <= p->glyphs[g].x + ww * 0.75f) {
 					return p->pos + i;
+				} else if (lx <= p->glyphs[g].x + ww) {
+					return p->pos + i + a;
 				}
       }
       
