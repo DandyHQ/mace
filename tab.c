@@ -28,7 +28,7 @@ tabnew(struct mace *mace,
 
   t->mace = mace;
   t->next = NULL;
-
+ 
   if (!tabsetname(t, name, nlen)) {
     tabfree(t);
     return NULL;
@@ -120,8 +120,6 @@ tabnewfromfile(struct mace *mace,
     close(fd);
     return tabnewempty(mace, name, strlen((char *) name));
   }
-
-	printf("new tab has size %zu\n", dlen);
 
   data = malloc(dlen);
   if (data == NULL) {
@@ -253,14 +251,11 @@ tabdrawaction(struct tab *t, cairo_t *cr, int y)
   if (t->action->height < h) {
     h = t->action->height;
   }
+
+	textboxdraw(t->action, cr, t->x, t->y + y,
+	                    t->width, h);
   
-  cairo_set_source_surface(cr,
-			   t->action->sfc, t->x, t->y + y);
-
-  cairo_rectangle(cr, t->x, t->y + y, t->width, h);
-  cairo_fill(cr);
-
-  return y + h;
+   return y + h;
 }
 
 static int
@@ -269,35 +264,10 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
   int h, pos, size;
   
   h = t->height - y;
-  if (h == 0) {
-    return y;
-  } else if (t->main->height - t->main->yoff < h) {
-    h = t->main->height - t->main->yoff;
-  }
 
-  cairo_set_source_surface(cr, t->main->sfc,
-			   t->x,
-			   t->y + y);
-
-  cairo_rectangle(cr,
-		  t->x, t->y + y,
-		  t->main->linewidth, h);
-
-  cairo_fill(cr);
-
-  /* Fill rest of main block */
+	textboxdraw(t->main, cr, t->x, t->y + y, 
+	                    t->width - SCROLL_WIDTH, h);
   
-  cairo_set_source_rgb(cr, 
-		       t->main->bg.r,
-		       t->main->bg.g,
-		       t->main->bg.b);
-
-  cairo_rectangle(cr,
-		  t->x, t->y + y + h,
-		  t->main->linewidth, t->height - h - y);
-
-  cairo_fill(cr);
-
   /* Draw scroll bar */
 
   pos = t->main->yoff * (t->height - y) / t->main->height;

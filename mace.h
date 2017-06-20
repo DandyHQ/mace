@@ -110,11 +110,6 @@ struct textbox {
   int maxheight;
 
   struct colour bg;
-
-  /* Used for prerendering textbox's. Probably doesn't help too 
-     much. */
-  cairo_surface_t *sfc;
-  cairo_t *cr;
 };
 
 struct tab {
@@ -308,7 +303,9 @@ void
 textboxcalcpositions(struct textbox *t, size_t pos);
 
 void
-textboxpredraw(struct textbox *t);
+textboxdraw(struct textbox *t, cairo_t *cr, int x, int y, 
+                    int width, int height);
+
 
 struct selection *
 selectionadd(struct textbox *t, selection_t type, 

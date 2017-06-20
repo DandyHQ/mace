@@ -22,9 +22,6 @@ textboxnew(struct tab *tab, struct colour *bg,
   t->csel = NULL;
   t->selections = NULL;
 
-  t->cr = NULL;
-  t->sfc = NULL;
-
   t->yoff = 0;
   t->linewidth = 0;
   t->height = 0;
@@ -45,52 +42,16 @@ textboxfree(struct textbox *t)
   
   sequencefree(t->sequence);
 
-  if (t->cr != NULL) {
-    cairo_destroy(t->cr);
-  }
-
-  if (t->sfc != NULL) {
-    cairo_surface_destroy(t->sfc);
-  }
-
   free(t);
 }
 
 bool
 textboxresize(struct textbox *t, int lw, int maxheight)
 {
-  cairo_surface_t *sfc;
-  cairo_t *cr;
-
-  sfc = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
-				   lw, maxheight);
-
-  if (sfc == NULL) {
-    return false;
-  }
-
-  cr = cairo_create(sfc);
-  if (cr == NULL) {
-    cairo_surface_destroy(sfc);
-    return false;
-  }
-  
-  if (t->cr != NULL) {
-    cairo_destroy(t->cr);
-  }
-
-  if (t->sfc != NULL) {
-    cairo_surface_destroy(t->sfc);
-  }
-
-  t->cr = cr;
-  t->sfc = sfc;
-
   t->linewidth = lw;
   t->maxheight = maxheight;
 
   textboxcalcpositions(t, 0);
-  textboxpredraw(t);
 
   return true;
 }
@@ -110,15 +71,11 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       selectionremove(t->tab->mace->keyfocus,
 		      t->tab->mace->keyfocus->selections);
     }
-
-    textboxpredraw(t->tab->mace->keyfocus);
     
     t->tab->mace->keyfocus = t;
 
     t->cursor = pos;
     t->newselpos = pos;
-
-    textboxpredraw(t);
 
     return true;
 
@@ -126,14 +83,10 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     sel = inselections(t, pos);
     if (sel != NULL) {
       sel->type = SELECTION_command;
-
-      textboxpredraw(t);
       return true;
 
     } else if (sequencefindword(t->sequence, pos, &start, &len)) {
       sel = selectionadd(t, SELECTION_command, start, start + len - 1);
-
-      textboxpredraw(t);
       return true;
 
     } else {
@@ -176,22 +129,20 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
       next = sel->next;
 
       if (sel->type == SELECTION_command) {
-	selectionremove(t, sel);
+				selectionremove(t, sel);
       }
 
       sel = next;
     }
 
-    textboxpredraw(t);
-
     if (len != 0) {
       buf = malloc(len);
       if (buf == NULL) {
-	return false;
+				return false;
       }
 
       if (sequenceget(t->sequence, start, buf, len) == 0) {
-	return false;
+				return false;
       }
 
       /* TODO: Show an error somehow if this returns false. */
@@ -199,7 +150,6 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 
       free(buf);
     }
-
 
     return true;
   }
@@ -224,8 +174,6 @@ textboxmotion(struct textbox *t, int x, int y)
     }
 
     t->newselpos = SIZE_MAX;
-        
-    textboxpredraw(t);
     return true;
 
   } else if (t->csel != NULL) {
@@ -234,7 +182,6 @@ textboxmotion(struct textbox *t, int x, int y)
     if (selectionupdate(t->csel, pos)) {
       /* TODO: set cursor to pos + next code point length */
       t->cursor = pos;
-      textboxpredraw(t);
       return true;
     }
   }
@@ -272,7 +219,6 @@ deleteselections(struct textbox *t)
   }
 
   textboxcalcpositions(t, start);
-  textboxpredraw(t);
 
   return true;
 }
@@ -293,8 +239,6 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
   textboxcalcpositions(t, t->cursor);
 
   t->cursor += l;
-
-  textboxpredraw(t);
 
   return true;
 }
@@ -361,7 +305,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     textboxcalcpositions(t, t->cursor);
     t->cursor += l;
-    textboxpredraw(t);
 
     return true;
 
@@ -378,7 +321,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     textboxcalcpositions(t, t->cursor);
     t->cursor += l;
-    textboxpredraw(t);
 
     return true;
   
@@ -388,7 +330,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
     } else if (sequencedelete(t->sequence, t->cursor, 1)) {
       textboxcalcpositions(t, t->cursor);
-      textboxpredraw(t);
       return true;
     } 
 
@@ -403,7 +344,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
 
       t->cursor--;
       textboxcalcpositions(t, t->cursor);
-      textboxpredraw(t);
       return true;
     } 
 
@@ -433,9 +373,6 @@ textboxscroll(struct textbox *t, int xoff, int yoff)
 
   if (yoff != t->yoff) {
     t->yoff = yoff;
-
-    textboxpredraw(t);
-
     return true;
   } else {
     return false;

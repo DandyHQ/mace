@@ -23,33 +23,34 @@ static struct colour sbg = { 0.5, 0.8, 0.7 };
 static struct colour cbg = { 0.9, 0.5, 0.2 };
 
 static void
-drawcursor(struct textbox *t, int x, int y, int h)
+drawcursor(struct textbox *t, cairo_t *cr, int x, int y, int h)
 {
-  cairo_set_source_rgb(t->cr, 0, 0, 0);
-  cairo_set_line_width (t->cr, 1.3);
+  cairo_set_source_rgb(cr, 0, 0, 0);
+  cairo_set_line_width (cr, 1.3);
 
-  cairo_move_to(t->cr, x, y + 1);
-  cairo_line_to(t->cr, x, y + h - 2);
-  cairo_stroke(t->cr);
+  cairo_move_to(cr, x, y + 1);
+  cairo_line_to(cr, x, y + h - 2);
+  cairo_stroke(cr);
 
-  cairo_move_to(t->cr, x - 2, y + 1);
-  cairo_line_to(t->cr, x + 2, y + 1);
-  cairo_stroke(t->cr);
+  cairo_move_to(cr, x - 2, y + 1);
+  cairo_line_to(cr, x + 2, y + 1);
+  cairo_stroke(cr);
 
-  cairo_move_to(t->cr, x - 2, y + h - 2);
-  cairo_line_to(t->cr, x + 2, y + h - 2);
-  cairo_stroke(t->cr);
+  cairo_move_to(cr, x - 2, y + h - 2);
+  cairo_line_to(cr, x + 2, y + h - 2);
+  cairo_stroke(cr);
 }
 
 static void
-drawglyphs(struct textbox *t, cairo_glyph_t *glyphs, size_t len,
+drawglyphs(struct textbox *t, cairo_t *cr, 
+     cairo_glyph_t *glyphs, size_t len,
 	   struct colour *fg, struct colour *bg,
 	   int ay, int by)
 {
   cairo_text_extents_t extents;
   size_t g, start;
 
-  cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
+  cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
 
   /* Go through glyphs and find lines, draw background. */
   start = 0;
@@ -58,13 +59,13 @@ drawglyphs(struct textbox *t, cairo_glyph_t *glyphs, size_t len,
       continue;
     }
 
-    cairo_rectangle(t->cr,
+    cairo_rectangle(cr,
 		    glyphs[start].x,
 		    glyphs[start].y - ay,
 		    t->linewidth - PAD - glyphs[start].x,
 		    ay + by);
 		  
-    cairo_fill(t->cr);
+    cairo_fill(cr);
 
     start = g;
   }
@@ -72,24 +73,25 @@ drawglyphs(struct textbox *t, cairo_glyph_t *glyphs, size_t len,
   /* Draw background of remaining glyphs. */
 
   if (start < g) {
-    cairo_glyph_extents(t->cr, &glyphs[start], g - start, &extents);
+    cairo_glyph_extents(cr, &glyphs[start], g - start, &extents);
 
-    cairo_rectangle(t->cr,
+    cairo_rectangle(cr,
 		    glyphs[start].x,
 		    glyphs[start].y - ay,
 		    extents.x_advance,
 		    ay + by);
 		  
-    cairo_fill(t->cr);
+    cairo_fill(cr);
   }
 
   /* Draw glyphs */
-  cairo_set_source_rgb(t->cr, fg->r, fg->g, fg->b);
-  cairo_show_glyphs(t->cr, glyphs, len);
+  cairo_set_source_rgb(cr, fg->r, fg->g, fg->b);
+  cairo_show_glyphs(cr, glyphs, len);
 }
 
 void
-textboxpredraw(struct textbox *t)
+textboxdraw(struct textbox *t, cairo_t *cr, 
+                    int x, int y, int width, int height)
 {
   struct selection *sel, *nsel;
   struct sequence *s;
@@ -99,13 +101,17 @@ textboxpredraw(struct textbox *t)
   int32_t code, a;
   int ay, by;
 
-  cairo_set_source_rgb(t->cr, t->bg.r, t->bg.g, t->bg.b);
-  cairo_paint(t->cr);
+	cairo_save(cr);
+	cairo_rectangle(cr, x, y, width, height);
+	cairo_clip(cr);
 
-  cairo_set_font_face(t->cr, t->font->cface);
-  cairo_set_font_size(t->cr, t->font->size);
+	cairo_translate(cr, x, y - t->yoff);
 
-  cairo_translate(t->cr, 0, -t->yoff);
+  cairo_set_source_rgb(cr, t->bg.r, t->bg.g, t->bg.b);
+  cairo_paint(cr);
+
+  cairo_set_font_face(cr, t->font->cface);
+  cairo_set_font_size(cr, t->font->size);
 
   ay = (t->font->face->size->metrics.ascender >> 6);
   by = -(t->font->face->size->metrics.descender >> 6);
@@ -121,7 +127,7 @@ textboxpredraw(struct textbox *t)
 
   while (true) {
     while (i < p->len && g < p->nglyphs
-	   && p->glyphs[g].y < t->yoff + t->maxheight) {
+	            && p->glyphs[g].y < t->yoff + t->maxheight) {
 
       a = utf8iterate(s->data + p->off + i, p->len - i, &code);
       if (a == 0) {
@@ -133,8 +139,9 @@ textboxpredraw(struct textbox *t)
       if (nsel != sel) {
 				if (start < g) {
           /* Draw the undrawn glyphs with the previous selection. */
-					drawglyphs(t, &p->glyphs[start], g - start,
-					           &nfg, bg, ay, by);
+					drawglyphs(t, cr, 
+					                  &p->glyphs[start], g - start,
+					                  &nfg, bg, ay, by);
 				}
 
 				start = g;
@@ -157,8 +164,9 @@ textboxpredraw(struct textbox *t)
       /* Line Break. */
       if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
 				if (start < g) {
-					drawglyphs(t, &p->glyphs[start], g - start,
-					           &nfg, bg, ay, by);
+					drawglyphs(t, cr, 
+					                  &p->glyphs[start], g - start,
+					                  &nfg, bg, ay, by);
 				}
 
 				start = g + 1;
@@ -166,46 +174,48 @@ textboxpredraw(struct textbox *t)
 				if (sel != NULL) {
           /* Draw selection on rest of line. */
 
-					cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
-					cairo_rectangle(t->cr,
+					cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+					cairo_rectangle(cr,
 					                p->glyphs[g].x,
 					                p->glyphs[g].y - ay,
 					                t->linewidth - PAD - p->glyphs[g].x,
 					                ay + by);
 		  
-					cairo_fill(t->cr); 
+					cairo_fill(cr); 
 				}
 	
       } else if (code == '\t') {
 				if (start < g) {
-					drawglyphs(t, &p->glyphs[start], g - start,
-					           &nfg, bg, ay, by);
+					drawglyphs(t, cr, 
+					                  &p->glyphs[start], g - start,
+					                  &nfg, bg, ay, by);
 				}
 
 				start = g + 1;
 
 				if (sel != NULL) {
           /* Draw selection on tab. */
-					cairo_set_source_rgb(t->cr, bg->r, bg->g, bg->b);
-					cairo_rectangle(t->cr,
-					                p->glyphs[g].x,
-													p->glyphs[g].y - ay,
-													t->font->tabwidthpixels,
-					                ay + by);
+					cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+					cairo_rectangle(cr,
+					                        p->glyphs[g].x,
+									        				p->glyphs[g].y - ay,
+										        			t->font->tabwidthpixels,
+					                       ay + by);
 		  
-					cairo_fill(t->cr); 
+					cairo_fill(cr); 
 				}
       }
 
       if (p->pos + i == t->cursor) {
 				if (start <= g) {
-					drawglyphs(t, &p->glyphs[start], g - start + 1,
-					           &nfg, bg, ay, by);
+					drawglyphs(t, cr, 
+					                  &p->glyphs[start], g - start + 1,
+					                  &nfg, bg, ay, by);
 				}
 
 				start = g + 1;
 
-				drawcursor(t,
+				drawcursor(t, cr,
 						   p->glyphs[g].x,
 						   p->glyphs[g].y - ay,
 				       ay + by);
@@ -216,8 +226,9 @@ textboxpredraw(struct textbox *t)
     }
 
     if (start < g) {
-      drawglyphs(t, &p->glyphs[start], g - start,
-			           &nfg, bg, ay, by);
+      drawglyphs(t, cr,
+			                  &p->glyphs[start], g - start,
+			                  &nfg, bg, ay, by);
     }
 
     if (g < p->nglyphs && p->glyphs[g].y >= t->yoff + t->maxheight) {
@@ -234,13 +245,14 @@ textboxpredraw(struct textbox *t)
 
   if (t->cursor == sequencegetlen(s)) {
     p = &s->pieces[SEQ_end];
-    drawcursor(t,
+    drawcursor(t, cr,
 	       p->glyphs[0].x,
 	       p->glyphs[0].y - ay,
 	       ay + by);
   }
   
-  cairo_translate(t->cr, 0, t->yoff);
+  //cairo_translate(cr, 0, t->yoff);
+	cairo_restore(cr);
 } 
 
 size_t
