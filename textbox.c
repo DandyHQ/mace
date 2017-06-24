@@ -80,7 +80,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
       return true;
 
     } else if (sequencefindword(t->sequence, pos, &start, &len)) {
-      sel = selectionadd(t, SELECTION_command, start, start + len - 1);
+      sel = selectionadd(t, SELECTION_command, start, start + len);
       return true;
 
     } else {
@@ -113,7 +113,7 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
     sel = inselections(t, pos);
     if (sel != NULL && sel->type == SELECTION_command) {
       start = sel->start;
-      len = sel->end - start + 1;
+      len = sel->end - start;
     } else {
       len = 0;
     }

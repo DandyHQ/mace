@@ -86,7 +86,7 @@ openselection(struct mace *m, struct selection *s)
   struct tab *t;
   size_t len;
 
-  len = s->end - s->start + 1;
+  len = s->end - s->start;
   len = sequenceget(s->textbox->sequence, s->start, name, len);
 
   t = tabnewfromfile(m, name, len);

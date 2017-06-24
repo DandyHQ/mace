@@ -107,7 +107,7 @@ tabnewfromfile(struct mace *mace,
 	
   fd = open((const char *) filename, O_RDONLY);
   if (fd < 0) {
-    return NULL;
+    return tabnewempty(mace, name, strlen((char *) name));;
   }
 
   if (fstat(fd, &st) != 0) {
