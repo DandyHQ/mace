@@ -69,7 +69,7 @@ macenew(void)
 
   l = snprintf((char *) buf, sizeof(message), "%s", message);
   
-  s = sequencenew(buf, l);
+  s = sequencenew(m->font, buf, l);
   if (s == NULL) {
     free(buf);
     macefree(m);
@@ -154,7 +154,7 @@ handlebuttonrelease(struct mace *mace, int x, int y, int button)
 		y -= mace->mousefocus->tab->y;
 
 		if (mace->mousefocus->tab->main == mace->mousefocus) {
-			y -= mace->mousefocus->tab->action->height;
+			y -= sequenceheight(mace->mousefocus->tab->action->sequence);
 		}
 		
   	return textboxbuttonrelease(mace->mousefocus, x, y, button);
@@ -171,7 +171,7 @@ handlemotion(struct mace *mace, int x, int y)
 		y -= mace->mousefocus->tab->y;
 
 		if (mace->mousefocus->tab->main == mace->mousefocus) {
-			y -= mace->mousefocus->tab->action->height;
+			y -= sequenceheight(mace->mousefocus->tab->action->sequence);
 		}
 
 		return textboxmotion(mace->mousefocus, x, y);

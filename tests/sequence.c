@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "sequence.h"
+#include "mace.h"
 
 /* This needs to be improved. Needs some checks on how the chain is
    held together. eg 1 -> 2 -> 3 and 3 <- 2 <- 1. */
@@ -16,7 +12,14 @@ main(int argc, char *argv[])
   const char *s12 = "Hello there.This is a test.";
   const char *s3 = "Hello test.";
   struct sequence *s;
+	struct font *font;
   uint8_t buf[512];
+
+	font = fontnew();
+	if (font == NULL) {
+		printf("failed to create font for sequence!\n");
+		return 1;
+	}
 
   s1len = strlen(s1);
   s2len = strlen(s2);
@@ -24,10 +27,12 @@ main(int argc, char *argv[])
   s3len = strlen(s3);
   
   printf("Start with empty sequence\n");
-  s = sequencenew(NULL, 0);
+  s = sequencenew(font, NULL, 0);
   if (s == NULL) {
     return 1;
   }
+
+	sequencesetlinewidth(s, 100);
 
   printf("Insert %zu : '%s'\n", s1len, s1);
 

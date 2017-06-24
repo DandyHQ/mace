@@ -152,20 +152,18 @@ cmdcut(struct mace *m)
 {
   struct textbox *t;
   struct selection *s, *n;
-	size_t start;
 
   if (m->keyfocus == NULL) {
     return;
   }
 
   t = m->keyfocus;
-	start = sequencelen(t->sequence);
 
   for (s = t->selections; s != NULL; s = n) {
     n = s->next;
     if (s->type != SELECTION_normal) continue;
 
-    clipboardlen = s->end - s->start + 1;
+    clipboardlen = s->end - s->start;
     clipboard = realloc(clipboard, clipboardlen);
     if (clipboard == NULL) {
       clipboardlen = 0;
@@ -181,14 +179,8 @@ cmdcut(struct mace *m)
       t->cursor = s->start;
     }
 
-		if (s->start < start) {
-			start = s->start;
-		}
-
     selectionremove(t, s);
   }
-
-  textboxcalcpositions(t, start);
 }
 
 static void
@@ -206,7 +198,7 @@ cmdcopy(struct mace *m)
   for (s = t->selections; s != NULL; s = s->next) {
     if (s->type != SELECTION_normal) continue;
     
-    clipboardlen = s->end - s->start + 1;
+    clipboardlen = s->end - s->start;
     clipboard = realloc(clipboard, clipboardlen);
     if (clipboard == NULL) {
       clipboardlen = 0;
@@ -230,8 +222,6 @@ cmdpaste(struct mace *m)
   t = m->keyfocus;
   sequenceinsert(t->sequence, t->cursor, clipboard, clipboardlen);
   t->cursor += clipboardlen;
-  
-  textboxcalcpositions(t, t->cursor);
 }
 
 static struct cmd cmds[] = {

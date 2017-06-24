@@ -85,7 +85,7 @@ inselections(struct textbox *t, size_t pos)
   struct selection *s;
 
   for (s = t->selections; s != NULL; s = s->next) {
-    if (s->start <= pos && pos <= s->end) {
+    if (s->start <= pos && pos < s->end) {
       return s;
     }
   }

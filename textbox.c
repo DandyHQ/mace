@@ -2,7 +2,7 @@
 
 struct textbox *
 textboxnew(struct tab *tab, struct colour *bg,
-	   struct sequence *seq)
+                   struct sequence *seq)
 {
   struct textbox *t;
   
@@ -10,9 +10,8 @@ textboxnew(struct tab *tab, struct colour *bg,
   if (t == NULL) {
     return NULL;
   }
-
-  t->font = tab->mace->font;
   
+	t->font = seq->font;
   t->sequence = seq;
   t->tab = tab;
   
@@ -23,10 +22,7 @@ textboxnew(struct tab *tab, struct colour *bg,
   t->selections = NULL;
 
   t->yoff = 0;
-  t->linewidth = 0;
-  t->height = 0;
-
-  t->maxheight = 0;
+	t->linewidth = 0;
 
   memmove(&t->bg, bg, sizeof(struct colour));
 
@@ -46,12 +42,10 @@ textboxfree(struct textbox *t)
 }
 
 bool
-textboxresize(struct textbox *t, int lw, int maxheight)
+textboxresize(struct textbox *t, int lw)
 {
-  t->linewidth = lw;
-  t->maxheight = maxheight;
-
-  textboxcalcpositions(t, 0);
+	t->linewidth = lw;
+  sequencesetlinewidth(t->sequence, lw - PAD * 2);
 
   return true;
 }
@@ -193,16 +187,9 @@ static bool
 deleteselections(struct textbox *t)
 {
   struct selection *sel;
-  size_t start;
-  
-  start = t->sequence->pieces[SEQ_end].pos;
     
   while (t->selections != NULL) {
     sel = t->selections;
-    
-    if (sel->start < start) {
-      start = sel->start;
-    }
 
     if (!sequencedelete(t->sequence,
 			sel->start,
@@ -217,8 +204,6 @@ deleteselections(struct textbox *t)
 
     selectionremove(t, sel);
   }
-
-  textboxcalcpositions(t, start);
 
   return true;
 }
@@ -235,8 +220,6 @@ textboxtyping(struct textbox *t, uint8_t *s, size_t l)
   if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
     return redraw;
   }
-
-  textboxcalcpositions(t, t->cursor);
 
   t->cursor += l;
 
@@ -279,12 +262,10 @@ textboxkeypress(struct textbox *t, keycode_t k)
     break;
     
   case KEY_pageup:
-    return textboxscroll(t, 0, t->yoff
-			 - (t->maxheight - t->font->lineheight * 2));
+		break;
     
   case KEY_pagedown:
-    return textboxscroll(t, 0, t->yoff
-			 + (t->maxheight - t->font->lineheight * 2));
+		break;
     
   case KEY_home:
     break;
@@ -303,7 +284,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
       return true;
     }
 
-    textboxcalcpositions(t, t->cursor);
     t->cursor += l;
 
     return true;
@@ -319,7 +299,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
       return true;
     }
 
-    textboxcalcpositions(t, t->cursor);
     t->cursor += l;
 
     return true;
@@ -327,9 +306,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
   case KEY_delete:
     if (t->selections != NULL) {
       return deleteselections(t);
-
     } else if (sequencedelete(t->sequence, t->cursor, 1)) {
-      textboxcalcpositions(t, t->cursor);
       return true;
     } 
 
@@ -343,7 +320,6 @@ textboxkeypress(struct textbox *t, keycode_t k)
 					       t->cursor - 1, 1)) {
 
       t->cursor--;
-      textboxcalcpositions(t, t->cursor);
       return true;
     } 
 
@@ -365,10 +341,14 @@ textboxkeyrelease(struct textbox *t, keycode_t k)
 bool
 textboxscroll(struct textbox *t, int xoff, int yoff)
 {
+	int h;
+
+	h = sequenceheight(t->sequence);
+
   if (yoff < 0) {
     yoff = 0;
-  } else if (yoff > t->height - t->font->lineheight) {
-    yoff = t->height - t->font->lineheight;
+  } else if (yoff > h - t->font->lineheight) {
+    yoff = h - t->font->lineheight;
   }
 
   if (yoff != t->yoff) {

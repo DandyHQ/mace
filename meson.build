@@ -43,16 +43,18 @@ executable('mace', install: true,
 
 
 seqtest = executable('tests/sequence',
-		     sources: [
-		       'tests/sequence.c',
-		       'sequence.c',
-		       'utf8.c',
-		     ],
+	sources: [
+		'tests/sequence.c',
+		'sequence.c',
+		'utf8.c',
+		'font.c'
+	],
 
-		     dependencies: [
-		       cairo,
-		       ft,
-		     ]
-		    )
+	dependencies: [
+		cairo,
+		fc,
+		ft,
+	]
+)
 
 test('Sequence Test', seqtest)

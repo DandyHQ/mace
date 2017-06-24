@@ -14,7 +14,6 @@
 #endif
 
 #include "utf8.h"
-#include "sequence.h"
 
 /* Most keys are just text and are given to functions as a utf8 
    encoded string. But some are not. And these are those special keys.
@@ -67,6 +66,31 @@ struct font {
   int tabwidthpixels;
 };
 
+#define SEQ_start  0
+#define SEQ_end   1
+#define SEQ_first   2
+
+struct piece {
+	ssize_t prev, next;
+	size_t len;
+	size_t pos; /* In sequence */
+	size_t off; /* In data buffer */
+
+	cairo_glyph_t *glyphs;
+	size_t nglyphs;
+};
+
+struct sequence {
+  struct piece *pieces;
+  size_t plen, pmax;
+
+  uint8_t *data;
+  size_t dlen, dmax;
+
+	int linewidth;
+	struct font *font;
+};
+
 /* We need to find a better way to handle selections. This is awful. */
 
 typedef enum { SELECTION_left, SELECTION_right } selection_direction_t;
@@ -82,14 +106,18 @@ struct selection {
 	struct selection *next;
 };
 
+/* Padding used for textbox's. */
+#define PAD 5
+
 struct textbox {
   struct tab *tab;
-  
-  struct font *font;
 
-  struct selection *csel, *selections;
+	struct font *font;
 
-	size_t newselpos;
+  /* Maximum width a line can be. */
+  int linewidth;
+	/* How far from the top have we scrolled */
+  int yoff;
 
   struct sequence *sequence;
 
@@ -97,17 +125,8 @@ struct textbox {
      drawn. */
   size_t cursor;
 
-  /* Maximum width a line can be. */
-  int linewidth;
-
-  /* Current height of the text in the textbox. This has nothing to do
-     with the size of sfc. */
-  int height;
-
-  int yoff;
-  /* Maximum distance from yoff that is worth drawing. Also the
-     height of the sfc. */
-  int maxheight;
+  struct selection *csel, *selections;
+	size_t newselpos;
 
   struct colour bg;
 };
@@ -115,6 +134,7 @@ struct textbox {
 struct tab {
   /* Mace structure that created this. */
   struct mace *mace;
+
   /* Parent pane. */
   struct pane *pane;
   
@@ -140,6 +160,7 @@ struct pane {
 
   /* Linked list of tabs in this pane. */
   struct tab *tabs;
+
   /* Currently focused tab. */
   struct tab *focus;
 };
@@ -265,13 +286,13 @@ tabbuttonpress(struct tab *t, int x, int y,
 
 struct textbox *
 textboxnew(struct tab *tab, struct colour *bg,
-	   struct sequence *seq);
+                   struct sequence *seq);
 
 void
 textboxfree(struct textbox *t);
 
 bool
-textboxresize(struct textbox *t, int width, int maxheight);
+textboxresize(struct textbox *t, int width);
 
 bool
 textboxscroll(struct textbox *t, int xoff, int yoff);
@@ -300,9 +321,6 @@ size_t
 textboxfindpos(struct textbox *t, int x, int y);
 
 void
-textboxcalcpositions(struct textbox *t, size_t pos);
-
-void
 textboxdraw(struct textbox *t, cairo_t *cr, int x, int y, 
                     int width, int height);
 
@@ -319,6 +337,57 @@ selectionupdate(struct selection *s, size_t pos);
 
 struct selection *
 inselections(struct textbox *t, size_t pos);
+
+
+/* Creates a new sequence around data, data may be NULL.
+   len is the number of set bytes in data, max is the current size of the
+   allocation for data. 
+
+   font is controlled by the caller and should not be free'd until the
+   new sequence is freed.
+*/
+
+struct sequence *
+sequencenew(struct font *font, uint8_t *data, size_t len);
+
+/* Frees a sequence and all it's pieces. */
+
+void
+sequencefree(struct sequence *s);
+
+void
+sequencesetlinewidth(struct sequence *s, int l);
+
+/* Inserts data into the sequence at position pos. */
+
+bool
+sequenceinsert(struct sequence *s, size_t pos,
+	       const uint8_t *data, size_t len);
+
+/* Deletes from the sequence at pos a string of length len */
+
+bool
+sequencedelete(struct sequence *s, size_t pos, size_t len);
+
+/* Finds the start and end of a word around pos. */
+
+bool
+sequencefindword(struct sequence *s, size_t pos,
+                 size_t *start, size_t *len);
+
+/* Fulls out buf with the contentes of the sequence starting at pos
+   and going for at most len bytes, buf must be of at least len + 1
+   bytes and will be null terminated. */
+
+size_t
+sequenceget(struct sequence *s, size_t pos,
+            uint8_t *buf, size_t len);
+
+size_t
+sequencelen(struct sequence *s);
+
+int
+sequenceheight(struct sequence *s);
 
 
 /* Handle UI events. Return true if mace needs to be redrawn */
