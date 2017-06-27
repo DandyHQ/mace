@@ -192,9 +192,7 @@ deleteselections(struct textbox *t)
     sel = t->selections;
 
     if (!sequencedelete(t->sequence,
-			sel->start,
-			sel->end - sel->start + 1)) {
-
+			sel->start, sel->end - sel->start)) {
       return false;
     }
 

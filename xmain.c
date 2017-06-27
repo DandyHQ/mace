@@ -176,10 +176,10 @@ eventLoop(void)
 
     case ConfigureNotify:
       if (e.xconfigure.width != width
-	  || e.xconfigure.height != height) {
+			    || e.xconfigure.height != height) {
 
-	xresize(e.xconfigure.width, e.xconfigure.height);
-	redraw = true;
+				xresize(e.xconfigure.width, e.xconfigure.height);
+				redraw = true;
       }
       
       break;
