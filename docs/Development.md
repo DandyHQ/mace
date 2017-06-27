@@ -10,18 +10,10 @@ If somebody could figure out how to make it find
 dependencies better that would be great.
 
 - mace.h 
-Declares global functions and structures. I am trying to break this
-up into more sepecific header files but mace is pretty tightly
-coupled. 
-
-- sequence.h
-Declares structures and functions of sequences.
-
-- lib.h
-Decleares some helper functions.
+Declares global functions and structures. 
 
 - sequence.c
-Impliments the functions in sequence.h
+Impliments the sequence functions.
 
 - font.c
 Functions for handling fonts and font related things. This needs a
@@ -38,38 +30,36 @@ Creation, management and drawing of panes.
 Creation, management and drawing of tabs.
 
 - textbox.c, textboxdraw.c
-Functions for creating, managing and drawing text box's. textboxdraw.c
-is paricually aweful and needs a lot of work.
+Functions for creating, managing and drawing text box's. 
 
 - selection.c
 Creation and management of selections. This may be unnecessary and
 could probably be put into textbox.c.
 
-- utf8.c
-Small collection of utf8/text functions.
+- utf8.h
+A small library for utf8 functions.
 
-- lua.c
-Lua api mappings.
+- utf8.c
+Implimenting above library.
 
 - xmain.c
 All X11 related things. In future there will probably be one of
 these for quarts, windows, wayland, etc.
 
-- mace.lua
-A collection of helper functions and commands that make mace usable.
+# User Input
 
-- macerc.lua
-A very basic initialization file.
+When xmain.c (or whatever is iterfacing with the windowing system)
+gets an event it passes it to the appropriate portable handle 
+function. From here things get tricky. The mace structure has a textbox
+for the mouse focus and a textbox for the keyboard focus. Key events get
+given to the keyboard focus. Mouse releases and motions get sent to the 
+mouse focus. For mouse presses, handlebuttonpress finds the pane that
+was clicked on and sends the event to the panes focused tab. tabbuttonpress
+then sets its mace's mousefocus to the textbox that was clicked on.
 
-
-# Events
-
-When X11 gets an event it passes it to the appropriate handle 
-function. This then gives it to the appropriate tab which give it to
-the appropriate textbox. 
-
-Button events have a location and a button integer. Motion has the new
-location of the pointer. 
+Yes, this is horrible. But for whatever reason I voted against C++ and 
+going object oriented and I have not come up with a nice way to interface
+everything.
 
 Key presses and releases are different depending on the key
 pressed/released. Most of the time keys can be represented as a utf8
@@ -79,65 +69,10 @@ escape key handlekey[press|release] is called with a key_t enum
 given. This allows mace's key representation to be seperated from X11,
 allowing it to be portable in future.
 
-# Program Structure
-
-Currently mace is one tab and that is all there is. It should be easy
-to extend it to have multiple tabs but for now this is simpler.
-
-The tab has two text box's. Each of the text box's has a piece chain for
-its text, a cursor location, a buffer for pre rendering and some other
-things. 
-
-The piece chain is a doubly linked list of slices into a utf8 buffer. 
-Read [1](https://github.com/martanne/vis/wiki/Text-management-using-a-piece-chain)
-for an explination. The last added piece is growable the rest have 
-fixed sizes. The idea with this is that it makes undo's and redos easy
-as the text never gets removed. It also makes managing the resources
-easy. It is just a free for the slices and a free for the data.
-
-Text box's have fixed widths and variable heights. They have support
-to be scrollable with the scroll bar drawn by their containing tab.
-
-I don't like how I have done text box's and tabs. It is not very
-functional and is very stateful. It works for now though.
-
-Each textbox has a linked lists of selections. In future you will be
-able to make multiple selections but for now you can only have one.
-
-# Commands
-
-If you right click on a selection (or a word, in which case
-the word gets selected) mace gets the global lua object with the name
-of the selection and calls it as a funciton. This function can then
-use the global mace object to find the focus's textbox or tab, go
-through selections, evaluate code, open new tabs, etc. What ever needs
-to be done. If you look in `init.lua` you will see a few functions
-that have been created so far such as `open`, `save`, `test`,
-`eval`. `eval` is a particually intersting one as it allows you to
-evaluate lua code during run time and add new functions.
-
-# Lua
-
-Lua is integrated into mace by providing bindings for various data
-types. 
-
-Tab's, Textbox's, and sequences are represented as user data 
-objects that contain pointers to the c data. The user data 
-structures are stored in lua's registry and are managed by lua's 
-garbage collector. Before data is free'd on the C side it must call
-luaremove(L, addr) to remove the object from the lua registry. 
-Should a lua script try to use a object that has been free'd the 
-lua wrapper functions will check if the address is in the registry,
-if it is not then they fail. Thereby making the objects safe to 
-use. There can be no dangling pointers and we don't have to 
-constantly talk to lua to get data when working only in the C side 
-of life.
-
 # Fonts
 
-Mace uses fontconfig to find fonts to use. So on startup mace asks
-fontconfig for the default font for size 15px. Once mace has found a
-font to use it gets freetype2 to do the heavy lifting and get
+Mace uses fontconfig to find fonts to use.  Once mace has found a
+font to use it uses freetype2 to do the heavy lifting and get
 anti-aliased bitmaps that it can draw. 
 
 This is not the best way to do things. For a start it forces mace to 
@@ -145,13 +80,49 @@ have to figure out all the layouts, so multi codepoint glyphs will
 almost definatly not render properly in mace, and any language that 
 is not left to right will be wrong. 
 
-In future I think we should convert to using pango, and having it
-manage all the font picking and font rendering, or use harfbuzz to do
-the text layouts. However I have not figured out any way to integrate
-them nicely with text pieces/sequence structures. Both expect to have
-an uninterupted string of of utf8 and a rectangle to draw to. 
+In future I think we should convert to using harfbuzz. I have had
+an attempt at using this but it was not fully successful so I reverted
+back to doing the positioning in Mace. This is sufficient for now.
 
-So font handling will have to change at some point.
+# Text Box's and Sequences
+
+Textbox's and sequences handle most of the text rendering and
+hard stuff. The idea originally was to give each textbox a sequence,
+have the sequence manage text insertions, deletion, undo and
+redo, then have textbox's manage the rendering of said text.
+However it seemed easier to have sequences also manage text
+positioning and let textbox's do the drawing based of that. Now
+that I think about it this could easily be seperated again. I need
+to do some profiling and figure out if it is worth it.
+
+Anyway, sequences use a piece chain to store text in a way that
+makes adding, deleting, undoing and redoing easy. That being
+said we have not yet implimented undo or redo. 
+
+Read [1](https://github.com/martanne/vis/wiki/Text-management-using-a-piece-chain)
+for a go run down.
+
+The idea is that you put all your text in one append only buffer.
+Then you have a doubly linked list of structures that point 
+to different parts of the text buffer. Then when you add text
+you append it to the buffer and add another element to the
+linked list. When you delete you remove some elements and 
+maybe add some that point to already added text. This way text
+is never forgotten and you can undo and redo with relative ease.
+It also makes managing things easy as you can put the linked 
+list in another append only buffer and then you have two buffers
+to free when you are done.
+
+However because I decied to merge glyph placing with sequences
+the text pieces also have an allocated array of glyphs that are used
+for drawing. The idea is that only text pieces that are currently
+in the chain need this so any that get removed have their glyph array
+freed. My aim for this was to make updating glyph positions efficient
+as the sequence knows which ones need updated and how to update
+them. But now I am thinking it would be easier to have one big glyph
+array allocated to store the current glyphs and reallocate it as the
+glyph count changes. This would be less efficient but easier to handle.
+As I said above some profiling needs to be done.
 
 # Reading
 

@@ -178,7 +178,6 @@ handlemotion(struct mace *mace, int x, int y)
 	} else {
 		return false;
 	}
-
 }
 
 bool
