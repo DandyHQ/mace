@@ -277,23 +277,21 @@ textboxfindpos(struct textbox *t, int lx, int ly)
       }
 
       if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
-				if (p->glyphs[g].y - ay <= ly &&
-				    ly <= p->glyphs[g].y + by) {
-
+				if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y + by) {
 					return p->pos + i;
 				}
 
       } else if (code == '\t') {
-				if (p->glyphs[g].y - ay <= ly &&  ly <= p->glyphs[g].y + by) {					
-						if (p->glyphs[g].x <= lx) {
-							if (lx <= p->glyphs[g].x + t->font->tabwidthpixels * 0.75f) {
-								return p->pos + i;
-							} else if (lx <= p->glyphs[g].x + t->font->tabwidthpixels) {
-								return p->pos + i + a;
-							}
+				if (p->glyphs[g].y - ay <= ly &&  ly <= p->glyphs[g].y + by) {
+					if (lx <= p->glyphs[g].x + t->font->tabwidthpixels * 0.75f) {
+							/* Left three quarters of the glyph so go to the left side. */
+							return p->pos + i;
+
+						} else if (lx <= p->glyphs[g].x + t->font->tabwidthpixels) {
+							/* Right quarters of the glyph so go to the right side. */
+							return p->pos + i + a;
 						}
 				}
-
       } else if (p->glyphs[g].y - ay <= ly &&
 				         ly <= p->glyphs[g].y + by) {
 
@@ -306,8 +304,11 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 				ww = t->font->face->glyph->advance.x >> 6;
 
 				if (lx <= p->glyphs[g].x + ww * 0.75f) {
+					/* Left three quarters of the glyph so go to the left side. */
 					return p->pos + i;
+
 				} else if (lx <= p->glyphs[g].x + ww) {
+					/* Right quarters of the glyph so go to the right side. */
 					return p->pos + i + a;
 				}
       }
