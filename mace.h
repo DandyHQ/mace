@@ -66,6 +66,26 @@ struct font {
   int tabwidthpixels;
 };
 
+typedef enum { SELECTION_left, SELECTION_right } selection_direction_t;
+typedef enum { SELECTION_normal, SELECTION_command } selection_t;
+
+struct selection {
+	struct textbox *textbox;
+	selection_t type;
+
+	size_t start, end;
+	selection_direction_t direction;
+	
+	struct selection *next;
+};
+
+struct cursor {
+	struct textbox *textbox;
+	size_t pos;
+
+	struct cursor *next;
+};
+
 #define SEQ_start  0
 #define SEQ_end   1
 #define SEQ_first   2
@@ -91,28 +111,12 @@ struct sequence {
 	struct font *font;
 };
 
-/* We need to find a better way to handle selections. This is awful. */
-
-typedef enum { SELECTION_left, SELECTION_right } selection_direction_t;
-typedef enum { SELECTION_normal, SELECTION_command } selection_t;
-
-struct selection {
-	struct textbox *textbox;
-	selection_t type;
-
-	size_t start, end;
-	selection_direction_t direction;
-	
-	struct selection *next;
-};
-
 /* Padding used for textbox's. */
 #define PAD 5
 
 struct textbox {
-  struct tab *tab;
-
-	struct font *font;
+	struct mace *mace;
+	struct tab *tab;
 
   /* Maximum width a line can be. */
   int linewidth;
@@ -121,11 +125,9 @@ struct textbox {
 
   struct sequence *sequence;
 
-  /* This must be on a unicode code point boundry or it will not be
-     drawn. */
-  size_t cursor;
+	size_t cursor;
 
-  struct selection *csel, *selections;
+  struct selection *csel;
 	size_t newselpos;
 
   struct colour bg;
@@ -176,6 +178,8 @@ struct mace {
   struct pane *pane;
 
   struct textbox *keyfocus, *mousefocus;
+
+	struct selection *selections;
 };
 
 
@@ -285,7 +289,8 @@ tabbuttonpress(struct tab *t, int x, int y,
 
 
 struct textbox *
-textboxnew(struct tab *tab, struct colour *bg,
+textboxnew(struct mace *mace, struct tab *t,
+                   struct colour *bg,
                    struct sequence *seq);
 
 void
@@ -327,10 +332,10 @@ textboxdraw(struct textbox *t, cairo_t *cr, int x, int y,
 
 struct selection *
 selectionadd(struct textbox *t, selection_t type, 
-             size_t pos1, size_t pos2);
+                    size_t pos1, size_t pos2);
 
 void
-selectionremove(struct textbox *t, struct selection *s);
+selectionremove(struct selection *s);
 
 bool
 selectionupdate(struct selection *s, size_t pos);

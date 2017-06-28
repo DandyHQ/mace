@@ -105,23 +105,10 @@ static void
 cmdopen(struct mace *m)
 {
   struct selection *s;
-  struct tab *t;
 
-  if (m->keyfocus == NULL) {
-    return;
-  }
-
-  t = m->keyfocus->tab;
-
-  for (s = t->action->selections; s != NULL; s = s->next) {
+  for (s = m->selections; s != NULL; s = s->next) {
 		if (s->type == SELECTION_normal) {
 	    openselection(m, s);
-		}
-  }
-
-  for (s = t->main->selections; s != NULL; s = s->next) {
-		if (s->type == SELECTION_normal) {
-	   	openselection(m, s);
 		}
   }
 }
@@ -150,18 +137,13 @@ cmdclose(struct mace *m)
 static void
 cmdcut(struct mace *m)
 {
-  struct textbox *t;
   struct selection *s, *n;
+	struct textbox *t;
 
-  if (m->keyfocus == NULL) {
-    return;
-  }
-
-  t = m->keyfocus;
-
-  for (s = t->selections; s != NULL; s = n) {
+  for (s = m->selections; s != NULL; s = n) {
     n = s->next;
     if (s->type != SELECTION_normal) continue;
+		t = s->textbox;
 
     clipboardlen = s->end - s->start;
     clipboard = realloc(clipboard, clipboardlen);
@@ -170,8 +152,8 @@ cmdcut(struct mace *m)
       return;
     }
 
-    clipboardlen = sequenceget(t->sequence, s->start,
-			       clipboard, clipboardlen);
+    clipboardlen = sequenceget(t->sequence, s->start, 
+		                                           clipboard, clipboardlen);
 
     sequencedelete(t->sequence, s->start, clipboardlen);
     
@@ -179,7 +161,7 @@ cmdcut(struct mace *m)
       t->cursor = s->start;
     }
 
-    selectionremove(t, s);
+    selectionremove(s);
   }
 }
 
@@ -189,14 +171,9 @@ cmdcopy(struct mace *m)
   struct textbox *t;
   struct selection *s;
 
-  if (m->keyfocus == NULL) {
-    return;
-  }
-
-  t = m->keyfocus;
-
-  for (s = t->selections; s != NULL; s = s->next) {
+  for (s = m->selections; s != NULL; s = s->next) {
     if (s->type != SELECTION_normal) continue;
+		t = s->textbox;
     
     clipboardlen = s->end - s->start;
     clipboard = realloc(clipboard, clipboardlen);
@@ -206,7 +183,7 @@ cmdcopy(struct mace *m)
     }
 
     clipboardlen = sequenceget(t->sequence, s->start,
-			       clipboard, clipboardlen);
+			                                         clipboard, clipboardlen);
   }
 }
 

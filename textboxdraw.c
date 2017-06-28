@@ -102,11 +102,11 @@ textboxdraw(struct textbox *t, cairo_t *cr,
   cairo_set_source_rgb(cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(cr);
 
-  cairo_set_font_face(cr, t->font->cface);
-  cairo_set_font_size(cr, t->font->size);
+  cairo_set_font_face(cr, t->mace->font->cface);
+  cairo_set_font_size(cr, t->mace->font->size);
 
-  ay = (t->font->face->size->metrics.ascender >> 6);
-  by = -(t->font->face->size->metrics.descender >> 6);
+  ay = (t->mace->font->face->size->metrics.ascender >> 6);
+  by = -(t->mace->font->face->size->metrics.descender >> 6);
 	 
   s = t->sequence;
   p = &s->pieces[SEQ_start];
@@ -191,7 +191,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 					cairo_rectangle(cr,
 					                p->glyphs[g].x,
 									        p->glyphs[g].y - ay,
-										      t->font->tabwidthpixels,
+										      t->mace->font->tabwidthpixels,
 					                ay + by);
 		  
 					cairo_fill(cr); 
@@ -262,8 +262,8 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 		return 0;
 	}
   
-  ay = (t->font->face->size->metrics.ascender >> 6);
-  by = -(t->font->face->size->metrics.descender >> 6);
+  ay = (t->mace->font->face->size->metrics.ascender >> 6);
+  by = -(t->mace->font->face->size->metrics.descender >> 6);
 	 
   s = t->sequence;
   
@@ -294,15 +294,15 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 				return p->pos + i;
 
       } else if (code == '\t') {
-				ww = t->font->tabwidthpixels;
+				ww = t->mace->font->tabwidthpixels;
 
       } else {
-				if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
+				if (FT_Load_Glyph(t->mace->font->face, p->glyphs[g].index,
 			      FT_LOAD_DEFAULT) != 0) {
 					continue;
 				}
 
-				ww = t->font->face->glyph->advance.x >> 6;
+				ww = t->mace->font->face->glyph->advance.x >> 6;
 			}
 
 			if (lx <= p->glyphs[g].x + ww * 0.75f) {

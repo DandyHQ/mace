@@ -2,14 +2,20 @@
 
 struct selection *
 selectionadd(struct textbox *t, selection_t type,
-             size_t pos1, size_t pos2)
+                    size_t pos1, size_t pos2)
 {
   struct selection *s;
+	struct mace *m;
+
+	m = t->mace;
 
   s = malloc(sizeof(struct selection));
   if (s == NULL) {
     return NULL;
   }
+
+  s->next = m->selections;
+	m->selections = s;
 
   s->textbox = t;
 	s->type = type;
@@ -24,21 +30,21 @@ selectionadd(struct textbox *t, selection_t type,
 		s->direction = SELECTION_left;
 	}
 
-  s->next = t->selections;
-	t->selections = s;
-  
   return s;
 }
 
 void
-selectionremove(struct textbox *t, struct selection *s)
+selectionremove(struct selection *s)
 {
 	struct selection *p;
+	struct mace *m;
+	
+	m = s->textbox->mace;
 
-	if (t->selections == s) {
-		t->selections = s->next;
+	if (m->selections == s) {
+		m->selections = s->next;
 	} else {
-		for (p = t->selections; p->next != s && p->next != NULL; p = p->next)
+		for (p = m->selections; p->next != s && p->next != NULL; p = p->next)
 			;
 
 		if (p->next == s) {
@@ -84,8 +90,8 @@ inselections(struct textbox *t, size_t pos)
 {
   struct selection *s;
 
-  for (s = t->selections; s != NULL; s = s->next) {
-    if (s->start <= pos && pos < s->end) {
+  for (s = t->mace->selections; s != NULL; s = s->next) {
+    if (s->textbox == t && s->start <= pos && pos < s->end) {
       return s;
     }
   }

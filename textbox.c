@@ -1,7 +1,8 @@
 #include "mace.h"
 
 struct textbox *
-textboxnew(struct tab *tab, struct colour *bg,
+textboxnew(struct mace *m, struct tab *tab,
+                   struct colour *bg,
                    struct sequence *seq)
 {
   struct textbox *t;
@@ -11,7 +12,8 @@ textboxnew(struct tab *tab, struct colour *bg,
     return NULL;
   }
   
-	t->font = seq->font;
+	t->mace = m;
+	t->tab = tab;
   t->sequence = seq;
   t->tab = tab;
   
@@ -19,7 +21,6 @@ textboxnew(struct tab *tab, struct colour *bg,
 
   t->newselpos = SIZE_MAX;
   t->csel = NULL;
-  t->selections = NULL;
 
   t->yoff = 0;
 	t->linewidth = 0;
@@ -32,10 +33,15 @@ textboxnew(struct tab *tab, struct colour *bg,
 void
 textboxfree(struct textbox *t)
 {
-  while (t->selections != NULL) {
-    selectionremove(t, t->selections);
-  }
-  
+	struct selection *s, *sn;
+
+	for (s = t->mace->selections; s != NULL; s = sn) {
+		sn = s->next;
+		if (s->textbox == t) {
+			selectionremove(s);
+		}
+	}
+
   sequencefree(t->sequence);
 
   free(t);
@@ -61,12 +67,11 @@ textboxbuttonpress(struct textbox *t, int x, int y,
   
   switch (button) {
   case 1:
-    while (t->tab->mace->keyfocus->selections != NULL) {
-      selectionremove(t->tab->mace->keyfocus,
-		      t->tab->mace->keyfocus->selections);
+    while (t->mace->selections != NULL) {
+      selectionremove(t->mace->selections);
     }
     
-    t->tab->mace->keyfocus = t;
+    t->mace->keyfocus = t;
 
     t->cursor = pos;
     t->newselpos = pos;
@@ -118,15 +123,11 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
       len = 0;
     }
 
-    sel = t->selections;
-    while (sel != NULL) {
+    for (sel = t->mace->selections; sel != NULL; sel = next) {
       next = sel->next;
-
       if (sel->type == SELECTION_command) {
-				selectionremove(t, sel);
+				selectionremove(sel);
       }
-
-      sel = next;
     }
 
     if (len != 0) {
@@ -140,7 +141,7 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
       }
 
       /* TODO: Show an error somehow if this returns false. */
-      command(t->tab->mace, buf);
+      command(t->mace, buf);
 
       free(buf);
     }
@@ -186,21 +187,21 @@ textboxmotion(struct textbox *t, int x, int y)
 static bool
 deleteselections(struct textbox *t)
 {
-  struct selection *sel;
+  struct selection *s, *n;
     
-  while (t->selections != NULL) {
-    sel = t->selections;
+  for (s = t->mace->selections; s != NULL; s = n) {
+		n = s->next;
+		if (s->textbox != t) continue;
 
-    if (!sequencedelete(t->sequence,
-			sel->start, sel->end - sel->start)) {
-      return false;
+    if (!sequencedelete(t->sequence, s->start, s->end - s->start)) {
+			continue;
     }
 
-    if (sel->start <= t->cursor && t->cursor <= sel->end) {
-      t->cursor = sel->start;
+    if (s->start <= t->cursor && t->cursor <= s->end) {
+      t->cursor = s->start;
     }
 
-    selectionremove(t, sel);
+    selectionremove(s);
   }
 
   return true;
@@ -209,14 +210,10 @@ deleteselections(struct textbox *t)
 bool
 textboxtyping(struct textbox *t, uint8_t *s, size_t l)
 {
-  bool redraw = false;
-  
-  if (t->selections != NULL) {
-    redraw = deleteselections(t);
-  }
+	deleteselections(t);
 
   if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
-    return redraw;
+    return true;
   }
 
   t->cursor += l;
@@ -272,9 +269,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     break;
     
   case KEY_tab:
-    if (t->selections != NULL) {
-      deleteselections(t);
-    }
+    deleteselections(t);
 
     l = snprintf((char *) s, sizeof(s), "\t");
     
@@ -287,9 +282,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     return true;
 
   case KEY_return:
-    if (t->selections != NULL) {
-      deleteselections(t);
-    }
+    deleteselections(t);
 
     l = snprintf((char *) s, sizeof(s), "\n");
 
@@ -302,8 +295,9 @@ textboxkeypress(struct textbox *t, keycode_t k)
     return true;
   
   case KEY_delete:
-    if (t->selections != NULL) {
+    if (t->mace->selections != NULL) {
       return deleteselections(t);
+
     } else if (sequencedelete(t->sequence, t->cursor, 1)) {
       return true;
     } 
@@ -311,7 +305,7 @@ textboxkeypress(struct textbox *t, keycode_t k)
     break;
     
   case KEY_backspace:
-    if (t->selections != NULL) {
+    if (t->mace->selections != NULL) {
       return deleteselections(t);
 
     } else if (t->cursor > 0 && sequencedelete(t->sequence,
@@ -345,8 +339,8 @@ textboxscroll(struct textbox *t, int xoff, int yoff)
 
   if (yoff < 0) {
     yoff = 0;
-  } else if (yoff > h - t->font->lineheight) {
-    yoff = h - t->font->lineheight;
+  } else if (yoff > h - t->mace->font->lineheight) {
+    yoff = h - t->mace->font->lineheight;
   }
 
   if (yoff != t->yoff) {
