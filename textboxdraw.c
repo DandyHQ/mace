@@ -1,10 +1,6 @@
 #include "mace.h"
 
 /* TODO: 
-
-   Reimpliment something like textboxfindstart to stop drawing
-   unnessesary glyphs.
-
    I don't like how tabs or newlines are handled. It would possibly 
    be better to have each piece have another array of extra 
    information about the glyphs containing width, maybe height, 
@@ -83,6 +79,8 @@ drawglyphs(struct textbox *t, cairo_t *cr,
   cairo_show_glyphs(cr, glyphs, len);
 }
 
+/* This is pretty horrible. */
+
 void
 textboxdraw(struct textbox *t, cairo_t *cr, 
                     int x, int y, int width, int height)
@@ -120,8 +118,8 @@ textboxdraw(struct textbox *t, cairo_t *cr,
   bg = &t->bg;
 
   while (true) {
-    while (i < p->len && g < p->nglyphs
-	            && p->glyphs[g].y < t->yoff + height) {
+		while (i < p->len && g < p->nglyphs
+	    	     && p->glyphs[g].y < t->yoff + height) {
 
       a = utf8iterate(s->data + p->off + i, p->len - i, &code);
       if (a == 0) {
@@ -264,65 +262,46 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   by = -(t->font->face->size->metrics.descender >> 6);
 	 
   s = t->sequence;
-  p = &s->pieces[SEQ_start];
-  i = 0;
-  g = 0;
+  
+  for (p = &s->pieces[SEQ_start]; p->next != -1; p = &s->pieces[p->next]) {
+		a = 1;
+    for (i = 0, g = 0; i < p->len && g < p->nglyphs; i += a, g++) {
+			while (i < p->len) {
+   	   a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+				if (a != 0) {
+					break;
+				} else {
+					i++;
+				}
+			} 
 
-  while (true) {
-    while (i < p->len && g < p->nglyphs) {
-      a = utf8iterate(s->data + p->off + i, p->len - i, &code);
-      if (a == 0) {
-				i++;
+			if (ly < p->glyphs[g].y - ay || p->glyphs[g].y + by <= ly) {
 				continue;
-      }
+			}
 
       if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
-				if (p->glyphs[g].y - ay <= ly && ly <= p->glyphs[g].y + by) {
-					return p->pos + i;
-				}
+				return p->pos + i;
 
       } else if (code == '\t') {
-				if (p->glyphs[g].y - ay <= ly &&  ly <= p->glyphs[g].y + by) {
-					if (lx <= p->glyphs[g].x + t->font->tabwidthpixels * 0.75f) {
-							/* Left three quarters of the glyph so go to the left side. */
-							return p->pos + i;
+				ww = t->font->tabwidthpixels;
 
-						} else if (lx <= p->glyphs[g].x + t->font->tabwidthpixels) {
-							/* Right quarters of the glyph so go to the right side. */
-							return p->pos + i + a;
-						}
-				}
-      } else if (p->glyphs[g].y - ay <= ly &&
-				         ly <= p->glyphs[g].y + by) {
-
+      } else {
 				if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
 			      FT_LOAD_DEFAULT) != 0) {
-					i += a;
 					continue;
 				}
 
 				ww = t->font->face->glyph->advance.x >> 6;
+			}
 
-				if (lx <= p->glyphs[g].x + ww * 0.75f) {
-					/* Left three quarters of the glyph so go to the left side. */
-					return p->pos + i;
+			if (lx <= p->glyphs[g].x + ww * 0.75f) {
+				/* Left three quarters of the glyph so go to the left side. */
+				return p->pos + i;
 
-				} else if (lx <= p->glyphs[g].x + ww) {
-					/* Right quarters of the glyph so go to the right side. */
-					return p->pos + i + a;
-				}
-      }
-      
-      i += a;
-      g++;
-    }
-
-    if (p->next != -1) {
-      p = &s->pieces[p->next];
-      i = 0;
-      g = 0;
-    } else {
-      break;
+			} else if (lx <= p->glyphs[g].x + ww) {
+				/* Right quarters of the glyph so go to the right side. */
+				return p->pos + i + a;
+			}
     }
   }
 

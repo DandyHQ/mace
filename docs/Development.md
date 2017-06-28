@@ -124,6 +124,25 @@ array allocated to store the current glyphs and reallocate it as the
 glyph count changes. This would be less efficient but easier to handle.
 As I said above some profiling needs to be done.
 
+So when sequences are changed they replace all the glyphs. In future
+they will want to do it more intelligently and only calculated the affected
+glyphs. 
+
+Glyph structures are part of cairo and store freetype glyph index's
+with x and y coordinates.
+
+When placing glyphs the function placeglyphs in sequence.c goes
+through the text sequence and converts it to unicode code points.
+It then places the glyphs is chunks by going through until a tab, new line
+or the end of the text piece is found and places the chunk in one go.
+With the chunk it goes through the unplaces glyphs, remembers the 
+last word boundary and changes the glyphs index from being a
+unicode code point to a freetype glyph index and puts it in a good place.
+If a glyph ends up going over the line width then we go back to the
+last word boundary we found and replace the glyphs on a new line.
+Repeat until the chunk has been placed.
+
+
 # Reading
 
 - [Harfbuzz, pango, freetype, fontconfig](https://behdad.org/text/)
