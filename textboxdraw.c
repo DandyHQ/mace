@@ -258,7 +258,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 	lx -= PAD;
   ly += t->yoff;
 
-	if (ly < 0) {
+	if (ly <= 0) {
 		return 0;
 	}
   
@@ -268,7 +268,6 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   s = t->sequence;
   
   for (p = &s->pieces[SEQ_start]; p->next != -1; p = &s->pieces[p->next]) {
-		a = 1;
     for (i = 0, g = 0; i < p->len && g < p->nglyphs; i += a, g++) {
 			while (i < p->len) {
    	   a = utf8iterate(s->data + p->off + i, p->len - i, &code);
@@ -288,6 +287,10 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 			}
 
       if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
+				return p->pos + i;
+
+			} else if (g + 1 < p->nglyphs && p->glyphs[g + 1].x == 0.0) {
+				/* Word wrapping. */
 				return p->pos + i;
 
       } else if (code == '\t') {
