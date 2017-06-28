@@ -257,6 +257,10 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
 	lx -= PAD;
   ly += t->yoff;
+
+	if (ly < 0) {
+		return 0;
+	}
   
   ay = (t->font->face->size->metrics.ascender >> 6);
   by = -(t->font->face->size->metrics.descender >> 6);
@@ -273,7 +277,11 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 				} else {
 					i++;
 				}
-			} 
+			}
+
+			if (i >= p->len) {
+				break;
+			}
 
 			if (ly < p->glyphs[g].y - ay || p->glyphs[g].y + by <= ly) {
 				continue;
