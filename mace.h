@@ -177,10 +177,9 @@ struct mace {
   
   struct pane *pane;
 
-  struct textbox *mousefocus;
+  struct textbox *keyfocus, *mousefocus;
 
 	struct selection *selections;
-	struct cursor *cursors;
 };
 
 

@@ -1,0 +1,1054 @@
+LICENSE: Hannah Clark-Younger, Mytchel Hammond, Ryan Collins, Vaughan Kitchen.
+README.md:# Mace [![Travis build Status](https://travis-ci.org/DandyHQ/mace.svg?branch=master)](https://travis-ci.org/DandyHQ/mace)
+README.md: - [meson](https://github.com/mesonbuild/meson)
+README.md: - xlib
+README.md: - fontconfig
+README.md: - freetype2
+README.md: - cairo
+README.md:# apt install meson libx11-dev libcairo2-dev
+README.md:# dnf install meson libX11-devel cairo-devel
+README.md:$ ninja -C build
+README.md:# ninja -C build install
+README.md:$ ninja -C build test
+cmd.c:  while (l < len && sequenceget(t->action->sequence, l,
+cmd.c:  sequenceget(t->action->sequence, 0, buf, l);
+cmd.c:  if (m->mousefocus == NULL) {
+cmd.c:  if (getfilename(m->mousefocus->tab, filename, sizeof(filename)) == 0) {
+cmd.c:  s = m->mousefocus->tab->main->sequence;
+cmd.c:  len = s->end - s->start;
+cmd.c:  len = sequenceget(s->textbox->sequence, s->start, name, len);
+cmd.c:  paneaddtab(s->textbox->tab->pane, t, -1);
+cmd.c:  s->textbox->tab->pane->focus = t;
+cmd.c:  m->keyfocus = t->main;
+cmd.c:  m->mousefocus = t->main;
+cmd.c:  for (s = m->selections; s != NULL; s = s->next) {
+cmd.c:		if (s->type == SELECTION_normal) {
+cmd.c:  if (m->mousefocus == NULL) {
+cmd.c:  t = m->mousefocus->tab;
+cmd.c:  p = t->pane;
+cmd.c:  if (p->tabs == NULL) {
+cmd.c:    m->running = false;
+cmd.c:  for (s = m->selections; s != NULL; s = n) {
+cmd.c:    n = s->next;
+cmd.c:    if (s->type != SELECTION_normal) continue;
+cmd.c:		t = s->textbox;
+cmd.c:    clipboardlen = s->end - s->start;
+cmd.c:    clipboardlen = sequenceget(t->sequence, s->start, 
+cmd.c:    sequencedelete(t->sequence, s->start, clipboardlen);
+cmd.c:    if (s->start <= t->cursor || t->cursor <= s->end) {
+cmd.c:      t->cursor = s->start;
+cmd.c:  for (s = m->selections; s != NULL; s = s->next) {
+cmd.c:    if (s->type != SELECTION_normal) continue;
+cmd.c:		t = s->textbox;
+cmd.c:    clipboardlen = s->end - s->start;
+cmd.c:    clipboardlen = sequenceget(t->sequence, s->start,
+cmd.c:  if (m->keyfocus == NULL || clipboard == NULL) {
+cmd.c:  t = m->keyfocus;
+cmd.c:  sequenceinsert(t->sequence, t->cursor, clipboard, clipboardlen);
+cmd.c:  t->cursor += clipboardlen;
+config.h.in:#define DEFAULT_FONT_PATTERN "mono-12"
+font.c:  e = FT_Init_FreeType(&f->library);
+font.c:  f->tabwidth = DEFAULT_TAB_WIDTH;
+font.c:  if (font->cface != NULL) {
+font.c:    cairo_font_face_destroy(font->cface);
+font.c:  if (font->face != NULL) {
+font.c:    FT_Done_Face(font->face);
+font.c:  if (font->library != NULL) {
+font.c:    FT_Done_FreeType(font->library);
+font.c:  if (FT_New_Face(font->library, path, 0, &new) != 0) {
+font.c:  if (font->cface != NULL) {
+font.c:    cairo_font_face_destroy(font->cface);
+font.c:    font->cface = NULL;
+font.c:  if (font->face != NULL) {
+font.c:    FT_Done_Face(font->face);
+font.c:    font->face = NULL;
+font.c:  snprintf(font->path, sizeof(font->path), "%s", path);
+font.c:  font->size = size;
+font.c:  font->face = new;
+font.c:  font->cface =
+font.c:    cairo_ft_font_face_create_for_ft_face(font->face,
+font.c:  font->baseline = 1 + ((font->face->size->metrics.height
+font.c:			 + font->face->size->metrics.descender) >> 6);
+font.c:  font->lineheight = (font->face->size->metrics.height >> 6);
+font.c:  fontsettabwidth(font, font->tabwidth);
+font.c:  i = FT_Get_Char_Index(font->face, ' ');
+font.c:    return -1;
+font.c:  if (FT_Load_Glyph(font->face, i, FT_LOAD_DEFAULT) != 0) {
+font.c:    return -1;
+font.c:  font->tabwidth = spaces;
+font.c:  font->tabwidthpixels = (font->face->glyph->advance.x >> 6) * spaces;
+font.c:  e = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
+font.c:  FT_Bitmap *map = &f->face->glyph->bitmap;
+font.c:  stride = cairo_format_stride_for_width(CAIRO_FORMAT_A8, map->width);
+font.c:  for (h = 0; h < map->rows; h++) {
+font.c:	    map->buffer + h * map->width,
+font.c:	    map->width);
+font.c:					  map->width,
+font.c:					  map->rows,
+font.c:  cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+font.c:		  f->face->glyph->advance.x >> 6,
+font.c:		  f->lineheight);
+font.c:  cairo_set_source_rgb(cr, fg->r, fg->g, fg->b);
+font.c:  cairo_mask_surface(cr, s, x + f->face->glyph->bitmap_left,
+font.c:		     y + f->baseline - f->face->glyph->bitmap_top);
+mace.c:  m->font = fontnew();
+mace.c:  if (m->font == NULL) {
+mace.c:  s = sequencenew(m->font, buf, l);
+mace.c:  m->pane = panenew(m);
+mace.c:  if (m->pane == NULL) {
+mace.c:  m->keyfocus = m->mousefocus= t->main;
+mace.c:  paneaddtab(m->pane, t, 0);
+mace.c:  m->pane->focus = t;
+mace.c:  m->running = true;
+mace.c:  m->running = false;
+mace.c:  if (m->pane != NULL) {
+mace.c:    panefree(m->pane);
+mace.c:  if (m->font != NULL) {
+mace.c:    fontfree(m->font);
+mace.c:  p = mace->pane;
+mace.c:  x -= p->x;
+mace.c:  y -= p->y;
+mace.c:  if (y < mace->font->lineheight) {
+mace.c:		mace->mousefocus = NULL;
+mace.c:		return tabbuttonpress(p->focus, x, y - mace->font->lineheight, button);
+mace.c:	if (mace->mousefocus != NULL) {
+mace.c:		x -= mace->mousefocus->tab->x;
+mace.c:		y -= mace->mousefocus->tab->y;
+mace.c:		if (mace->mousefocus->tab->main == mace->mousefocus) {
+mace.c:			y -= sequenceheight(mace->mousefocus->tab->action->sequence);
+mace.c:  	return textboxbuttonrelease(mace->mousefocus, x, y, button);
+mace.c:	if (mace->mousefocus != NULL) {
+mace.c:  	x -= mace->mousefocus->tab->x;
+mace.c:		y -= mace->mousefocus->tab->y;
+mace.c:		if (mace->mousefocus->tab->main == mace->mousefocus) {
+mace.c:			y -= sequenceheight(mace->mousefocus->tab->action->sequence);
+mace.c:		return textboxmotion(mace->mousefocus, x, y);
+mace.c:  x -= p->x;
+mace.c:  y -= p->y;
+mace.c:  if (y < mace->font->lineheight) {
+mace.c:    return tabscroll(p->focus, x, y - mace->font->lineheight, dx, dy);
+mace.c:  if (mace->keyfocus != NULL) {
+mace.c:    return textboxtyping(mace->keyfocus, s, n);
+mace.c:  if (mace->keyfocus != NULL) {
+mace.c:    return textboxkeypress(mace->keyfocus, k);
+mace.c:  if (mace->keyfocus != NULL) {
+mace.c:    return textboxkeyrelease(mace->keyfocus, k);
+mace.h:#include <cairo-ft.h>
+mace.h:/* Pos = -1  puts the tab at the end. Otherwise it puts it in the list
+meson.build:add_global_arguments('-std=c11',
+meson.build:		     '-Wpointer-sign',
+meson.build:		     '-Werror',
+meson.build:		     '-O3',
+pane.c:  p->mace = mace;
+pane.c:  t = p->tabs;
+pane.c:    n = t->next;
+pane.c:  p->x = x;
+pane.c:  p->y = y;
+pane.c:  p->width = w;
+pane.c:  p->height = h;
+pane.c:  for (t = p->tabs; t != NULL; t = t->next) {
+pane.c:    if (!tabresize(t, x, y + p->mace->font->lineheight,
+pane.c:		   w, h - p->mace->font->lineheight)) {
+pane.c:  if (t->pane != NULL) {
+pane.c:    paneremovetab(t->pane, t);
+pane.c:  if (pos == 0 || p->tabs == NULL) {
+pane.c:    t->next = p->tabs;
+pane.c:    p->tabs = t;
+pane.c:  for (prev = p->tabs; prev->next != NULL; prev = prev->next) {
+pane.c:      pos--;
+pane.c:  t->next = prev->next;
+pane.c:  prev->next = t;
+pane.c:  t->pane = p;
+pane.c:  if (!tabresize(t, p->x, p->y + p->mace->font->lineheight,
+pane.c:		 p->width, p->height - p->mace->font->lineheight)) {
+pane.c:  if (p->tabs == t) {
+pane.c:    p->tabs = t->next;
+pane.c:  for (prev = p->tabs; prev->next != NULL; prev = prev->next) {
+pane.c:    if (prev->next == t) {
+pane.c:      prev->next = t->next;
+pane.c:  t->next = NULL;
+pane.c:  t->pane = NULL;
+pane.c:  if (p->focus == t) {
+pane.c:    p->focus = p->tabs;
+pane.c:    if (p->mace->mousefocus == t->action || p->mace->keyfocus == t->main) {
+pane.c:      if (p->focus != NULL) {
+pane.c:				p->mace->mousefocus = p->mace->keyfocus = p->focus->main;
+pane.c:				p->mace->mousefocus = p->mace->keyfocus = NULL;
+pane.c:  for (t = p->tabs; t != NULL; t = t->next) {
+pane.c:    while (i < t->nlen) {
+pane.c:      a = utf8iterate(t->name + i, t->nlen - i, &code);
+pane.c:      if (!loadglyph(p->mace->font->face, code)) {
+pane.c:      ww = p->mace->font->face->glyph->advance.x >> 6;
+pane.c:				if (p->focus != t) {
+pane.c:					p->focus = t;
+pane.c:					p->mace->mousefocus = NULL;
+pane.c:					p->mace->keyfocus = t->main;
+pane.c:  for (t = p->tabs; t != NULL; t = t->next) {
+pane.c:    if (t == p->focus) {
+pane.c:    cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+pane.c:    cairo_rectangle(cr, p->x + x, p->y,
+pane.c:		    p->x + 5, p->y + p->mace->font->lineheight);
+pane.c:    while (i < t->nlen) {
+pane.c:      a = utf8iterate(t->name + i, t->nlen - i, &code);
+pane.c:      if (!loadglyph(p->mace->font->face, code)) {
+pane.c:      ww = p->mace->font->face->glyph->advance.x >> 6;
+pane.c:      if (x + ww >= p->width) {
+pane.c:      drawglyph(p->mace->font, cr, p->x + x, p->y, &fg, bg);
+pane.c:    cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+pane.c:    cairo_rectangle(cr, p->x + x, p->y,
+pane.c:		    p->x + 5, p->y + p->mace->font->lineheight);
+pane.c:    cairo_move_to(cr, p->x + x, p->y);
+pane.c:    cairo_line_to(cr, p->x + x, p->y + p->mace->font->lineheight);
+pane.c:  cairo_rectangle(cr, p->x + x, p->y,
+pane.c:		  p->x + p->width,
+pane.c:		  p->y + p->mace->font->lineheight);
+pane.c:  if (p->focus != NULL) {
+pane.c:    tabdraw(p->focus, cr);
+pane.c:    cairo_rectangle(cr, p->x, p->y + p->mace->font->lineheight,
+pane.c:		    p->x + p->width,
+pane.c:		    p->y + p->height);
+selection.c:	if (t->tab == NULL || t->tab->mace == NULL) {
+selection.c:		m = t->tab->mace;	
+selection.c:  s->next = m->selections;
+selection.c:	m->selections = s;
+selection.c:  s->textbox = t;
+selection.c:	s->type = type;
+selection.c:  	s->start = pos1;
+selection.c:  	s->end = pos2;
+selection.c: 	 s->direction = SELECTION_right;
+selection.c:		s->start = pos2;
+selection.c:		s->end = pos1;
+selection.c:		s->direction = SELECTION_left;
+selection.c:	if (t->tab == NULL || t->tab->mace == NULL) {
+selection.c:		m = t->tab->mace;	
+selection.c:	if (m->selections == s) {
+selection.c:		m->selections = s->next;
+selection.c:		for (p = m->selections; p->next != s && p->next != NULL; p = p->next)
+selection.c:		if (p->next == s) {
+selection.c:			p->next = s->next;
+selection.c:  if (s->direction == SELECTION_right) {
+selection.c:    if (pos < s->start) {
+selection.c:      s->direction = SELECTION_left;
+selection.c:      s->end = s->start;
+selection.c:      s->start = pos;
+selection.c:    } else if (pos != s->end) {
+selection.c:      s->end = pos;
+selection.c:    if (pos > s->end) {
+selection.c:      s->direction = SELECTION_right;
+selection.c:      s->start = s->end;
+selection.c:      s->end = pos;
+selection.c:    } else if (pos != s->start) {
+selection.c:      s->start = pos;
+selection.c:	if (t->tab == NULL || t->tab->mace == NULL) {
+selection.c:		m = t->tab->mace;	
+selection.c:  for (s = m->selections; s != NULL; s = s->next) {
+selection.c:    if (s->start <= pos && pos < s->end) {
+sequence.c:	s->font = font;
+sequence.c:	s->linewidth = -1;
+sequence.c:  s->pmax = 10;
+sequence.c:  s->pieces = malloc(sizeof(struct piece) * s->pmax);
+sequence.c:  if (s->pieces == NULL) {
+sequence.c:  s->plen = 3;
+sequence.c:  s->pieces[SEQ_start].off = 0;
+sequence.c:  s->pieces[SEQ_start].pos = 0;
+sequence.c:  s->pieces[SEQ_start].len = 0;
+sequence.c:  s->pieces[SEQ_start].nglyphs = 0;
+sequence.c:  s->pieces[SEQ_start].glyphs = NULL;
+sequence.c:  s->pieces[SEQ_start].prev = -1;
+sequence.c:  s->pieces[SEQ_start].next = SEQ_end;
+sequence.c:  s->pieces[SEQ_end].off = 0;
+sequence.c:  s->pieces[SEQ_end].pos = 0;
+sequence.c:  s->pieces[SEQ_end].len = 0;
+sequence.c:  s->pieces[SEQ_end].nglyphs = 1;
+sequence.c:  s->pieces[SEQ_end].glyphs = calloc(1, sizeof(cairo_glyph_t));
+sequence.c:  if (s->pieces[SEQ_end].glyphs == NULL) {
+sequence.c:  s->pieces[SEQ_end].prev = SEQ_start;
+sequence.c:  s->pieces[SEQ_end].next = -1;
+sequence.c:    s->pieces[SEQ_first].off = 0;
+sequence.c:    s->pieces[SEQ_first].pos = 0;
+sequence.c:    s->pieces[SEQ_first].len = len;
+sequence.c:    s->pieces[SEQ_first].prev = SEQ_start;
+sequence.c:    s->pieces[SEQ_first].next = SEQ_end;
+sequence.c:    s->pieces[SEQ_first].nglyphs = utf8codepoints(data, len);
+sequence.c:    s->pieces[SEQ_first].glyphs =
+sequence.c:      calloc(s->pieces[SEQ_first].nglyphs,
+sequence.c:    if (s->pieces[SEQ_first].glyphs == NULL) {
+sequence.c:    s->pieces[SEQ_start].next = SEQ_first;
+sequence.c:    s->pieces[SEQ_end].prev = SEQ_first;
+sequence.c:    s->pieces[SEQ_end].pos = len;
+sequence.c:    s->data = data;
+sequence.c:    s->dlen = len;
+sequence.c:    s->dmax = len;
+sequence.c:    s->dlen = 0;
+sequence.c:    s->dmax = 1024;
+sequence.c:    s->data = malloc(s->dmax);
+sequence.c:    if (s->data == NULL) {
+sequence.c:  free(s->pieces);
+sequence.c:  free(s->data);
+sequence.c:  while (p != -1) {
+sequence.c:    s->pieces[p].pos = pos;
+sequence.c:    pos += s->pieces[p].len;
+sequence.c:    p = s->pieces[p].next;
+sequence.c:  while (p != -1) {
+sequence.c:    if (pos <= s->pieces[p].pos + s->pieces[p].len) {
+sequence.c:      *i = pos - s->pieces[p].pos;
+sequence.c:      p = s->pieces[p].next;
+sequence.c:  return -1;
+sequence.c:  nglyphs = utf8codepoints(s->data + off, len);
+sequence.c:    return -1;
+sequence.c:  if (s->plen + 1 >= s->pmax) {
+sequence.c:    s->pieces = realloc(s->pieces,
+sequence.c:			sizeof(struct piece) * (s->plen + 10));
+sequence.c:    if (s->pieces == NULL) {
+sequence.c:      s->pmax = 0;
+sequence.c:      return -1;
+sequence.c:    s->pmax = s->plen + 10;
+sequence.c:  s->pieces[s->plen].pos = pos;
+sequence.c:  s->pieces[s->plen].off = off;
+sequence.c:  s->pieces[s->plen].len = len;
+sequence.c:  s->pieces[s->plen].nglyphs = nglyphs;
+sequence.c:  s->pieces[s->plen].glyphs = glyphs;
+sequence.c:  return s->plen++;
+sequence.c:  while (s->dlen + len >= s->dmax) {
+sequence.c:    ndata = realloc(s->data, s->dmax + pg);
+sequence.c:      s->data = ndata;
+sequence.c:      s->dmax += pg;
+sequence.c:  memmove(s->data + s->dlen, data, len);
+sequence.c:  s->dlen += len;
+sequence.c:      && s->pieces[p].pos + s->pieces[p].len == pos
+sequence.c:      && s->pieces[p].off + s->pieces[p].len == s->dlen) {
+sequence.c:    nglyphs = s->pieces[p].nglyphs + utf8codepoints(data, len);
+sequence.c:    s->pieces[p].len += len;
+sequence.c:    if (s->pieces[p].glyphs != NULL) {
+sequence.c:      free(s->pieces[p].glyphs);
+sequence.c:    s->pieces[p].nglyphs = nglyphs;
+sequence.c:    s->pieces[p].glyphs = glyphs;
+sequence.c:    shiftpieces(s, p, s->pieces[p].pos);
+sequence.c:  if (p == -1) {
+sequence.c:  pprev = s->pieces[p].prev;
+sequence.c:  pnext = s->pieces[p].next;
+sequence.c:  n = pieceadd(s, pos, s->dlen - len, len);
+sequence.c:  if (p == -1) {
+sequence.c:  if (i == s->pieces[p].len) {
+sequence.c:    s->pieces[p].next = n;
+sequence.c:    s->pieces[n].prev = p;
+sequence.c:    s->pieces[n].next = pnext;
+sequence.c:    s->pieces[pnext].prev = n;
+sequence.c:    l = pieceadd(s, s->pieces[p].pos,
+sequence.c:		                    s->pieces[p].off, i);
+sequence.c:    if (l == -1) {
+sequence.c:		                     s->pieces[p].off + i,
+sequence.c:		                     s->pieces[p].len - i);
+sequence.c:    if (r == -1) {
+sequence.c:    s->pieces[pprev].next = l;
+sequence.c:    s->pieces[l].prev = pprev;
+sequence.c:    s->pieces[l].next = n;
+sequence.c:    s->pieces[n].prev = l;
+sequence.c:    s->pieces[n].next = r;
+sequence.c:    s->pieces[r].prev = n;
+sequence.c:    s->pieces[r].next = pnext;
+sequence.c:    s->pieces[pnext].prev = r;
+sequence.c:    if (s->pieces[p].glyphs != NULL) {
+sequence.c:      free(s->pieces[p].glyphs);
+sequence.c:      s->pieces[p].glyphs = NULL;
+sequence.c:      s->pieces[p].nglyphs = 0;
+sequence.c:  if (start == -1) {
+sequence.c:    start = s->pieces[SEQ_start].next;
+sequence.c:  if (end == -1) {
+sequence.c:    end = s->pieces[SEQ_end].prev;
+sequence.c:    endi = s->pieces[end].len;
+sequence.c:  startprev = s->pieces[start].prev;
+sequence.c:  endnext   = s->pieces[end].next;
+sequence.c:		    s->pieces[start].pos,
+sequence.c:		    s->pieces[start].off,
+sequence.c:  if (nstart == -1) {
+sequence.c:		  s->pieces[end].off + endi,
+sequence.c:		  s->pieces[end].len - endi);
+sequence.c:  if (nend == -1) {
+sequence.c:  if (startprev != -1) {
+sequence.c:    s->pieces[startprev].next = nstart;
+sequence.c:  s->pieces[nstart].prev = startprev;
+sequence.c:  s->pieces[nstart].next = nend;
+sequence.c:  s->pieces[nend].prev = nstart;
+sequence.c:  s->pieces[nend].next = endnext;
+sequence.c:  if (endnext != -1) {
+sequence.c:    s->pieces[endnext].prev = nend;
+sequence.c:  if (s->pieces[start].glyphs != NULL) {
+sequence.c:    free(s->pieces[start].glyphs);
+sequence.c:    s->pieces[start].glyphs = NULL;
+sequence.c:    s->pieces[start].nglyphs = 0;
+sequence.c:  if (s->pieces[end].glyphs != NULL) {
+sequence.c:    free(s->pieces[end].glyphs);
+sequence.c:    s->pieces[end].glyphs = NULL;
+sequence.c:    s->pieces[end].nglyphs = 0;
+sequence.c:  while (p != -1) {
+sequence.c:    while (i < s->pieces[p].len) {
+sequence.c:      a = utf8iterate(s->data + s->pieces[p].off + i,
+sequence.c:			                       s->pieces[p].len - i, &code);
+sequence.c:			    || islinebreak(code, s->data + s->pieces[p].off + i,
+sequence.c:			                        s->pieces[p].len - i, &a)) {
+sequence.c:    p = s->pieces[p].next;
+sequence.c:  in = -1;
+sequence.c:      a = utf8iterate(s->data + s->pieces[p].off + i,
+sequence.c:		      s->pieces[p].len - i, &code);
+sequence.c:			    || islinebreak(code, s->data + s->pieces[p].off + i,
+sequence.c:					                    s->pieces[p].len - i, &a)) {
+sequence.c:    p = s->pieces[p].prev;
+sequence.c:    if (p == -1 || in != -1) {
+sequence.c:      ii = s->pieces[p].len;
+sequence.c:  if (in == -1) {
+sequence.c:    return piecedist - in;
+sequence.c:  if (p == -1) {
+sequence.c:  *begin = pos - start;
+sequence.c:  if (p == -1) {
+sequence.c:  while (p != -1 && ii < len) {
+sequence.c:    if (ii + s->pieces[p].len - i >= len) {
+sequence.c:      l = len - ii;
+sequence.c:      l = s->pieces[p].len - i;
+sequence.c:	    s->data + s->pieces[p].off + i,
+sequence.c:    p = s->pieces[p].next;
+sequence.c:  return s->pieces[SEQ_end].pos;
+sequence.c:	if (s->linewidth != l) {
+sequence.c:		s->linewidth = l;
+sequence.c:	return s->pieces[SEQ_end].glyphs[0].y 
+sequence.c:	    - (s->font->face->size->metrics.descender >> 6);
+sequence.c:		index = FT_Get_Char_Index(s->font->face, glyphs[g].index);
+sequence.c:		if (FT_Load_Glyph(s->font->face, index, FT_LOAD_DEFAULT) != 0) {
+sequence.c:    ww = s->font->face->glyph->advance.x >> 6;
+sequence.c:    if (*x + ww >= s->linewidth) {
+sequence.c:			*y += s->font->lineheight;
+sequence.c:					if (FT_Load_Glyph(s->font->face, 
+sequence.c:					*x += s->font->face->glyph->advance.x >> 6;
+sequence.c:  y = s->font->baseline;
+sequence.c:  for (p = &s->pieces[SEQ_start]; 
+sequence.c:	          p->next != -1; 
+sequence.c:	          p = &s->pieces[p->next]) {
+sequence.c:    for (i = 0, g = 0; i < p->len && g < p->nglyphs; i += a, g++) {
+sequence.c:			while (i < p->len) {
+sequence.c:   	   a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+sequence.c:			if (i >= p->len) {
+sequence.c:      if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
+sequence.c:				              &p->glyphs[startg],
+sequence.c:				              g - startg,
+sequence.c:				p->glyphs[g].index = 0;
+sequence.c:				p->glyphs[g].x = x;
+sequence.c:				p->glyphs[g].y = y;
+sequence.c:				y += s->font->lineheight;
+sequence.c:				                  &p->glyphs[startg],
+sequence.c:				                  g - startg,
+sequence.c:				if (x + s->font->tabwidthpixels >= s->linewidth) {
+sequence.c:					y += s->font->lineheight;
+sequence.c:				p->glyphs[g].index = 0;
+sequence.c:				p->glyphs[g].x = x; 
+sequence.c:				p->glyphs[g].y = y;
+sequence.c:				x += s->font->tabwidthpixels;
+sequence.c:				p->glyphs[g].index = code;
+sequence.c:    if (startg < p->nglyphs) {
+sequence.c:			       &p->glyphs[startg],
+sequence.c:			       p->nglyphs - startg,
+sequence.c:	p->glyphs[0].index = 0;
+sequence.c:	p->glyphs[0].x = x;
+sequence.c:	p->glyphs[0].y = y;
+tab:LICENSE: Hannah Clark-Younger, Mytchel Hammond, Ryan Collins, Vaughan Kitchen.
+tab:README.md:# Mace [![Travis build Status](https://travis-ci.org/DandyHQ/mace.svg?branch=master)](https://travis-ci.org/DandyHQ/mace)
+tab:README.md: - [meson](https://github.com/mesonbuild/meson)
+tab:README.md: - xlib
+tab:README.md: - fontconfig
+tab:README.md: - freetype2
+tab:README.md: - cairo
+tab:README.md:# apt install meson libx11-dev libcairo2-dev
+tab:README.md:# dnf install meson libX11-devel cairo-devel
+tab:README.md:$ ninja -C build
+tab:README.md:# ninja -C build install
+tab:README.md:$ ninja -C build test
+tab:cmd.c:  while (l < len && sequenceget(t->action->sequence, l,
+tab:cmd.c:  sequenceget(t->action->sequence, 0, buf, l);
+tab:cmd.c:  if (m->mousefocus == NULL) {
+tab:cmd.c:  if (getfilename(m->mousefocus->tab, filename, sizeof(filename)) == 0) {
+tab:cmd.c:  s = m->mousefocus->tab->main->sequence;
+tab:cmd.c:  len = s->end - s->start;
+tab:cmd.c:  len = sequenceget(s->textbox->sequence, s->start, name, len);
+tab:cmd.c:  paneaddtab(s->textbox->tab->pane, t, -1);
+tab:cmd.c:  s->textbox->tab->pane->focus = t;
+tab:cmd.c:  m->keyfocus = t->main;
+tab:cmd.c:  m->mousefocus = t->main;
+tab:cmd.c:  for (s = m->selections; s != NULL; s = s->next) {
+tab:cmd.c:		if (s->type == SELECTION_normal) {
+tab:cmd.c:  if (m->mousefocus == NULL) {
+tab:cmd.c:  t = m->mousefocus->tab;
+tab:cmd.c:  p = t->pane;
+tab:cmd.c:  if (p->tabs == NULL) {
+tab:cmd.c:    m->running = false;
+tab:cmd.c:  for (s = m->selections; s != NULL; s = n) {
+tab:cmd.c:    n = s->next;
+tab:cmd.c:    if (s->type != SELECTION_normal) continue;
+tab:cmd.c:		t = s->textbox;
+tab:cmd.c:    clipboardlen = s->end - s->start;
+tab:cmd.c:    clipboardlen = sequenceget(t->sequence, s->start, 
+tab:cmd.c:    sequencedelete(t->sequence, s->start, clipboardlen);
+tab:cmd.c:    if (s->start <= t->cursor || t->cursor <= s->end) {
+tab:cmd.c:      t->cursor = s->start;
+tab:cmd.c:  for (s = m->selections; s != NULL; s = s->next) {
+tab:cmd.c:    if (s->type != SELECTION_normal) continue;
+tab:cmd.c:		t = s->textbox;
+tab:cmd.c:    clipboardlen = s->end - s->start;
+tab:cmd.c:    clipboardlen = sequenceget(t->sequence, s->start,
+tab:cmd.c:  if (m->keyfocus == NULL || clipboard == NULL) {
+tab:cmd.c:  t = m->keyfocus;
+tab:cmd.c:  sequenceinsert(t->sequence, t->cursor, clipboard, clipboardlen);
+tab:cmd.c:  t->cursor += clipboardlen;
+tab:config.h.in:#define DEFAULT_FONT_PATTERN "mono-12"
+tab:font.c:  e = FT_Init_FreeType(&f->library);
+tab:font.c:  f->tabwidth = DEFAULT_TAB_WIDTH;
+tab:font.c:  if (font->cface != NULL) {
+tab:font.c:    cairo_font_face_destroy(font->cface);
+tab:font.c:  if (font->face != NULL) {
+tab:font.c:    FT_Done_Face(font->face);
+tab:font.c:  if (font->library != NULL) {
+tab:font.c:    FT_Done_FreeType(font->library);
+tab:font.c:  if (FT_New_Face(font->library, path, 0, &new) != 0) {
+tab:font.c:  if (font->cface != NULL) {
+tab:font.c:    cairo_font_face_destroy(font->cface);
+tab:font.c:    font->cface = NULL;
+tab:font.c:  if (font->face != NULL) {
+tab:font.c:    FT_Done_Face(font->face);
+tab:font.c:    font->face = NULL;
+tab:font.c:  snprintf(font->path, sizeof(font->path), "%s", path);
+tab:font.c:  font->size = size;
+tab:font.c:  font->face = new;
+tab:font.c:  font->cface =
+tab:font.c:    cairo_ft_font_face_create_for_ft_face(font->face,
+tab:font.c:  font->baseline = 1 + ((font->face->size->metrics.height
+tab:font.c:			 + font->face->size->metrics.descender) >> 6);
+tab:font.c:  font->lineheight = (font->face->size->metrics.height >> 6);
+tab:font.c:  fontsettabwidth(font, font->tabwidth);
+tab:font.c:  i = FT_Get_Char_Index(font->face, ' ');
+tab:font.c:    return -1;
+tab:font.c:  if (FT_Load_Glyph(font->face, i, FT_LOAD_DEFAULT) != 0) {
+tab:font.c:    return -1;
+tab:font.c:  font->tabwidth = spaces;
+tab:font.c:  font->tabwidthpixels = (font->face->glyph->advance.x >> 6) * spaces;
+tab:font.c:  e = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
+tab:font.c:  FT_Bitmap *map = &f->face->glyph->bitmap;
+tab:font.c:  stride = cairo_format_stride_for_width(CAIRO_FORMAT_A8, map->width);
+tab:font.c:  for (h = 0; h < map->rows; h++) {
+tab:font.c:	    map->buffer + h * map->width,
+tab:font.c:	    map->width);
+tab:font.c:					  map->width,
+tab:font.c:					  map->rows,
+tab:font.c:  cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+tab:font.c:		  f->face->glyph->advance.x >> 6,
+tab:font.c:		  f->lineheight);
+tab:font.c:  cairo_set_source_rgb(cr, fg->r, fg->g, fg->b);
+tab:font.c:  cairo_mask_surface(cr, s, x + f->face->glyph->bitmap_left,
+tab:font.c:		     y + f->baseline - f->face->glyph->bitmap_top);
+tab:mace.c:  m->font = fontnew();
+tab:mace.c:  if (m->font == NULL) {
+tab:mace.c:  s = sequencenew(m->font, buf, l);
+tab:mace.c:  m->pane = panenew(m);
+tab:mace.c:  if (m->pane == NULL) {
+tab:mace.c:  m->keyfocus = m->mousefocus= t->main;
+tab:mace.c:  paneaddtab(m->pane, t, 0);
+tab:mace.c:  m->pane->focus = t;
+tab:mace.c:  m->running = true;
+tab:mace.c:  m->running = false;
+tab:mace.c:  if (m->pane != NULL) {
+tab:mace.c:    panefree(m->pane);
+tab:mace.c:  if (m->font != NULL) {
+tab:mace.c:    fontfree(m->font);
+tab:mace.c:  p = mace->pane;
+tab:mace.c:  x -= p->x;
+tab:mace.c:  y -= p->y;
+tab:mace.c:  if (y < mace->font->lineheight) {
+tab:mace.c:		mace->mousefocus = NULL;
+tab:mace.c:		return tabbuttonpress(p->focus, x, y - mace->font->lineheight, button);
+tab:mace.c:	if (mace->mousefocus != NULL) {
+tab:mace.c:		x -= mace->mousefocus->tab->x;
+tab:mace.c:		y -= mace->mousefocus->tab->y;
+tab:mace.c:		if (mace->mousefocus->tab->main == mace->mousefocus) {
+tab:mace.c:			y -= sequenceheight(mace->mousefocus->tab->action->sequence);
+tab:mace.c:  	return textboxbuttonrelease(mace->mousefocus, x, y, button);
+tab:mace.c:	if (mace->mousefocus != NULL) {
+tab:mace.c:  	x -= mace->mousefocus->tab->x;
+tab:mace.c:		y -= mace->mousefocus->tab->y;
+tab:mace.c:		if (mace->mousefocus->tab->main == mace->mousefocus) {
+tab:mace.c:			y -= sequenceheight(mace->mousefocus->tab->action->sequence);
+tab:mace.c:		return textboxmotion(mace->mousefocus, x, y);
+tab:mace.c:  x -= p->x;
+tab:mace.c:  y -= p->y;
+tab:mace.c:  if (y < mace->font->lineheight) {
+tab:mace.c:    return tabscroll(p->focus, x, y - mace->font->lineheight, dx, dy);
+tab:mace.c:  if (mace->keyfocus != NULL) {
+tab:mace.c:    return textboxtyping(mace->keyfocus, s, n);
+tab:mace.c:  if (mace->keyfocus != NULL) {
+tab:mace.c:    return textboxkeypress(mace->keyfocus, k);
+tab:mace.c:  if (mace->keyfocus != NULL) {
+tab:mace.c:    return textboxkeyrelease(mace->keyfocus, k);
+tab:mace.h:#include <cairo-ft.h>
+tab:mace.h:/* Pos = -1  puts the tab at the end. Otherwise it puts it in the list
+tab:meson.build:add_global_arguments('-std=c11',
+tab:meson.build:		     '-Wpointer-sign',
+tab:meson.build:		     '-Werror',
+tab:meson.build:		     '-O3',
+tab:pane.c:  p->mace = mace;
+tab:pane.c:  t = p->tabs;
+tab:pane.c:    n = t->next;
+tab:pane.c:  p->x = x;
+tab:pane.c:  p->y = y;
+tab:pane.c:  p->width = w;
+tab:pane.c:  p->height = h;
+tab:pane.c:  for (t = p->tabs; t != NULL; t = t->next) {
+tab:pane.c:    if (!tabresize(t, x, y + p->mace->font->lineheight,
+tab:pane.c:		   w, h - p->mace->font->lineheight)) {
+tab:pane.c:  if (t->pane != NULL) {
+tab:pane.c:    paneremovetab(t->pane, t);
+tab:pane.c:  if (pos == 0 || p->tabs == NULL) {
+tab:pane.c:    t->next = p->tabs;
+tab:pane.c:    p->tabs = t;
+tab:pane.c:  for (prev = p->tabs; prev->next != NULL; prev = prev->next) {
+tab:pane.c:      pos--;
+tab:pane.c:  t->next = prev->next;
+tab:pane.c:  prev->next = t;
+tab:pane.c:  t->pane = p;
+tab:pane.c:  if (!tabresize(t, p->x, p->y + p->mace->font->lineheight,
+tab:pane.c:		 p->width, p->height - p->mace->font->lineheight)) {
+tab:pane.c:  if (p->tabs == t) {
+tab:pane.c:    p->tabs = t->next;
+tab:pane.c:  for (prev = p->tabs; prev->next != NULL; prev = prev->next) {
+tab:pane.c:    if (prev->next == t) {
+tab:pane.c:      prev->next = t->next;
+tab:pane.c:  t->next = NULL;
+tab:pane.c:  t->pane = NULL;
+tab:pane.c:  if (p->focus == t) {
+tab:pane.c:    p->focus = p->tabs;
+tab:pane.c:    if (p->mace->mousefocus == t->action || p->mace->keyfocus == t->main) {
+tab:pane.c:      if (p->focus != NULL) {
+tab:pane.c:				p->mace->mousefocus = p->mace->keyfocus = p->focus->main;
+tab:pane.c:				p->mace->mousefocus = p->mace->keyfocus = NULL;
+tab:pane.c:  for (t = p->tabs; t != NULL; t = t->next) {
+tab:pane.c:    while (i < t->nlen) {
+tab:pane.c:      a = utf8iterate(t->name + i, t->nlen - i, &code);
+tab:pane.c:      if (!loadglyph(p->mace->font->face, code)) {
+tab:pane.c:      ww = p->mace->font->face->glyph->advance.x >> 6;
+tab:pane.c:				if (p->focus != t) {
+tab:pane.c:					p->focus = t;
+tab:pane.c:					p->mace->mousefocus = NULL;
+tab:pane.c:					p->mace->keyfocus = t->main;
+tab:pane.c:  for (t = p->tabs; t != NULL; t = t->next) {
+tab:pane.c:    if (t == p->focus) {
+tab:pane.c:    cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+tab:pane.c:    cairo_rectangle(cr, p->x + x, p->y,
+tab:pane.c:		    p->x + 5, p->y + p->mace->font->lineheight);
+tab:pane.c:    while (i < t->nlen) {
+tab:pane.c:      a = utf8iterate(t->name + i, t->nlen - i, &code);
+tab:pane.c:      if (!loadglyph(p->mace->font->face, code)) {
+tab:pane.c:      ww = p->mace->font->face->glyph->advance.x >> 6;
+tab:pane.c:      if (x + ww >= p->width) {
+tab:pane.c:      drawglyph(p->mace->font, cr, p->x + x, p->y, &fg, bg);
+tab:pane.c:    cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+tab:pane.c:    cairo_rectangle(cr, p->x + x, p->y,
+tab:pane.c:		    p->x + 5, p->y + p->mace->font->lineheight);
+tab:pane.c:    cairo_move_to(cr, p->x + x, p->y);
+tab:pane.c:    cairo_line_to(cr, p->x + x, p->y + p->mace->font->lineheight);
+tab:pane.c:  cairo_rectangle(cr, p->x + x, p->y,
+tab:pane.c:		  p->x + p->width,
+tab:pane.c:		  p->y + p->mace->font->lineheight);
+tab:pane.c:  if (p->focus != NULL) {
+tab:pane.c:    tabdraw(p->focus, cr);
+tab:pane.c:    cairo_rectangle(cr, p->x, p->y + p->mace->font->lineheight,
+tab:pane.c:		    p->x + p->width,
+tab:pane.c:		    p->y + p->height);
+tab:selection.c:	if (t->tab == NULL || t->tab->mace == NULL) {
+tab:selection.c:		m = t->tab->mace;	
+tab:selection.c:  s->next = m->selections;
+tab:selection.c:	m->selections = s;
+tab:selection.c:  s->textbox = t;
+tab:selection.c:	s->type = type;
+tab:selection.c:  	s->start = pos1;
+tab:selection.c:  	s->end = pos2;
+tab:selection.c: 	 s->direction = SELECTION_right;
+tab:selection.c:		s->start = pos2;
+tab:selection.c:		s->end = pos1;
+tab:selection.c:		s->direction = SELECTION_left;
+tab:selection.c:	if (t->tab == NULL || t->tab->mace == NULL) {
+tab:selection.c:		m = t->tab->mace;	
+tab:selection.c:	if (m->selections == s) {
+tab:selection.c:		m->selections = s->next;
+tab:selection.c:		for (p = m->selections; p->next != s && p->next != NULL; p = p->next)
+tab:selection.c:		if (p->next == s) {
+tab:selection.c:			p->next = s->next;
+tab:selection.c:  if (s->direction == SELECTION_right) {
+tab:selection.c:    if (pos < s->start) {
+tab:selection.c:      s->direction = SELECTION_left;
+tab:selection.c:      s->end = s->start;
+tab:selection.c:      s->start = pos;
+tab:selection.c:    } else if (pos != s->end) {
+tab:selection.c:      s->end = pos;
+tab:selection.c:    if (pos > s->end) {
+tab:selection.c:      s->direction = SELECTION_right;
+tab:selection.c:      s->start = s->end;
+tab:selection.c:      s->end = pos;
+tab:selection.c:    } else if (pos != s->start) {
+tab:selection.c:      s->start = pos;
+tab:selection.c:	if (t->tab == NULL || t->tab->mace == NULL) {
+tab:selection.c:		m = t->tab->mace;	
+tab:selection.c:  for (s = m->selections; s != NULL; s = s->next) {
+tab:selection.c:    if (s->start <= pos && pos < s->end) {
+tab:sequence.c:	s->font = font;
+tab:sequence.c:	s->linewidth = -1;
+tab:sequence.c:  s->pmax = 10;
+tab:sequence.c:  s->pieces = malloc(sizeof(struct piece) * s->pmax);
+tab:sequence.c:  if (s->pieces == NULL) {
+tab:sequence.c:  s->plen = 3;
+tab:sequence.c:  s->pieces[SEQ_start].off = 0;
+tab:sequence.c:  s->pieces[SEQ_start].pos = 0;
+tab:sequence.c:  s->pieces[SEQ_start].len = 0;
+tab:sequence.c:  s->pieces[SEQ_start].nglyphs = 0;
+tab:sequence.c:  s->pieces[SEQ_start].glyphs = NULL;
+tab:sequence.c:  s->pieces[SEQ_start].prev = -1;
+tab:sequence.c:  s->pieces[SEQ_start].next = SEQ_end;
+tab:sequence.c:  s->pieces[SEQ_end].off = 0;
+tab:sequence.c:  s->pieces[SEQ_end].pos = 0;
+tab:sequence.c:  s->pieces[SEQ_end].len = 0;
+tab:sequence.c:  s->pieces[SEQ_end].nglyphs = 1;
+tab:sequence.c:  s->pieces[SEQ_end].glyphs = calloc(1, sizeof(cairo_glyph_t));
+tab:sequence.c:  if (s->pieces[SEQ_end].glyphs == NULL) {
+tab:sequence.c:  s->pieces[SEQ_end].prev = SEQ_start;
+tab:sequence.c:  s->pieces[SEQ_end].next = -1;
+tab:sequence.c:    s->pieces[SEQ_first].off = 0;
+tab:sequence.c:    s->pieces[SEQ_first].pos = 0;
+tab:sequence.c:    s->pieces[SEQ_first].len = len;
+tab:sequence.c:    s->pieces[SEQ_first].prev = SEQ_start;
+tab:sequence.c:    s->pieces[SEQ_first].next = SEQ_end;
+tab:sequence.c:    s->pieces[SEQ_first].nglyphs = utf8codepoints(data, len);
+tab:sequence.c:    s->pieces[SEQ_first].glyphs =
+tab:sequence.c:      calloc(s->pieces[SEQ_first].nglyphs,
+tab:sequence.c:    if (s->pieces[SEQ_first].glyphs == NULL) {
+tab:sequence.c:    s->pieces[SEQ_start].next = SEQ_first;
+tab:sequence.c:    s->pieces[SEQ_end].prev = SEQ_first;
+tab:sequence.c:    s->pieces[SEQ_end].pos = len;
+tab:sequence.c:    s->data = data;
+tab:sequence.c:    s->dlen = len;
+tab:sequence.c:    s->dmax = len;
+tab:sequence.c:    s->dlen = 0;
+tab:sequence.c:    s->dmax = 1024;
+tab:sequence.c:    s->data = malloc(s->dmax);
+tab:sequence.c:    if (s->data == NULL) {
+tab:sequence.c:  free(s->pieces);
+tab:sequence.c:  free(s->data);
+tab:sequence.c:  while (p != -1) {
+tab:sequence.c:    s->pieces[p].pos = pos;
+tab:sequence.c:    pos += s->pieces[p].len;
+tab:sequence.c:    p = s->pieces[p].next;
+tab:sequence.c:  while (p != -1) {
+tab:sequence.c:    if (pos <= s->pieces[p].pos + s->pieces[p].len) {
+tab:sequence.c:      *i = pos - s->pieces[p].pos;
+tab:sequence.c:      p = s->pieces[p].next;
+tab:sequence.c:  return -1;
+tab:sequence.c:  nglyphs = utf8codepoints(s->data + off, len);
+tab:sequence.c:    return -1;
+tab:sequence.c:  if (s->plen + 1 >= s->pmax) {
+tab:sequence.c:    s->pieces = realloc(s->pieces,
+tab:sequence.c:			sizeof(struct piece) * (s->plen + 10));
+tab:sequence.c:    if (s->pieces == NULL) {
+tab:sequence.c:      s->pmax = 0;
+tab:sequence.c:      return -1;
+tab:sequence.c:    s->pmax = s->plen + 10;
+tab:sequence.c:  s->pieces[s->plen].pos = pos;
+tab:sequence.c:  s->pieces[s->plen].off = off;
+tab:sequence.c:  s->pieces[s->plen].len = len;
+tab:sequence.c:  s->pieces[s->plen].nglyphs = nglyphs;
+tab:sequence.c:  s->pieces[s->plen].glyphs = glyphs;
+tab:sequence.c:  return s->plen++;
+tab:sequence.c:  while (s->dlen + len >= s->dmax) {
+tab:sequence.c:    ndata = realloc(s->data, s->dmax + pg);
+tab:sequence.c:      s->data = ndata;
+tab:sequence.c:      s->dmax += pg;
+tab:sequence.c:  memmove(s->data + s->dlen, data, len);
+tab:sequence.c:  s->dlen += len;
+tab:sequence.c:      && s->pieces[p].pos + s->pieces[p].len == pos
+tab:sequence.c:      && s->pieces[p].off + s->pieces[p].len == s->dlen) {
+tab:sequence.c:    nglyphs = s->pieces[p].nglyphs + utf8codepoints(data, len);
+tab:sequence.c:    s->pieces[p].len += len;
+tab:sequence.c:    if (s->pieces[p].glyphs != NULL) {
+tab:sequence.c:      free(s->pieces[p].glyphs);
+tab:sequence.c:    s->pieces[p].nglyphs = nglyphs;
+tab:sequence.c:    s->pieces[p].glyphs = glyphs;
+tab:sequence.c:    shiftpieces(s, p, s->pieces[p].pos);
+tab:sequence.c:  if (p == -1) {
+tab:sequence.c:  pprev = s->pieces[p].prev;
+tab:sequence.c:  pnext = s->pieces[p].next;
+tab:sequence.c:  n = pieceadd(s, pos, s->dlen - len, len);
+tab:sequence.c:  if (p == -1) {
+tab:sequence.c:  if (i == s->pieces[p].len) {
+tab:sequence.c:    s->pieces[p].next = n;
+tab:sequence.c:    s->pieces[n].prev = p;
+tab:sequence.c:    s->pieces[n].next = pnext;
+tab:sequence.c:    s->pieces[pnext].prev = n;
+tab:sequence.c:    l = pieceadd(s, s->pieces[p].pos,
+tab:sequence.c:		                    s->pieces[p].off, i);
+tab:sequence.c:    if (l == -1) {
+tab:sequence.c:		                     s->pieces[p].off + i,
+tab:sequence.c:		                     s->pieces[p].len - i);
+tab:sequence.c:    if (r == -1) {
+tab:sequence.c:    s->pieces[pprev].next = l;
+tab:sequence.c:    s->pieces[l].prev = pprev;
+tab:sequence.c:    s->pieces[l].next = n;
+tab:sequence.c:    s->pieces[n].prev = l;
+tab:sequence.c:    s->pieces[n].next = r;
+tab:sequence.c:    s->pieces[r].prev = n;
+tab:sequence.c:    s->pieces[r].next = pnext;
+tab:sequence.c:    s->pieces[pnext].prev = r;
+tab:sequence.c:    if (s->pieces[p].glyphs != NULL) {
+tab:sequence.c:      free(s->pieces[p].glyphs);
+tab:sequence.c:      s->pieces[p].glyphs = NULL;
+tab:sequence.c:      s->pieces[p].nglyphs = 0;
+tab:sequence.c:  if (start == -1) {
+tab:sequence.c:    start = s->pieces[SEQ_start].next;
+tab:sequence.c:  if (end == -1) {
+tab:sequence.c:    end = s->pieces[SEQ_end].prev;
+tab:sequence.c:    endi = s->pieces[end].len;
+tab:sequence.c:  startprev = s->pieces[start].prev;
+tab:sequence.c:  endnext   = s->pieces[end].next;
+tab:sequence.c:		    s->pieces[start].pos,
+tab:sequence.c:		    s->pieces[start].off,
+tab:sequence.c:  if (nstart == -1) {
+tab:sequence.c:		  s->pieces[end].off + endi,
+tab:sequence.c:		  s->pieces[end].len - endi);
+tab:sequence.c:  if (nend == -1) {
+tab:sequence.c:  if (startprev != -1) {
+tab:sequence.c:    s->pieces[startprev].next = nstart;
+tab:sequence.c:  s->pieces[nstart].prev = startprev;
+tab:sequence.c:  s->pieces[nstart].next = nend;
+tab:sequence.c:  s->pieces[nend].prev = nstart;
+tab:sequence.c:  s->pieces[nend].next = endnext;
+tab:sequence.c:  if (endnext != -1) {
+tab:sequence.c:    s->pieces[endnext].prev = nend;
+tab:sequence.c:  if (s->pieces[start].glyphs != NULL) {
+tab:sequence.c:    free(s->pieces[start].glyphs);
+tab:sequence.c:    s->pieces[start].gl
+tab.c:  t->mace = mace;
+tab.c:  t->next = NULL;
+tab.c:  actionseq = sequencenew(mace->font, NULL, 0);
+tab.c:  t->action = textboxnew(t, &abg, actionseq);
+tab.c:  if (t->action == NULL) {
+tab.c:  t->action->cursor = sequencelen(actionseq);
+tab.c:  t->main = textboxnew(t, &bg, mainseq);
+tab.c:  if (t->main == NULL) {
+tab.c:  seq = sequencenew(mace->font, NULL, 0);
+tab.c:  seq = sequencenew(mace->font, data, dlen);
+tab.c:  if (t->action != NULL) {
+tab.c:    textboxfree(t->action);
+tab.c:  if (t->main != NULL) {
+tab.c:    textboxfree(t->main);
+tab.c:  if (t->name != NULL) {
+tab.c:    free(t->name);
+tab.c:  t->x = x;
+tab.c:  t->y = y;
+tab.c:  t->width = w;
+tab.c:  t->height = h;
+tab.c:  if (!textboxresize(t->action, w)) {
+tab.c:	h -= sequenceheight(t->action->sequence);
+tab.c:  return textboxresize(t->main, w - SCROLL_WIDTH);
+tab.c:  if (t->name != NULL) {
+tab.c:    free(t->name);
+tab.c:  t->name = new;
+tab.c:  t->nlen = len;
+tab.c:  if (y < sequenceheight(t->action->sequence)) {
+tab.c:    return textboxscroll(t->main, dx, t->main->yoff + dy);
+tab.c:	ah = sequenceheight(t->action->sequence);
+tab.c:		t->mace->mousefocus = t->action;
+tab.c:    return textboxbuttonpress(t->action, x, y, button);
+tab.c:	mh = sequenceheight(t->main->sequence);
+tab.c:	if (x < t->width - SCROLL_WIDTH) {
+tab.c:		t->mace->mousefocus = t->main;
+tab.c:    return textboxbuttonpress(t->main, x, y - ah - 1, button);
+tab.c:    yoff = (int) (mh * (float) (y - ah - 1) / (float) (t->height - ah));
+tab.c:    return textboxscroll(t->main, 0, yoff);
+tab.c:	ah = sequenceheight(t->action->sequence);
+tab.c:	h = ah > t->height - y ? t->height - y : ah;
+tab.c:	textboxdraw(t->action, cr, t->x, t->y + y,
+tab.c:	                    t->width, h);
+tab.c:  h = t->height - y;
+tab.c:	textboxdraw(t->main, cr, t->x, t->y + y, 
+tab.c:	                    t->width - SCROLL_WIDTH, h);
+tab.c:	mh = sequenceheight(t->main->sequence);
+tab.c:  pos = t->main->yoff * (t->height - y) / mh;
+tab.c:  size = h * (t->height - y) / mh;
+tab.c:  cairo_move_to(cr, t->x + t->main->linewidth, t->y + y);
+tab.c:		t->x + t->main->linewidth,
+tab.c:		t->y + t->height);
+tab.c:		  t->x + t->main->linewidth + 1,
+tab.c:		  t->y + y,
+tab.c:		  SCROLL_WIDTH - 1,
+tab.c:		  t->x + t->main->linewidth + 1,
+tab.c:		  t->y + y + pos,
+tab.c:		  SCROLL_WIDTH - 1,
+tab.c:		  t->x + t->main->linewidth + 1,
+tab.c:		  t->y + y + pos + size,
+tab.c:		  SCROLL_WIDTH - 1,
+tab.c:		  t->height - y - pos - size);
+tab.c:  cairo_move_to(cr, t->x, t->y + y);
+tab.c:  cairo_line_to(cr, t->x + t->width, t->y + y);
+textbox.c:	t->font = seq->font;
+textbox.c:  t->sequence = seq;
+textbox.c:  t->tab = tab;
+textbox.c:  t->cursor = 0;
+textbox.c:  t->newselpos = SIZE_MAX;
+textbox.c:  t->csel = NULL;
+textbox.c:  t->yoff = 0;
+textbox.c:	t->linewidth = 0;
+textbox.c:  memmove(&t->bg, bg, sizeof(struct colour));
+textbox.c:  while (t->selections != NULL) {
+textbox.c:    selectionremove(t, t->selections);
+textbox.c:  sequencefree(t->sequence);
+textbox.c:	t->linewidth = lw;
+textbox.c:  sequencesetlinewidth(t->sequence, lw - PAD * 2);
+textbox.c:    while (t->tab->mace->keyfocus->selections != NULL) {
+textbox.c:      selectionremove(t->tab->mace->keyfocus,
+textbox.c:		      t->tab->mace->keyfocus->selections);
+textbox.c:    t->tab->mace->keyfocus = t;
+textbox.c:    t->cursor = pos;
+textbox.c:    t->newselpos = pos;
+textbox.c:      sel->type = SELECTION_command;
+textbox.c:    } else if (sequencefindword(t->sequence, pos, &start, &len)) {
+textbox.c:  t->csel = NULL;
+textbox.c:  t->newselpos = SIZE_MAX;
+textbox.c:    if (sel != NULL && sel->type == SELECTION_command) {
+textbox.c:      start = sel->start;
+textbox.c:      len = sel->end - start;
+textbox.c:    sel = t->selections;
+textbox.c:      next = sel->next;
+textbox.c:      if (sel->type == SELECTION_command) {
+textbox.c:      if (sequenceget(t->sequence, start, buf, len) == 0) {
+textbox.c:      command(t->tab->mace, buf);
+textbox.c:  if (t->newselpos != SIZE_MAX) {
+textbox.c:    if (pos == t->newselpos) {
+textbox.c:    t->csel = selectionadd(t, SELECTION_normal, t->newselpos, pos);
+textbox.c:    if (t->csel == NULL) {
+textbox.c:    t->newselpos = SIZE_MAX;
+textbox.c:  } else if (t->csel != NULL) {
+textbox.c:    if (selectionupdate(t->csel, pos)) {
+textbox.c:      t->cursor = pos;
+textbox.c:  while (t->selections != NULL) {
+textbox.c:    sel = t->selections;
+textbox.c:    if (!sequencedelete(t->sequence,
+textbox.c:			sel->start, sel->end - sel->start)) {
+textbox.c:    if (sel->start <= t->cursor && t->cursor <= sel->end) {
+textbox.c:      t->cursor = sel->start;
+textbox.c:  if (t->selections != NULL) {
+textbox.c:  if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
+textbox.c:  t->cursor += l;
+textbox.c:    if (t->selections != NULL) {
+textbox.c:    if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
+textbox.c:    t->cursor += l;
+textbox.c:    if (t->selections != NULL) {
+textbox.c:    if (!sequenceinsert(t->sequence, t->cursor, s, l)) {
+textbox.c:    t->cursor += l;
+textbox.c:    if (t->selections != NULL) {
+textbox.c:    } else if (sequencedelete(t->sequence, t->cursor, 1)) {
+textbox.c:    if (t->selections != NULL) {
+textbox.c:    } else if (t->cursor > 0 && sequencedelete(t->sequence,
+textbox.c:					       t->cursor - 1, 1)) {
+textbox.c:      t->cursor--;
+textbox.c:	h = sequenceheight(t->sequence);
+textbox.c:  } else if (yoff > h - t->font->lineheight) {
+textbox.c:    yoff = h - t->font->lineheight;
+textbox.c:  if (yoff != t->yoff) {
+textbox.c:    t->yoff = yoff;
+textboxdraw.c:  cairo_line_to(cr, x, y + h - 2);
+textboxdraw.c:  cairo_move_to(cr, x - 2, y + 1);
+textboxdraw.c:  cairo_move_to(cr, x - 2, y + h - 2);
+textboxdraw.c:  cairo_line_to(cr, x + 2, y + h - 2);
+textboxdraw.c:  cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+textboxdraw.c:		    glyphs[start].y - ay,
+textboxdraw.c:		    t->linewidth - PAD * 2 - glyphs[start].x,
+textboxdraw.c:    cairo_glyph_extents(cr, &glyphs[start], g - start, &extents);
+textboxdraw.c:		    glyphs[start].y - ay,
+textboxdraw.c:  cairo_set_source_rgb(cr, fg->r, fg->g, fg->b);
+textboxdraw.c:	cairo_translate(cr, x + PAD, y - t->yoff);
+textboxdraw.c:  cairo_set_source_rgb(cr, t->bg.r, t->bg.g, t->bg.b);
+textboxdraw.c:  cairo_set_font_face(cr, t->font->cface);
+textboxdraw.c:  cairo_set_font_size(cr, t->font->size);
+textboxdraw.c:  ay = (t->font->face->size->metrics.ascender >> 6);
+textboxdraw.c:  by = -(t->font->face->size->metrics.descender >> 6);
+textboxdraw.c:  s = t->sequence;
+textboxdraw.c:  p = &s->pieces[SEQ_start];
+textboxdraw.c:  bg = &t->bg;
+textboxdraw.c:		while (i < p->len && g < p->nglyphs
+textboxdraw.c:	    	     && p->glyphs[g].y < t->yoff + height) {
+textboxdraw.c:      a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+textboxdraw.c:      nsel = inselections(t, p->pos + i);
+textboxdraw.c:					           &p->glyphs[start], g - start,
+textboxdraw.c:					switch (sel->type) {
+textboxdraw.c:					bg = &t->bg;
+textboxdraw.c:      if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
+textboxdraw.c:					                  &p->glyphs[start], g - start,
+textboxdraw.c:					cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+textboxdraw.c:					                p->glyphs[g].x,
+textboxdraw.c:					                p->glyphs[g].y - ay,
+textboxdraw.c:					                t->linewidth - PAD * 2 - p->glyphs[g].x,
+textboxdraw.c:					           &p->glyphs[start], g - start,
+textboxdraw.c:					cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+textboxdraw.c:					                p->glyphs[g].x,
+textboxdraw.c:									        p->glyphs[g].y - ay,
+textboxdraw.c:										      t->font->tabwidthpixels,
+textboxdraw.c:      if (p->pos + i == t->cursor) {
+textboxdraw.c:					           &p->glyphs[start], g - start + 1,
+textboxdraw.c:						   p->glyphs[g].x,
+textboxdraw.c:						   p->glyphs[g].y - ay,
+textboxdraw.c:			                  &p->glyphs[start], g - start,
+textboxdraw.c:    if (g < p->nglyphs && p->glyphs[g].y >= t->yoff + height) {
+textboxdraw.c:    } else if (p->next != -1) {
+textboxdraw.c:      p = &s->pieces[p->next];
+textboxdraw.c:  if (t->cursor == sequencelen(s)) {
+textboxdraw.c:    p = &s->pieces[SEQ_end];
+textboxdraw.c:	       p->glyphs[0].x,
+textboxdraw.c:	       p->glyphs[0].y - ay,
+textboxdraw.c:	lx -= PAD;
+textboxdraw.c:  ly += t->yoff;
+textboxdraw.c:  ay = (t->font->face->size->metrics.ascender >> 6);
+textboxdraw.c:  by = -(t->font->face->size->metrics.descender >> 6);
+textboxdraw.c:  s = t->sequence;
+textboxdraw.c:  for (p = &s->pieces[SEQ_start]; p->next != -1; p = &s->pieces[p->next]) {
+textboxdraw.c:    for (i = 0, g = 0; i < p->len && g < p->nglyphs; i += a, g++) {
+textboxdraw.c:			while (i < p->len) {
+textboxdraw.c:   	   a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+textboxdraw.c:			if (i >= p->len) {
+textboxdraw.c:			if (ly < p->glyphs[g].y - ay || p->glyphs[g].y + by <= ly) {
+textboxdraw.c:      if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
+textboxdraw.c:				return p->pos + i;
+textboxdraw.c:			} else if (g + 1 < p->nglyphs && p->glyphs[g + 1].x == 0.0) {
+textboxdraw.c:				return p->pos + i;
+textboxdraw.c:				ww = t->font->tabwidthpixels;
+textboxdraw.c:				if (FT_Load_Glyph(t->font->face, p->glyphs[g].index,
+textboxdraw.c:				ww = t->font->face->glyph->advance.x >> 6;
+textboxdraw.c:			if (lx <= p->glyphs[g].x + ww * 0.75f) {
+textboxdraw.c:				return p->pos + i;
+textboxdraw.c:			} else if (lx <= p->glyphs[g].x + ww) {
+textboxdraw.c:				return p->pos + i + a;
+utf8.c:    a = utf8iterate(s + *l, max - *l, &code);
+utf8.c:    a = utf8iterate(s + i, len - i, &code);
+xmain.c:#include <cairo-xlib.h>
+xmain.c:  if (!paneresize(mace->pane, 0, 0, w, h)) {
+xmain.c:  sym = XkbKeycodeToKeysym(display, e->keycode, 0,
+xmain.c:			   e->state & ShiftMask);
+xmain.c:  sym = XkbKeycodeToKeysym(display, e->keycode, 0,
+xmain.c:			   e->state & ShiftMask);
+xmain.c:  switch (e->button) {
+xmain.c:    return handlebuttonpress(mace, e->x, e->y, e->button);
+xmain.c:    return handlescroll(mace, e->x, e->y, 0, -mace->font->lineheight);
+xmain.c:    return handlescroll(mace, e->x, e->y, 0, mace->font->lineheight);
+xmain.c:  switch (e->button) {
+xmain.c:    return handlebuttonrelease(mace, e->x, e->y, e->button);
+xmain.c:  return handlemotion(mace, e->x, e->y);
+xmain.c:  while (mace->running) {
+xmain.c:      panedraw(mace->pane, cr);
+xmain.c:		paneaddtab(mace->pane, t, -1);
+xmain.c:		mace->pane->focus = t;
+xmain.c:		mace->mousefocus = t->main;
+xmain.c:		mace->keyfocus = t->main;
+xmain.c:	if (mace->pane->focus != mace->pane->tabs) {
+xmain.c:		t = mace->pane->tabs;
+xmain.c:		paneremovetab(mace->pane, t);
+xmain.c:  panedraw(mace->pane, cr);
