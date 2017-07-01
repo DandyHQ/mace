@@ -19,7 +19,7 @@ Mace is a programer's text editor that supports the following features:
 
 Mace documentation is in the [docs](docs) folder.
 
-You should read [docs/Introduction.md](the introduction) for a run down
+You should read [docs/Introduction.md](docs/Introduction.md) for a run down
 of how Mace is intended to work.
 
 [docs/Development.md](docs/Development.md) gives is intended to help
