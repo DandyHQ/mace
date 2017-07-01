@@ -62,8 +62,8 @@ Anyway, sequences use a piece chain to store text in a way that
 makes adding, deleting, undoing and redoing easy. That being
 said we have not yet implimented undo or redo. 
 
-Read [1](https://github.com/martanne/vis/wiki/Text-management-using-a-piece-chain)
-for a go run down.
+Read [an explanation from vis](https://github.com/martanne/vis/wiki/Text-management-using-a-piece-chain)
+for a good run down.
 
 The idea is that you put all your text in one append only buffer.
 Then you have a doubly linked list of structures that point 

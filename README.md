@@ -10,23 +10,10 @@ Atom.
 
 Mace is a programer's text editor that supports the following features:
 
-* Executing any text in any window as a command
-* Customisable hot bar for regularly used commands
-* Tabbed interface
-
-## To Do
-
-There are many key features left to add to Mace for it to make Alpha:
-
-* Tiling interface (development delayed)
-* Support Undoing edits
-* Unicode input from X11 / some way to input unicode.
-* Syntax highlighting
-* Smart indenting
-* Keybord shortcuts
-* Session management
-* Multiple selections
-* Lots of small things.
+* It is fast and light weight while looking good.
+* Executing any text in any window as a command.
+* Customisable hot bar for regularly used commands.
+* Tabbed interface.
 
 ## Documentation
 
@@ -99,3 +86,6 @@ Please [file](https://github.com/DandyHQ/mace/issues) any bugs or feature reques
 ## Contributing
 
 The Mace developers welcomes contributions in the form of Pull Requests.
+
+If you would like to contribute but don't know what to do look in the 
+[TODO](docs/TODO.md).
