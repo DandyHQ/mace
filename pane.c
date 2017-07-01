@@ -90,7 +90,7 @@ paneaddtab(struct pane *p, struct tab *t, int pos)
 void
 paneremovetab(struct pane *p, struct tab *t)
 {
-  struct tab *prev;
+  struct tab *prev = NULL;
  
   if (p->tabs == t) {
     p->tabs = t->next;
@@ -112,7 +112,13 @@ paneremovetab(struct pane *p, struct tab *t)
 
   if (p->focus == t) {
     /* This could be improved */
-    p->focus = p->tabs;
+		if (prev == NULL) {
+   	 p->focus = p->tabs;
+		} else if (prev->next == NULL) {
+			p->focus = prev;
+		} else {
+			p->focus = prev->next;
+		}
 
     if (p->mace->mousefocus == t->action || p->mace->keyfocus == t->main) {
       if (p->focus != NULL) {
