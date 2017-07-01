@@ -79,13 +79,6 @@ struct selection {
 	struct selection *next;
 };
 
-struct cursor {
-	struct textbox *textbox;
-	size_t pos;
-
-	struct cursor *next;
-};
-
 #define SEQ_start  0
 #define SEQ_end   1
 #define SEQ_first   2
