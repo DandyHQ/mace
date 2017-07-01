@@ -1,50 +1,13 @@
-# Files
+# Branches
 
-I have tried to sensibly split up everything into files with sensible
-names. But there is a lot of overlap at this stage so these rules
-should be taken with a grain of salt.
+Mace will follow a development cycle similar to OpenBSD. There are
+two main branches: Master and Development. Development is where
+all new features, reimplimentations, refractoring go. Master only recieves
+bug fixes. 
 
-- meson.build 
-Meson control file. It's not particularly good.
-If somebody could figure out how to make it find
-dependencies better that would be great.
-
-- mace.h 
-Declares global functions and structures. 
-
-- sequence.c
-Impliments the sequence functions.
-
-- font.c
-Functions for handling fonts and font related things. This needs a
-lot of improvements.
-
-- mace.c
-For managing a mace instance. Forwards things like user events to the
-appropriout textbox.
-
-- pane.c
-Creation, management and drawing of panes.
-
-- tab.c
-Creation, management and drawing of tabs.
-
-- textbox.c, textboxdraw.c
-Functions for creating, managing and drawing text box's. 
-
-- selection.c
-Creation and management of selections. This may be unnecessary and
-could probably be put into textbox.c.
-
-- utf8.h
-A small library for utf8 functions.
-
-- utf8.c
-Implimenting above library.
-
-- xmain.c
-All X11 related things. In future there will probably be one of
-these for quarts, windows, wayland, etc.
+Every four weeks master gets tagged and that is the stable release.
+After tagging Development gets merged into master and the cycle
+repeates.
 
 # User Input
 

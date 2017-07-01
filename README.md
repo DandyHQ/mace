@@ -20,13 +20,23 @@ There are many key features left to add to Mace for it to make Alpha:
 
 * Tiling interface (development delayed)
 * Support Undoing edits
-* Utf8
+* Unicode input from X11 / some way to input unicode.
 * Syntax highlighting
 * Smart indenting
 * Keybord shortcuts
 * Session management
 * Multiple selections
 * Lots of small things.
+
+## Documentation
+
+Mace documentation is in the [docs](docs) folder.
+
+You should read [docs/Introduction.md](the introduction) for a run down
+of how Mace is intended to work.
+
+[docs/Development.md](docs/Development.md) gives is intended to help
+explain how Mace is structured.
 
 ## Building
 
@@ -81,10 +91,6 @@ If you'd like to run the test suite to ensure Mace is functioning correctly, the
 ```
 $ ninja -C build test
 ```
-
-## Documentation
-
-Mace documentation is in the [docs](docs) folder.
 
 ## Issues & Support
 
