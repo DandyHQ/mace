@@ -93,6 +93,3 @@ Please [file](https://github.com/DandyHQ/mace/issues) any bugs or feature reques
 ## Contributing
 
 The Mace developers welcomes contributions in the form of Pull Requests.
-ng
-
-The Mace developers welcomes contributions in the form of Pull Requests.
