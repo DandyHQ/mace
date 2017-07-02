@@ -215,19 +215,19 @@ tablistdraw(struct pane *p, cairo_t *cr)
     while (i < t->nlen) {
       a = utf8iterate(t->name + i, t->nlen - i, &code);
       if (a == 0) {
-	i++;
-	continue;
+				i++;
+				continue;
       }
 
       if (!loadglyph(p->mace->font->face, code)) {
-	i += a;
-	continue;
+				i += a;
+				continue;
       }
 
       ww = p->mace->font->face->glyph->advance.x >> 6;
 
       if (x + ww >= p->width) {
-	return;
+				return;
       }
 
       drawglyph(p->mace->font, cr, p->x + x, p->y, &fg, bg);
