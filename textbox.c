@@ -104,7 +104,7 @@ bool
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
-  struct selection *sel;
+  struct selection *sel, *seln;
   size_t pos, start, len;
   uint8_t *buf;
 
@@ -118,34 +118,57 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
     break;
 
   case 3:
+		printf("button 3 released\n");
+
 	  pos = textboxfindpos(t, x, y);
 
+		printf("find sel\n");
     sel = inselections(t->mace, t, pos);
 
     if (sel != NULL && sel->type == SELECTION_command) {
+			printf("sel foud\n");
       start = sel->start;
       len = sel->end - start;
 
+			printf("remove selection\n");
 			selectionremove(t->mace, sel);
+		} else {
+			len = 0;
+			printf("sel not found\n");
+
+			sel = t->mace->selections;
+			while (sel != NULL) {
+				seln = sel->next;
+				if (sel->type == SELECTION_command) {
+					selectionremove(t->mace, sel);
+				}
+				sel = seln;
+			}
+		}
     
+		printf("len = %zu so \n", len);
+		if (len > 0) {
       buf = malloc(len);
       if (buf == NULL) {
 				return false;
       }
 
+			printf("allocated %zu so get data\n", len);
       if (sequenceget(t->sequence, start, buf, len) == 0) {
+				free(buf);
 				return false;
       }
 
+			printf("run command %s\n", buf);
       /* TODO: Show an error somehow if this returns false. */
       command(t->mace, buf);
 
-      free(buf);
+			printf("free buffer\n");
+			free(buf);
 
-			return true;
-    } else {
-			return false;
 		}
+
+		return true;
   }
 
   return false;

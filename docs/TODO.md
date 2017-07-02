@@ -6,19 +6,21 @@ Roughly in order of importance.
 
 * X11 clipboard
 
-* Multiple Cursors
-	See [the issue](https://github.com/DandyHQ/mace/issues/22) for the discussion on
-  how they should work. 
-  * Multiple selections that work in a similar way to multiple cursors.
-
 * Support Undo/Redo
 
 * Unicode input from X11 / some way to input unicode.
 
-* Smart indenting
+* Smart indenting / Dumb indenting
+	Indent to the same level as the previous line.
+	Configurable?
 
 * Keybord shortcuts
+
+* Search, search all, search forward and back.
 
 * Session management
 
 * Syntax highlighting
+	Could be quite basic, ie: just comments.
+
+	* Bracket matching

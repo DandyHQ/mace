@@ -86,7 +86,7 @@ drawglyphs(struct textbox *t, cairo_t *cr,
 
 void
 textboxdraw(struct textbox *t, cairo_t *cr, 
-                    int x, int y, int width, int height)
+            int x, int y, int width, int height)
 {
   struct selection *sel, *nsel;
   struct sequence *s;

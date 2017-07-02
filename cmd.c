@@ -44,6 +44,8 @@ cmdsave(struct mace *m)
   size_t len;
   int fd;
 
+	printf("save\n");
+
   if (m->mousefocus == NULL) {
     return;
   }
@@ -53,8 +55,12 @@ cmdsave(struct mace *m)
     return;
   }
 
+	printf("filename: %s\n", filename);
+
   s = m->mousefocus->tab->main->sequence;
   len = sequencelen(s);
+
+	printf("alloc %zu\n", len);
 
   buf = malloc(len);
   if (buf == NULL) {
@@ -62,7 +68,10 @@ cmdsave(struct mace *m)
     return;
   }
 
+	printf("fill buffer\n");
   len = sequenceget(s, 0, buf, len);
+
+	printf("open file\n");
   
   fd = open((char *) filename, O_WRONLY|O_TRUNC|O_CREAT, 0666);
   if (fd < 0) {
@@ -71,12 +80,17 @@ cmdsave(struct mace *m)
     return;
   }
 
+	printf("write data\n");
+
   if (write(fd, buf, len) != len) {
     printf("Failed to write to %s\n", filename);
   }
 
+	printf("close\n");
   close(fd);
+	printf("free\n");
   free(buf);
+	printf("file saved\n");
 }
 
 static void
