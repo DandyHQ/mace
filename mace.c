@@ -3,41 +3,11 @@
 #include "config.h"
 
 static uint8_t message[] =
-  "Welcome to the mace text editor."
+  "Welcome to the Mace text editor."
   "\n\n" 
-  "Below is a basic guide on how to use Mace."
+  "We need to redo the guide."
   "\n\n"
-  "To start, if you type you should end up adding text to the end of "
-  "this message. You can click somewhere to move the cursor to that "
-  "point and any more typing should go there. This should be fairly "
-  "normal."
-  "\n\n"
-  "This alone is enough for Mace to count as a functioning text editor, albeit "
-  "not a very useful or interesting one. Next I will introduce you "
-  "to commands."
-  "\n\n"
-  "TODO: Have some examples of commands."
-  "\n\n"
-  "What should have happened is that you now have a new tab, filled "
-  "with the contents of your default init file. What happened under the "
-  "hood is that Mace found the word that you right clicked on (open) "
-  "And ran the function 'open' in Mace's lua runtime. The function "
-  "looks at the selections you have made in the current text box and "
-  "opens new tabs for each of these files."
-  "\n\n"
-  "In the action bar above, you can see a variety of other commands. "
-  "The save, open, close, cut, copy, paste and quit all do what you "
-  "would expect."
-  "\n\n"
-  "If you edit a file and want to save it you can right click on "
-  "save, which you could type yourself anywhere in the tab, or it "
-  "could be the 'save' that is by default in the action bar of "
-  "every newly created tab. The file will be saved as whatever text "
-  "is in the tabs action bar before the colon."
-  "\n\n"
-  "I hope this guide was helpful. Have fun using Mace!"
-  "\n\n"
-  ;
+;
 
 
 struct mace *
@@ -203,6 +173,7 @@ handletyping(struct mace *m, uint8_t *s, size_t n)
 	
 	for (c = m->cursors; c != NULL; c = c->next) {
 		sequenceinsert(c->tb->sequence, c->pos, s, n);
+		shiftselections(m, c->tb, c->pos, n);
 		shiftcursors(m, c->tb, c->pos, n);
 	}
 
@@ -215,7 +186,7 @@ handlekeypress(struct mace *m, keycode_t k)
 	struct selection *sel;
 	struct cursor *c;
 	uint8_t s[16];
-	size_t n;
+	size_t n, start;
 
 	switch (k) {
 	default:
@@ -237,9 +208,11 @@ handlekeypress(struct mace *m, keycode_t k)
 				   code point. */
 
 				n = 1;
+				start = c->pos;
 
-				sequencedelete(c->tb->sequence, c->pos, n);
-				shiftcursors(m, c->tb, c->pos + n, -n);
+				sequencedelete(c->tb->sequence, start, n);
+				shiftselections(m, c->tb, start + n, -n);
+				shiftcursors(m, c->tb, start + n, -n);
 			}
 
 			return true;
@@ -256,16 +229,36 @@ handlekeypress(struct mace *m, keycode_t k)
 
 				n = 1;
 
-				sequencedelete(c->tb->sequence, c->pos - n, n);
-				shiftcursors(m, c->tb, c->pos - n, -n);				
+				if (c->pos < n) {
+					continue;
+				}
+
+				start = c->pos - n;
+
+				sequencedelete(c->tb->sequence, start, n);
+				shiftselections(m, c->tb, start, -n);
+				shiftcursors(m, c->tb, start, -n);
 			}
 
 			return true;
 		}
 
 		for (sel = m->selections; sel != NULL; sel = sel->next) {
-			sequencedelete(sel->tb->sequence, sel->start, sel->end - sel->start);
-			shiftselections(m, sel->tb, sel->start, -(sel->end - sel->start));
+			start = sel->start;
+			n = sel->end - sel->start;
+
+			sequencedelete(sel->tb->sequence, start, n);
+
+			shiftselections(m, sel->tb, start, -n);
+
+			for (c = m->cursors; c != NULL; c = c->next) {
+				if (c->tb != sel->tb) continue;
+				if (sel->end < c->pos) {
+					c->pos -= n;
+				} else if (sel->start < c->pos && c->pos < sel->end) {
+					c->pos = sel->end;
+				}
+			}
 		}
 			
 		selectionremoveall(m);

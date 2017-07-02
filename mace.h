@@ -130,6 +130,7 @@ struct textbox {
 
 	/* For adding a selection. */
   struct selection *csel;
+	struct cursor *ccur;
 	size_t newselpos;
 };
 

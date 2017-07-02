@@ -262,7 +262,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   ly += t->yoff;
 
 	if (ly <= 0) {
-		return 0;
+		ly = 0;
 	}
   
   ay = (t->mace->font->face->size->metrics.ascender >> 6);

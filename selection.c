@@ -107,9 +107,20 @@ inselections(struct mace *m, struct textbox *t, size_t pos)
   return NULL;
 }
 
+/* This isn't very well done. */
+
 void
 shiftselections(struct mace *m, struct textbox *t,
                       size_t from, int dist)
 {
-	/* TODO. */
+	struct selection *s;
+
+	for (s = m->selections; s != NULL; s = s->next) {
+		if (s->tb != t) continue;
+
+		if (s->start >= from) {
+			s->start += dist;
+			s->end += dist;
+		}
+	}
 }

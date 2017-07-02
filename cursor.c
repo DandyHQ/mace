@@ -76,11 +76,7 @@ shiftcursors(struct mace *m, struct textbox *t,
   for (c = m->cursors; c != NULL; c = c->next) {
     if (c->tb == t) {
 			if (c->pos >= from) {
-				if (dist < 0 && c->pos < -dist) {
-					c->pos = 0;
-				} else {
-					c->pos += dist;
-				}
+				c->pos += dist;
 			}
     }
   }

@@ -68,9 +68,16 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     selectionremoveall(t->mace);
 		cursorremoveall(t->mace);
 
-		cursoradd(t->mace, t, pos);
-
+		t->ccur = cursoradd(t->mace, t, pos);
     t->newselpos = pos;
+
+    return true;
+
+	case 2:
+		/* Temparary */
+
+		t->ccur = cursoradd(t->mace, t, pos);
+		t->newselpos = pos;
 
     return true;
 
@@ -101,9 +108,8 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
   size_t pos, start, len;
   uint8_t *buf;
 
-  pos = textboxfindpos(t, x, y);
-
   t->csel = NULL;
+	t->ccur = NULL;
   t->newselpos = SIZE_MAX;
 
   switch (button) {
@@ -112,6 +118,8 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
     break;
 
   case 3:
+	  pos = textboxfindpos(t, x, y);
+
     sel = inselections(t->mace, t, pos);
 
     if (sel != NULL && sel->type == SELECTION_command) {
@@ -163,8 +171,10 @@ textboxmotion(struct textbox *t, int x, int y)
     t->newselpos = SIZE_MAX;
     return true;
 
-  } else if (t->csel != NULL) {
+  } else if (t->csel != NULL && t->ccur != NULL) {
     pos = textboxfindpos(t, x, y);
+
+		t->ccur->pos = pos;
 
     if (selectionupdate(t->csel, pos)) {
       return true;
