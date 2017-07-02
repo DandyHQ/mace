@@ -1,13 +1,10 @@
 #include "mace.h"
 
 struct selection *
-selectionadd(struct textbox *t, selection_t type,
-                    size_t pos1, size_t pos2)
+selectionadd(struct mace *m, struct textbox *t, 
+                    selection_t type, size_t pos1, size_t pos2)
 {
   struct selection *s;
-	struct mace *m;
-
-	m = t->mace;
 
   s = malloc(sizeof(struct selection));
   if (s == NULL) {
@@ -17,7 +14,7 @@ selectionadd(struct textbox *t, selection_t type,
   s->next = m->selections;
 	m->selections = s;
 
-  s->textbox = t;
+  s->tb= t;
 	s->type = type;
 
 	if (pos1 < pos2) {
@@ -34,12 +31,9 @@ selectionadd(struct textbox *t, selection_t type,
 }
 
 void
-selectionremove(struct selection *s)
+selectionremove(struct mace *m, struct selection *s)
 {
 	struct selection *p;
-	struct mace *m;
-	
-	m = s->textbox->mace;
 
 	if (m->selections == s) {
 		m->selections = s->next;
@@ -53,6 +47,20 @@ selectionremove(struct selection *s)
 	}
 
   free(s);
+}
+
+void
+selectionremoveall(struct mace *m)
+{
+	struct selection *s, *n;
+
+	s = m->selections;
+	m->selections = NULL;
+	while (s != NULL) {
+		n = s->next;
+		free(s);
+		s = n;
+	}
 }
 
 bool
@@ -86,12 +94,12 @@ selectionupdate(struct selection *s, size_t pos)
 }
 
 struct selection *
-inselections(struct textbox *t, size_t pos)
+inselections(struct mace *m, struct textbox *t, size_t pos)
 {
   struct selection *s;
 
-  for (s = t->mace->selections; s != NULL; s = s->next) {
-    if (s->textbox == t && s->start <= pos && pos < s->end) {
+  for (s = m->selections; s != NULL; s = s->next) {
+    if (s->tb == t && s->start <= pos && pos < s->end) {
       return s;
     }
   }
@@ -99,3 +107,9 @@ inselections(struct textbox *t, size_t pos)
   return NULL;
 }
 
+void
+shiftselections(struct mace *m, struct textbox *t,
+                      size_t from, int dist)
+{
+	/* TODO. */
+}

@@ -120,12 +120,8 @@ paneremovetab(struct pane *p, struct tab *t)
 			p->focus = prev->next;
 		}
 
-    if (p->mace->mousefocus == t->action || p->mace->keyfocus == t->main) {
-      if (p->focus != NULL) {
-				p->mace->mousefocus = p->mace->keyfocus = p->focus->main;
-      } else {
-				p->mace->mousefocus = p->mace->keyfocus = NULL;
-      }
+    if (p->mace->mousefocus == t->action) {
+			p->mace->mousefocus = NULL;
     }
   }
 }
@@ -165,7 +161,6 @@ tablistbuttonpress(struct pane *p, int px, int py, int button)
 				if (p->focus != t) {
 					p->focus = t;
 					p->mace->mousefocus = NULL;
-					p->mace->keyfocus = t->main;
 					return true;
 				} else {
 					return false;

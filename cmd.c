@@ -87,18 +87,16 @@ openselection(struct mace *m, struct selection *s)
   size_t len;
 
   len = s->end - s->start;
-  len = sequenceget(s->textbox->sequence, s->start, name, len);
+  len = sequenceget(s->tb->sequence, s->start, name, len);
 
   t = tabnewfromfile(m, name, len);
   if (t == NULL) {
     return;
   }
 
-  paneaddtab(s->textbox->tab->pane, t, -1);
+  paneaddtab(s->tb->tab->pane, t, -1);
 
-  s->textbox->tab->pane->focus = t;
-  m->keyfocus = t->main;
-  m->mousefocus = t->main;
+  s->tb->tab->pane->focus = t;
 }
 
 static void
@@ -143,7 +141,7 @@ cmdcut(struct mace *m)
   for (s = m->selections; s != NULL; s = n) {
     n = s->next;
     if (s->type != SELECTION_normal) continue;
-		t = s->textbox;
+		t = s->tb;
 
     clipboardlen = s->end - s->start;
     clipboard = realloc(clipboard, clipboardlen);
@@ -157,11 +155,13 @@ cmdcut(struct mace *m)
 
     sequencedelete(t->sequence, s->start, clipboardlen);
     
-    if (s->start <= t->cursor || t->cursor <= s->end) {
-      t->cursor = s->start;
-    }
+		/* TODO: shift cursors properly. This doesn't work if the cursor is
+		    in the selection. It will shift it to before the selection unlike the
+		    expected moving it to the start of the selection. */
 
-    selectionremove(s);
+		shiftcursors(m, t, s->start, -clipboardlen);
+
+    selectionremove(m, s);
   }
 }
 
@@ -173,7 +173,7 @@ cmdcopy(struct mace *m)
 
   for (s = m->selections; s != NULL; s = s->next) {
     if (s->type != SELECTION_normal) continue;
-		t = s->textbox;
+		t = s->tb;
     
     clipboardlen = s->end - s->start;
     clipboard = realloc(clipboard, clipboardlen);
@@ -190,22 +190,18 @@ cmdcopy(struct mace *m)
 static void
 cmdpaste(struct mace *m)
 {
-  struct textbox *t;
-  
-  if (m->keyfocus == NULL || clipboard == NULL) {
+  if (clipboard == NULL) {
     return;
   }
 
-  t = m->keyfocus;
-  sequenceinsert(t->sequence, t->cursor, clipboard, clipboardlen);
-  t->cursor += clipboardlen;
+	handletyping(m, clipboard, clipboardlen);
 }
 
 static struct cmd cmds[] = {
-	{ "save",      cmdsave },
+	{ "save",       cmdsave },
 	{ "open",      cmdopen },
-	{ "close",     cmdclose },
-	{ "cut",       cmdcut },
+	{ "close",      cmdclose },
+	{ "cut",        cmdcut },
 	{ "copy",      cmdcopy },
 	{ "paste",     cmdpaste },
 };

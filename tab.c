@@ -59,8 +59,6 @@ tabnew(struct mace *mace,
     return NULL;
   }
 
-  t->action->cursor = sequencelen(actionseq);
-
   t->main = textboxnew(mace, t, &bg, mainseq);
   if (t->main == NULL) {
     tabfree(t);

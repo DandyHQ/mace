@@ -89,7 +89,6 @@ macenew(void)
     return NULL;
   }
 
-  m->keyfocus = m->mousefocus= t->main;
   paneaddtab(m->pane, t, 0);
   m->pane->focus = t;
 
@@ -119,11 +118,11 @@ macefree(struct mace *m)
 }
 
 static struct pane *
-findpane(struct mace *mace, int x, int y)
+findpane(struct mace *m, int x, int y)
 {
   struct pane *p;
 
-  p = mace->pane;
+  p = m->pane;
 
   /* Once we had multiple panes in find the one that bounds x,y. */
   
@@ -131,96 +130,154 @@ findpane(struct mace *mace, int x, int y)
 }
 
 bool
-handlebuttonpress(struct mace *mace, int x, int y, int button)
+handlebuttonpress(struct mace *m, int x, int y, int button)
 {
-  struct pane *p = findpane(mace, x, y);
+  struct pane *p = findpane(m, x, y);
 
   x -= p->x;
   y -= p->y;
   
-  if (y < mace->font->lineheight) {
-		mace->mousefocus = NULL;
+  if (y < m->font->lineheight) {
+		m->mousefocus = NULL;
     return tablistbuttonpress(p, x, y, button);
   } else {
-		return tabbuttonpress(p->focus, x, y - mace->font->lineheight, button);
+		return tabbuttonpress(p->focus, x, y - m->font->lineheight, button);
 	}
 }
 
 bool
-handlebuttonrelease(struct mace *mace, int x, int y, int button)
+handlebuttonrelease(struct mace *m, int x, int y, int button)
 {
-	if (mace->mousefocus != NULL) {
-		x -= mace->mousefocus->tab->x;
-		y -= mace->mousefocus->tab->y;
+	if (m->mousefocus != NULL) {
+		x -= m->mousefocus->tab->x;
+		y -= m->mousefocus->tab->y;
 
-		if (mace->mousefocus->tab->main == mace->mousefocus) {
-			y -= sequenceheight(mace->mousefocus->tab->action->sequence);
+		if (m->mousefocus->tab->main == m->mousefocus) {
+			y -= sequenceheight(m->mousefocus->tab->action->sequence);
 		}
 		
-  	return textboxbuttonrelease(mace->mousefocus, x, y, button);
+  	return textboxbuttonrelease(m->mousefocus, x, y, button);
 	} else {
 		return false;
 	}
 }
 
 bool
-handlemotion(struct mace *mace, int x, int y)
+handlemotion(struct mace *m, int x, int y)
 {
-	if (mace->mousefocus != NULL) {
-  	x -= mace->mousefocus->tab->x;
-		y -= mace->mousefocus->tab->y;
+	if (m->mousefocus != NULL) {
+  	x -= m->mousefocus->tab->x;
+		y -= m->mousefocus->tab->y;
 
-		if (mace->mousefocus->tab->main == mace->mousefocus) {
-			y -= sequenceheight(mace->mousefocus->tab->action->sequence);
+		if (m->mousefocus->tab->main == m->mousefocus) {
+			y -= sequenceheight(m->mousefocus->tab->action->sequence);
 		}
 
-		return textboxmotion(mace->mousefocus, x, y);
+		return textboxmotion(m->mousefocus, x, y);
 	} else {
 		return false;
 	}
 }
 
 bool
-handlescroll(struct mace *mace, int x, int y, int dx, int dy)
+handlescroll(struct mace *m, int x, int y, int dx, int dy)
 {
-  struct pane *p = findpane(mace, x, y);
+  struct pane *p = findpane(m, x, y);
 
   x -= p->x;
   y -= p->y;
   
-  if (y < mace->font->lineheight) {
+  if (y < m->font->lineheight) {
     return tablistscroll(p, x, y, dx, dy);
   } else {
-    return tabscroll(p->focus, x, y - mace->font->lineheight, dx, dy);
+    return tabscroll(p->focus, x, y - m->font->lineheight, dx, dy);
   }
 }
 
+/* Should typing replace selections? Only if the cursos is in the selection? */
+
 bool
-handletyping(struct mace *mace, uint8_t *s, size_t n)
+handletyping(struct mace *m, uint8_t *s, size_t n)
 {
-  if (mace->keyfocus != NULL) {
-    return textboxtyping(mace->keyfocus, s, n);
-  } else {
-		return false;
+	struct cursor *c;
+	
+	for (c = m->cursors; c != NULL; c = c->next) {
+		sequenceinsert(c->tb->sequence, c->pos, s, n);
+		shiftcursors(m, c->tb, c->pos, n);
 	}
+
+	return true;
 }
 
 bool
-handlekeypress(struct mace *mace, keycode_t k)
+handlekeypress(struct mace *m, keycode_t k)
 {
-  if (mace->keyfocus != NULL) {
-    return textboxkeypress(mace->keyfocus, k);
-  } else {
-		return false;
+	struct selection *sel;
+	struct cursor *c;
+	uint8_t s[16];
+	size_t n;
+
+	switch (k) {
+	default:
+		break;
+
+	case KEY_tab:
+		n = snprintf((char *) s, sizeof(s), "\t");
+		return handletyping(m, s, n);
+
+	case KEY_return:
+		n = snprintf((char *) s, sizeof(s), "\n");
+		return handletyping(m, s, n);
+  
+	case KEY_delete:
+		if (m->selections == NULL) {
+			for (c = m->cursors; c != NULL; c = c->next) {
+				/* TODO: should delete one codepoint not one byte. 
+				   sequence needs some functions for length of next and previous 
+				   code point. */
+
+				n = 1;
+
+				sequencedelete(c->tb->sequence, c->pos, n);
+				shiftcursors(m, c->tb, c->pos + n, -n);
+			}
+
+			return true;
+		}
+
+		/* Fall through */
+    
+	case KEY_backspace:
+		if (m->selections == NULL) {
+			for (c = m->cursors; c != NULL; c = c->next) {
+				/* TODO: should delete one codepoint not one byte. 
+				   sequence needs some functions for length of next and previous 
+				   code point. */
+
+				n = 1;
+
+				sequencedelete(c->tb->sequence, c->pos - n, n);
+				shiftcursors(m, c->tb, c->pos - n, -n);				
+			}
+
+			return true;
+		}
+
+		for (sel = m->selections; sel != NULL; sel = sel->next) {
+			sequencedelete(sel->tb->sequence, sel->start, sel->end - sel->start);
+			shiftselections(m, sel->tb, sel->start, -(sel->end - sel->start));
+		}
+			
+		selectionremoveall(m);
+
+		return true;
 	}
+
+	return false;
 }
 
 bool
-handlekeyrelease(struct mace *mace, keycode_t k)
+handlekeyrelease(struct mace *m, keycode_t k)
 {
-  if (mace->keyfocus != NULL) {
-    return textboxkeyrelease(mace->keyfocus, k);
-  } else {
-		return false;
-	}
+	return false;
 }

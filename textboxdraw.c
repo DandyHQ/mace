@@ -81,6 +81,9 @@ drawglyphs(struct textbox *t, cairo_t *cr,
 
 /* This is pretty horrible. */
 
+/* TODO: cursors and selections could be ordered to make search faster.
+    I doubt this will improve it much but maybe in future. */
+
 void
 textboxdraw(struct textbox *t, cairo_t *cr, 
                     int x, int y, int width, int height)
@@ -127,7 +130,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 				continue;
       }
 
-      nsel = inselections(t, p->pos + i);
+      nsel = inselections(t->mace, t, p->pos + i);
       if (nsel != sel) {
 				if (start < g) {
           /* Draw the undrawn glyphs with the previous selection. */
@@ -198,7 +201,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 				}
       }
 
-      if (p->pos + i == t->cursor) {
+      if (cursorat(t->mace, t, p->pos + i) != NULL) {
 				if (start <= g) {
 					drawglyphs(t, cr, 
 					           &p->glyphs[start], g - start + 1,
@@ -235,7 +238,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
     }
   }
 
-  if (t->cursor == sequencelen(s)) {
+  if (cursorat(t->mace, t, sequencelen(s)) != NULL) {
     p = &s->pieces[SEQ_end];
     drawcursor(t, cr,
 	       p->glyphs[0].x,

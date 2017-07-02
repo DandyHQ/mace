@@ -269,7 +269,6 @@ main(int argc, char **argv)
 		paneaddtab(mace->pane, t, -1);
 		mace->pane->focus = t;
 		mace->mousefocus = t->main;
-		mace->keyfocus = t->main;
 	}
 
 	/* This is ugly. Removes default tab is files were opened. */

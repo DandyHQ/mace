@@ -66,11 +66,18 @@ struct font {
   int tabwidthpixels;
 };
 
+struct cursor {
+	struct textbox *tb;
+	size_t pos;
+
+	struct cursor *next;
+};
+
 typedef enum { SELECTION_left, SELECTION_right } selection_direction_t;
 typedef enum { SELECTION_normal, SELECTION_command } selection_t;
 
 struct selection {
-	struct textbox *textbox;
+	struct textbox *tb;
 	selection_t type;
 
 	size_t start, end;
@@ -113,17 +120,17 @@ struct textbox {
 
   /* Maximum width a line can be. */
   int linewidth;
+
 	/* How far from the top have we scrolled */
   int yoff;
 
+  struct colour bg;
+
   struct sequence *sequence;
 
-	size_t cursor;
-
+	/* For adding a selection. */
   struct selection *csel;
 	size_t newselpos;
-
-  struct colour bg;
 };
 
 struct tab {
@@ -170,9 +177,10 @@ struct mace {
   
   struct pane *pane;
 
-  struct textbox *keyfocus, *mousefocus;
+  struct textbox *mousefocus;
 
 	struct selection *selections;
+	struct cursor *cursors;
 };
 
 
@@ -306,15 +314,6 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 bool
 textboxmotion(struct textbox *t, int x, int y);
 
-bool
-textboxtyping(struct textbox *t, uint8_t *s, size_t l);
-
-bool
-textboxkeypress(struct textbox *t, keycode_t k);
-
-bool
-textboxkeyrelease(struct textbox *t, keycode_t k);
-
 size_t
 textboxfindpos(struct textbox *t, int x, int y);
 
@@ -323,18 +322,46 @@ textboxdraw(struct textbox *t, cairo_t *cr, int x, int y,
                     int width, int height);
 
 
-struct selection *
-selectionadd(struct textbox *t, selection_t type, 
-                    size_t pos1, size_t pos2);
+
+struct cursor *
+cursoradd(struct mace *mace, struct textbox *t,
+                size_t pos);
 
 void
-selectionremove(struct selection *s);
+cursorremove(struct mace *mace, struct cursor *c);
+
+void
+cursorremoveall(struct mace *mace);
+
+struct cursor *
+cursorat(struct mace *mace, struct textbox *t,
+              size_t pos);
+
+void
+shiftcursors(struct mace *mace, struct textbox *t,
+                   size_t from, int dist);
+
+
+
+struct selection *
+selectionadd(struct mace *mace, struct textbox *t, 
+                    selection_t type, size_t pos1, size_t pos2);
+
+void
+selectionremove(struct mace *mace, struct selection *s);
+
+void
+selectionremoveall(struct mace *mace);
 
 bool
 selectionupdate(struct selection *s, size_t pos);
 
 struct selection *
-inselections(struct textbox *t, size_t pos);
+inselections(struct mace *mace, struct textbox *t, size_t pos);
+
+void
+shiftselections(struct mace *mace, struct textbox *t,
+                      size_t from, int dist);
 
 
 /* Creates a new sequence around data, data may be NULL.
