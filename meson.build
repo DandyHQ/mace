@@ -31,7 +31,7 @@ executable('mace', install: true,
 		'font.c',
 		'utf8.c',
 		'cmd.c',
-		'resources/xlib-keysyms.c',
+
 		'xmain.c'
 	],
 

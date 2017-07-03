@@ -12,7 +12,7 @@
 #include "mace.h"
 #include "config.h"
 
-extern int32_t keymappings[];
+#include "resources/xlib-keysyms.h"
 
 static Display *display;
 static Window win;
@@ -89,6 +89,7 @@ xhandlekeypress(XKeyEvent *e)
   keycode_t c;
   KeySym sym;
   ssize_t n;
+	int i;
 
   sym = XkbKeycodeToKeysym(display, e->keycode, 0,
 			   e->state & ShiftMask);
@@ -99,6 +100,8 @@ xhandlekeypress(XKeyEvent *e)
 	}
 
 	/* Fucking Xorg */
+
+	code = 0;
 
 	/* Keysyms under 0x100 are ASCII so unicode. */
 	if (0x20 <= sym && sym < 0x100) {
@@ -111,11 +114,18 @@ xhandlekeypress(XKeyEvent *e)
 
 	/* But before that weird things happened. */
 	} else if (0x0100 <= sym && sym <= 0x20ff) {
-		code = keymappings[sym];
+		
+		for (i = 0; i < sizeof(keymappings) / sizeof(keymappings[0]); i++) {
+			if (keymappings[i].keysym == sym) {
+				code = keymappings[i].unicode;
+				break;
+			}
+		}
+	}
 
-	/* Anything else shouldn't exist. */
-	} else {
-		code = 0;
+	/* Couldn't find a unicode mapping for the keysym. */
+	if (code == 0) {
+		return false;
 	}
 
 	n = utf8encode(s, sizeof(s), code);
