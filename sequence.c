@@ -491,6 +491,57 @@ sequencefindword(struct sequence *s, size_t pos,
 }
 
 size_t
+sequencecodepointlen(struct sequence *s, size_t pos)
+{
+	int32_t code;
+	ssize_t p;
+	size_t i, l;
+
+	p = piecefind(s, SEQ_start, pos, &i);
+	if (p == -1) {
+		return 0;
+	}
+
+	while (s->pieces[p].len == i) {
+		p = s->pieces[p].next;
+		if (p == -1) {
+			return 0;
+		}
+
+		i = 0;
+	}
+
+	l = utf8iterate(s->data + s->pieces[p].off + i, s->pieces[p].len - i, &code);
+		
+	return l;
+}
+
+size_t
+sequenceprevcodepointlen(struct sequence *s, size_t pos)
+{
+	int32_t code;
+	ssize_t p;
+	size_t i, l;
+
+	p = piecefind(s, SEQ_start, pos, &i);
+	if (p == -1) {
+		return 0;
+	}
+
+	while (i == 0) {
+		p = s->pieces[p].prev;
+		if (p == -1) {
+			return 0;
+		}
+
+		i = s->pieces[p].len;
+	}
+
+	l = utf8deiterate(s->data + s->pieces[p].off, s->pieces[p].len, i, &code);
+	return l;
+}
+
+size_t
 sequenceget(struct sequence *s, size_t pos,
 	    uint8_t *buf, size_t len)
 {

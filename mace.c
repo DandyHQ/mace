@@ -164,9 +164,7 @@ handlescroll(struct mace *m, int x, int y, int dx, int dy)
   }
 }
 
-/* Should typing replace selections? Only if the cursos is in the selection? */
-
-void
+static void
 deleteselections(struct mace *m, struct cursor *c)
 {
 	struct selection *s, *sn;
@@ -230,11 +228,8 @@ handlekeypress(struct mace *m, keycode_t k)
 	case KEY_delete:
 		if (m->selections == NULL) {
 			for (c = m->cursors; c != NULL; c = c->next) {
-				/* TODO: should delete one codepoint not one byte. 
-				   sequence needs some functions for length of next and previous 
-				   code point. */
+				n = sequencecodepointlen(c->tb->sequence, c->pos);
 
-				n = 1;
 				start = c->pos;
 
 				sequencedelete(c->tb->sequence, start, n);
@@ -250,15 +245,7 @@ handlekeypress(struct mace *m, keycode_t k)
 	case KEY_backspace:
 		if (m->selections == NULL) {
 			for (c = m->cursors; c != NULL; c = c->next) {
-				/* TODO: should delete one codepoint not one byte. 
-				   sequence needs some functions for length of next and previous 
-				   code point. */
-
-				n = 1;
-
-				if (c->pos < n) {
-					continue;
-				}
+				n = sequenceprevcodepointlen(c->tb->sequence, c->pos);
 
 				start = c->pos - n;
 

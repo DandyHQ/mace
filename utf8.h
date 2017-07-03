@@ -15,5 +15,10 @@ iswordbreak(int32_t code);
 size_t
 utf8iterate(const uint8_t *s, size_t len, int32_t *code);
 
+/* Deiterate is now officially a word.
+    Calculates the codepoint imediatly before off. */
+size_t
+utf8deiterate(const uint8_t *s, size_t slen, size_t off, int32_t *code);
+
 size_t
 utf8codepoints(const uint8_t *s, size_t len);

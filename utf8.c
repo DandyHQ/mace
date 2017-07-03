@@ -1,4 +1,5 @@
 #include "utf8.h"
+#include <stdio.h>
 
 bool
 islinebreak(int32_t code, const uint8_t *s, int32_t max, int32_t *l)
@@ -82,10 +83,10 @@ iswordbreak(int32_t code)
 }
 
 /*
-1 7  U+0000  U+007F   0xxxxxxx 			
-2 11 U+0080  U+07FF   110xxxxx 10xxxxxx 		
-3 16 U+0800  U+FFFF   1110xxxx 10xxxxxx 10xxxxxx 	
-4 21 U+10000 U+10FFFF 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+1 7     U+0000    U+007F      0xxxxxxx 			
+2 11   U+0080    U+07FF      110xxxxx 10xxxxxx 		
+3 16   U+0800    U+FFFF      1110xxxx 10xxxxxx 10xxxxxx 	
+4 21   U+10000  U+10FFFF  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 
 */
 
@@ -130,6 +131,20 @@ utf8iterate(const uint8_t *s, size_t slen, int32_t *code)
   }
 
   return i;
+}
+
+size_t
+utf8deiterate(const uint8_t *s, size_t slen, size_t off, int32_t *code)
+{
+	size_t l;
+
+	for (l = 1; l <= off; l++) {
+		if ((s[off - l] & 0xc0) != 0x80) {
+			return utf8iterate(s + off - l, l, code);
+		}
+	}
+
+	return 0;
 }
 
 size_t

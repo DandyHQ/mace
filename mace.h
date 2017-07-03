@@ -66,6 +66,10 @@ struct font {
   int tabwidthpixels;
 };
 
+/* Cursors and selections could possibly be merged. Every selection has
+    a cursor except commands. So selections may end up with a cursor 
+    position field at some point. */
+
 struct cursor {
 	struct textbox *tb;
 	size_t pos;
@@ -365,6 +369,7 @@ shiftselections(struct mace *mace, struct textbox *t,
                       size_t from, int dist);
 
 
+
 /* Creates a new sequence around data, data may be NULL.
    len is the number of set bytes in data, max is the current size of the
    allocation for data. 
@@ -399,7 +404,13 @@ sequencedelete(struct sequence *s, size_t pos, size_t len);
 
 bool
 sequencefindword(struct sequence *s, size_t pos,
-                 size_t *start, size_t *len);
+                             size_t *start, size_t *len);
+
+size_t
+sequencecodepointlen(struct sequence *s, size_t pos);
+
+size_t
+sequenceprevcodepointlen(struct sequence *s, size_t pos);
 
 /* Fulls out buf with the contentes of the sequence starting at pos
    and going for at most len bytes, buf must be of at least len + 1
