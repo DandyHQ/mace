@@ -166,12 +166,39 @@ handlescroll(struct mace *m, int x, int y, int dx, int dy)
 
 /* Should typing replace selections? Only if the cursos is in the selection? */
 
+void
+deleteselections(struct mace *m, struct cursor *c)
+{
+	struct selection *s, *sn;
+	size_t start, len;
+
+	s = m->selections; 
+	while (s != NULL) {
+		sn = s->next;
+	
+		if (s->tb == c->tb && s->start <= c->pos && c->pos <= s->end) {
+			start = s->start;
+			len = s->end - s->start;
+
+			sequencedelete(s->tb->sequence, start, len);
+			shiftselections(m, s->tb, start, -len);
+			shiftcursors(m, s->tb, start, -len);
+			c->pos = start;
+			selectionremove(m, s);
+		}
+
+		s  = sn;
+	}
+}
+
 bool
 handletyping(struct mace *m, uint8_t *s, size_t n)
 {
 	struct cursor *c;
 	
 	for (c = m->cursors; c != NULL; c = c->next) {
+		deleteselections(m, c);
+
 		sequenceinsert(c->tb->sequence, c->pos, s, n);
 		shiftselections(m, c->tb, c->pos, n);
 		shiftcursors(m, c->tb, c->pos, n);
