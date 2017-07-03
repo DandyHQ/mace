@@ -1,5 +1,5 @@
 /* Generated using xlib-keysyms.awk from xlib-keysyms.txt */
-#include <unistd.h>
+#include <stdint.h>
 int32_t keymappings[] = {
 [0x0020] = 0x0020,
 [0x0021] = 0x0021,

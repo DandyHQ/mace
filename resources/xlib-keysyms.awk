@@ -1,6 +1,6 @@
 BEGIN {
 	print "/* Generated using xlib-keysyms.awk from xlib-keysyms.txt */"
-	print "#include <unistd.h>"
+	print "#include <stdint.h>"
 	print "int32_t keymappings[] = {"
 }
 { 
