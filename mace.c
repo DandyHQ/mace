@@ -9,7 +9,6 @@ static uint8_t message[] =
   "\n\n"
 ;
 
-
 struct mace *
 macenew(void)
 {
@@ -208,10 +207,8 @@ handletyping(struct mace *m, uint8_t *s, size_t n)
 bool
 handlekeypress(struct mace *m, keycode_t k)
 {
-	struct selection *sel;
-	struct cursor *c;
 	uint8_t s[16];
-	size_t n, start;
+	size_t n;
 
 	switch (k) {
 	default:
@@ -226,58 +223,13 @@ handlekeypress(struct mace *m, keycode_t k)
 		return handletyping(m, s, n);
   
 	case KEY_delete:
-		if (m->selections == NULL) {
-			for (c = m->cursors; c != NULL; c = c->next) {
-				n = sequencecodepointlen(c->tb->sequence, c->pos);
-
-				start = c->pos;
-
-				sequencedelete(c->tb->sequence, start, n);
-				shiftselections(m, c->tb, start + n, -n);
-				shiftcursors(m, c->tb, start + n, -n);
-			}
-
-			return true;
-		}
-
-		/* Fall through */
-    
-	case KEY_backspace:
-		if (m->selections == NULL) {
-			for (c = m->cursors; c != NULL; c = c->next) {
-				n = sequenceprevcodepointlen(c->tb->sequence, c->pos);
-
-				start = c->pos - n;
-
-				sequencedelete(c->tb->sequence, start, n);
-				shiftselections(m, c->tb, start, -n);
-				shiftcursors(m, c->tb, start, -n);
-			}
-
-			return true;
-		}
-
-		for (sel = m->selections; sel != NULL; sel = sel->next) {
-			start = sel->start;
-			n = sel->end - sel->start;
-
-			sequencedelete(sel->tb->sequence, start, n);
-
-			shiftselections(m, sel->tb, start, -n);
-
-			for (c = m->cursors; c != NULL; c = c->next) {
-				if (c->tb != sel->tb) continue;
-				if (sel->end < c->pos) {
-					c->pos -= n;
-				} else if (sel->start < c->pos && c->pos < sel->end) {
-					c->pos = sel->end;
-				}
-			}
-		}
-			
-		selectionremoveall(m);
-
+		command(m, (uint8_t *) "del");
 		return true;
+
+	case KEY_backspace:
+		command(m, (uint8_t *) "back");
+		return true;
+
 	}
 
 	return false;

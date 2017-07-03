@@ -211,6 +211,76 @@ cmdpaste(struct mace *m)
 	handletyping(m, clipboard, clipboardlen);
 }
 
+static void
+deleteselections(struct mace *m)
+{
+	struct selection *sel;
+	struct cursor *c;
+	size_t start, n;
+
+	for (sel = m->selections; sel != NULL; sel = sel->next) {
+		start = sel->start;
+		n = sel->end - sel->start;
+
+		sequencedelete(sel->tb->sequence, start, n);
+
+		shiftselections(m, sel->tb, start, -n);
+
+		for (c = m->cursors; c != NULL; c = c->next) {
+			if (c->tb != sel->tb) continue;
+			if (sel->end < c->pos) {
+				c->pos -= n;
+			} else if (sel->start < c->pos && c->pos < sel->end) {
+				c->pos = sel->end;
+			}
+		}
+	}
+			
+	selectionremoveall(m);
+}
+
+static void
+cmddel(struct mace *m)
+{
+	struct cursor *c;
+	size_t start, n;
+
+	if (m->selections == NULL) {
+		for (c = m->cursors; c != NULL; c = c->next) {
+			n = sequencecodepointlen(c->tb->sequence, c->pos);
+
+			start = c->pos;
+
+			sequencedelete(c->tb->sequence, start, n);
+			shiftselections(m, c->tb, start + n, -n);
+			shiftcursors(m, c->tb, start + n, -n);
+		}
+	} else {
+		deleteselections(m);
+	}
+}
+
+static void
+cmdback(struct mace *m)
+{
+	struct cursor *c;
+	size_t start, n;
+
+	if (m->selections == NULL) {
+		for (c = m->cursors; c != NULL; c = c->next) {
+			n = sequenceprevcodepointlen(c->tb->sequence, c->pos);
+
+			start = c->pos - n;
+
+			sequencedelete(c->tb->sequence, start, n);
+			shiftselections(m, c->tb, start, -n);
+			shiftcursors(m, c->tb, start, -n);
+		}
+	} else {
+		deleteselections(m);
+	}
+}
+
 static struct cmd cmds[] = {
 	{ "save",       cmdsave },
 	{ "open",      cmdopen },
@@ -218,6 +288,8 @@ static struct cmd cmds[] = {
 	{ "cut",        cmdcut },
 	{ "copy",      cmdcopy },
 	{ "paste",     cmdpaste },
+	{ "back",      cmdback },
+	{ "del",         cmddel },
 };
 
 bool
