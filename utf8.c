@@ -82,16 +82,19 @@ iswordbreak(int32_t code)
 	return false;
 }
 
+/* Lots of help from st (http://st.suckless.org/) */
 /*
-1 7     U+0000    U+007F      0xxxxxxx 			
-2 11   U+0080    U+07FF      110xxxxx 10xxxxxx 		
-3 16   U+0800    U+FFFF      1110xxxx 10xxxxxx 10xxxxxx 	
-4 21   U+10000  U+10FFFF  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-
+1 7   U+0000  U+007F   0xxxxxxx 			
+2 11  U+0080  U+07FF   110xxxxx 10xxxxxx 		
+3 16  U+0800  U+FFFF   1110xxxx 10xxxxxx 10xxxxxx 	
+4 21  U+10000 U+10FFFF 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 */
+
+#define UTF_MAX 0x10ffff
 
 static uint8_t utfbyte[5] = { 0x80,    0, 0xc0, 0xe0, 0xf0 };
 static uint8_t utfmask[5] = { 0xc0, 0x80, 0xe0, 0xf0, 0xf8 };
+static size_t  utfmax[5]  = { 0, 0x7f, 0x7ff, 0xffff, 0x10ffff };
 
 static int32_t
 utf8decodebyte(uint8_t b, size_t *l)
@@ -166,4 +169,32 @@ utf8codepoints(const uint8_t *s, size_t len)
   }
 
   return j;
+}
+
+uint8_t
+utf8encodebyte(int32_t c, size_t i)
+{
+	return utfbyte[i] | (c & ~utfmask[i]);
+}
+
+size_t
+utf8encode(uint8_t *s, size_t len, int32_t code)
+{
+	size_t i, l;
+
+	if (code > UTF_MAX) {
+		return 0;
+	}
+
+	for (l = 1; l < 5 && utfmax[l] < code; l++)
+		;
+
+	for (i = l - 1; i != 0; i--) {
+		s[i] = utf8encodebyte(code, 0);
+		code >>= 6;
+	}
+
+	s[0] = utf8encodebyte(code, l);
+
+	return l;
 }

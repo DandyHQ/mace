@@ -22,3 +22,7 @@ utf8deiterate(const uint8_t *s, size_t slen, size_t off, int32_t *code);
 
 size_t
 utf8codepoints(const uint8_t *s, size_t len);
+
+/* Encodes code into s if it can fit, returns the encoded length. */
+size_t
+utf8encode(uint8_t *s, size_t len, int32_t code);

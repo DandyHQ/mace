@@ -19,28 +19,28 @@ configure_file(input : 'config.h.in',
 	       configuration : conf_data)
 
 executable('mace', install: true,
-	   sources: [
-	     'mace.c',
-	     'pane.c',
-	     'tab.c',
-	     'textbox.c',
-	     'textboxdraw.c',
-	     'selection.c',
-       'cursor.c',
-	     'sequence.c',
-	     'font.c',
-	     'utf8.c',
-	     'cmd.c',
-	     'xmain.c'
-	   ],
+	sources: [
+		'mace.c',
+		'pane.c',
+		'tab.c',
+		'textbox.c',
+		'textboxdraw.c',
+		'selection.c',
+		'cursor.c',
+		'sequence.c',
+		'font.c',
+		'utf8.c',
+		'cmd.c',
+		'resources/xlib-keysyms.c',
+		'xmain.c'
+	],
 
-	   dependencies: [
-	     x11,
-	     ft,
-	     fc,
-	     cairo,
-	   ],
-	  )
+	dependencies: [
+		x11,
+		ft,
+		fc,
+		cairo,
+	])
 
 
 seqtest = executable('tests/sequence',

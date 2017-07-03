@@ -12,6 +12,8 @@
 #include "mace.h"
 #include "config.h"
 
+extern int32_t keymappings[];
+
 static Display *display;
 static Window win;
 static int screen;
@@ -82,7 +84,8 @@ symtocode(KeySym sym)
 static bool
 xhandlekeypress(XKeyEvent *e)
 {
-  uint8_t s[16];
+	int32_t code;
+  uint8_t s[4];
   keycode_t c;
   KeySym sym;
   ssize_t n;
@@ -91,17 +94,36 @@ xhandlekeypress(XKeyEvent *e)
 			   e->state & ShiftMask);
 
   c = symtocode(sym);
+	if (c != KEY_none) {
+		return handlekeypress(mace, c);
+	}
 
-  if (c == KEY_none) {
-    /* TODO: fix for unicode characters. I do not know any nice way to
-     do this. */
-    n = snprintf((char *) s, sizeof(s), "%c", (int) sym);
-    if (n > 0) {
-      return handletyping(mace, s, n);
-    }
-  } 
+	/* Fucking Xorg */
 
-  return handlekeypress(mace, c);
+	/* Keysyms under 0x100 are ASCII so unicode. */
+	if (0x20 <= sym && sym < 0x100) {
+		code = sym;
+
+	/* At this point unicode was around and people decieded to 
+	   just shift the values. */
+	} else if (0x01000100 <= sym && sym <= 0x0110ffff) {
+		code = sym - 0x01000000;
+
+	/* But before that weird things happened. */
+	} else if (0x0100 <= sym && sym <= 0x20ff) {
+		code = keymappings[sym];
+
+	/* Anything else shouldn't exist. */
+	} else {
+		code = 0;
+	}
+
+	n = utf8encode(s, sizeof(s), code);
+  if (n > 0) {
+    return handletyping(mace, s, n);
+  } else {
+		return false;
+	}
 }
 
 static bool
