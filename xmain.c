@@ -125,6 +125,8 @@ xhandlekeypress(XKeyEvent *e)
 
 	/* Couldn't find a unicode mapping for the keysym. */
 	if (code == 0) {
+		fprintf(stderr, "No unicode mapping for keysym %i known!\n", 
+		        (int) sym);
 		return false;
 	}
 
