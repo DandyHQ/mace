@@ -9,6 +9,12 @@ Every four weeks master gets tagged and that is the stable release.
 After tagging Development gets merged into master and the cycle
 repeates.
 
+# Platforms
+
+To make it in portable C11. OpenBSD, ubuntu, and fedora are targets. 
+In future support for Windows and OSX will probably be added but it
+is not a priority.
+
 # User Input
 
 When xmain.c (or whatever is iterfacing with the windowing system)

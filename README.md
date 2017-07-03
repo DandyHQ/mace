@@ -87,5 +87,5 @@ Please [file](https://github.com/DandyHQ/mace/issues) any bugs or feature reques
 
 The Mace developers welcomes contributions in the form of Pull Requests.
 
-If you would like to contribute but don't know what to do look in the 
-[TODO](docs/TODO.md).
+If you would like to contribute but don't know what to do look at the github issues.
+There is probably something to do.
