@@ -8,7 +8,7 @@
 
 #if defined(__linux)
 
-#include <linux/limits.h>
+#define PATH_MAX 1024
 
 static size_t
 strlcpy(char *dst, const char *src, size_t dstsize)
