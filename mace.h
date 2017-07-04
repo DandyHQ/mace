@@ -6,7 +6,7 @@
 #include <cairo.h>
 #include <cairo-ft.h>
 
-#ifdef linux
+#if defined(__linux)
 
 #include <linux/limits.h>
 
@@ -23,7 +23,7 @@ strlcpy(char *dst, const char *src, size_t dstsize)
 	return i;
 }
 
-#elif defined(openbsd)
+#elif defined(__OpenBSD__)
 
 #include <limits.h>
 
