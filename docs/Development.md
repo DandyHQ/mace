@@ -30,13 +30,16 @@ Yes, this is horrible. But for whatever reason I voted against C++ and
 going object oriented and I have not come up with a nice way to interface
 everything.
 
-Key presses and releases are different depending on the key
-pressed/released. Most of the time keys can be represented as a utf8
-encoded string and length such as "a" if the A key is pressed. These
-are given to handletyping. In other cases such as the enter key or the
-escape key handlekey[press|release] is called with a key_t enum
-given. This allows mace's key representation to be seperated from X11,
-allowing it to be portable in future.
+Keys are mostly straight forward. Keys are given to Mace as a unicode
+string. Modifiers are in the form of S-C-A-M-key where S is shift, C
+for control, A for alt, M for 
+super/meta/windows/apple/whateverthefuckyourspecialkeyiscalled.
+Some keys are given as descriptions such as Return, Tab, BackSpace, etc.
+Anything else should be a utf8 encoded Unicode codepoint. Mace then
+looks through to see if the key is bound to a command. If it is it
+runs the command, otherwise it strips the modifer codes off and puts 
+it after any cursors and increases the cursors by the length of the string.
+
 
 # Fonts
 
