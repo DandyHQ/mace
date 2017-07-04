@@ -143,6 +143,11 @@ struct pane {
   struct tab *focus;
 };
 
+struct keybinding {
+	uint8_t *key, *cmd;
+	struct keybinding *next;
+};
+
 /* A mace structure. Each structure represents a window and lua
    runtime. */
 
@@ -150,6 +155,8 @@ struct mace {
   bool running;
 
   struct font *font;
+
+	struct keybinding *keybindings;
   
   struct pane *pane;
 
@@ -171,6 +178,9 @@ macefree(struct mace *mace);
    it. */
 void
 macequit(struct mace *mace);
+
+bool
+maceaddkeybinding(struct mace *m, uint8_t *key, uint8_t *cmd);
 
 bool
 command(struct mace *mace, const uint8_t *cmd);

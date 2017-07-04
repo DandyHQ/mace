@@ -9,6 +9,17 @@ static uint8_t message[] =
   "\n\n"
 ;
 
+struct defkeybinding {
+	uint8_t *key, *cmd;
+};
+
+static struct defkeybinding defaultkeybindings[] = {
+	{ (uint8_t *) "Tab",         (uint8_t *) "tab" },
+	{ (uint8_t *) "Return",      (uint8_t *) "return" },
+	{ (uint8_t *) "Delete",      (uint8_t *) "del" },
+	{ (uint8_t *) "BackSpace",   (uint8_t *) "back" },
+};
+
 struct mace *
 macenew(void)
 {
@@ -17,7 +28,7 @@ macenew(void)
   struct mace *m;
   struct tab *t;
   uint8_t *buf;
-  size_t l;
+  size_t l, i;
 
   m = calloc(1, sizeof(struct mace));
   if (m == NULL) {
@@ -61,6 +72,10 @@ macenew(void)
   paneaddtab(m->pane, t, 0);
   m->pane->focus = t;
 
+	for (i = 0; i < sizeof(defaultkeybindings) / sizeof(defaultkeybindings[0]); i++) {
+		maceaddkeybinding(m, defaultkeybindings[i].key, defaultkeybindings[i].cmd);
+	}
+
   m->running = true;
   
   return m;
@@ -84,6 +99,42 @@ macefree(struct mace *m)
   }
 
   free(m);
+}
+
+bool
+maceaddkeybinding(struct mace *m, uint8_t *key, uint8_t *cmd)
+{
+	struct keybinding *k;
+	size_t klen, clen;
+
+	k = malloc(sizeof(struct keybinding));
+	if (k == NULL) {
+		return false;
+	}
+
+	klen = strlen((char *) key) + 1;
+	clen = strlen((char *) cmd) + 1;
+
+	k->key = malloc(klen);
+	if (k->key == NULL) {
+		free(k);
+		return false;
+	}
+
+	k->cmd = malloc(clen);
+	if (k->cmd == NULL) {
+		free(k->key);
+		free(k);
+		return false;
+	}
+
+	strlcpy((char *) k->key, (char *) key, klen);
+	strlcpy((char *) k->cmd, (char *) cmd, clen);
+
+	k->next = m->keybindings;
+	m->keybindings = k;
+
+	return true;
 }
 
 static struct pane *
@@ -207,16 +258,13 @@ handletyping(struct mace *m, uint8_t *s, size_t n)
 bool
 handlekey(struct mace *m, uint8_t *s, size_t n)
 {
-	if (strncmp((char *) s, "Tab", n) == 0) {
-		return handletyping(m, (uint8_t *) "\t", 1);
-	} else if (strncmp((char *) s, "Return", n) == 0) {
-		return handletyping(m, (uint8_t *) "\n", 1);
-	} else if (strncmp((char *) s, "Delete", n) == 0) {
-		command(m, (uint8_t *) "del");
-		return true;
-	} else if (strncmp((char *) s, "BackSpace", n) == 0) {
-		command(m, (uint8_t *) "back");
-		return true;
+	struct keybinding *k;
+
+	for (k = m->keybindings; k != NULL; k = k->next) {
+		if (strncmp((char *) s, (char *) k->key, n) == 0) {
+			command(m, k->cmd);
+			return true;
+		}
 	}
 
 	/* Remove modifiers if we're putting it straight in. */

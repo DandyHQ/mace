@@ -230,21 +230,26 @@ deleteselections(struct mace *m)
 }
 
 static void
-cmdpaste(struct mace *m)
+insertstring(struct mace *m, uint8_t *s, size_t n)
 {
 	struct cursor *c;
-
-  if (clipboard == NULL) {
-    return;
-  }
 
 	deleteselections(m);
 
 	for (c = m->cursors; c != NULL; c = c->next) {
-		sequenceinsert(c->tb->sequence, c->pos, clipboard, clipboardlen);
-		shiftselections(m, c->tb, c->pos, clipboardlen);
-		shiftcursors(m, c->tb, c->pos, clipboardlen);
+		sequenceinsert(c->tb->sequence, c->pos, s, n);
+		shiftselections(m, c->tb, c->pos, n);
+		shiftcursors(m, c->tb, c->pos, n);
 	}
+}
+
+static void
+cmdpaste(struct mace *m)
+{
+  if (clipboard != NULL) {
+    insertstring(m, clipboard, clipboardlen);
+  }
+
 }
 
 static void
@@ -289,15 +294,29 @@ cmdback(struct mace *m)
 	}
 }
 
+static void
+cmdtab(struct mace *m)
+{
+	insertstring(m, (uint8_t *) "\t", 1);
+}
+
+static void
+cmdreturn(struct mace *m)
+{
+	insertstring(m, (uint8_t *) "\n", 1);
+}
+
 static struct cmd cmds[] = {
 	{ "save",       cmdsave },
-	{ "open",      cmdopen },
+	{ "open",       cmdopen },
 	{ "close",      cmdclose },
 	{ "cut",        cmdcut },
-	{ "copy",      cmdcopy },
-	{ "paste",     cmdpaste },
-	{ "back",      cmdback },
-	{ "del",         cmddel },
+	{ "copy",       cmdcopy },
+	{ "paste",      cmdpaste },
+	{ "back",       cmdback },
+	{ "del",        cmddel },
+	{ "tab",        cmdtab },
+	{ "return",     cmdreturn },
 };
 
 bool
