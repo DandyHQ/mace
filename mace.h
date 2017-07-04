@@ -6,11 +6,27 @@
 #include <cairo.h>
 #include <cairo-ft.h>
 
-#ifndef PATH_MAX
-/* Linux has PATH_MAX defined under <linux/limits.h>, OpenBSD has it
-   defined under <limits.h>, PATH_MAX is a horrible thing anyway so
-   lets just make it up. */
-#define PATH_MAX 512
+#ifdef linux
+
+#include <linux/limits.h>
+
+static size_t
+strlcpy(char *dst, const char *src, size_t dstsize)
+{
+	size_t i;
+
+	for (i = 0; i + 1 < dstsize && src[i] != 0; i++) {
+		dst[i] = src[i];
+	}
+
+	dst[i] = 0;
+	return i;
+}
+
+#elif defined(openbsd)
+
+#include <limits.h>
+
 #endif
 
 #include "utf8.h"
