@@ -6,7 +6,7 @@
 #include <cairo.h>
 #include <cairo-ft.h>
 
-#if defined(__linux)
+#if defined(__linux__)
 
 #define PATH_MAX 1024
 
