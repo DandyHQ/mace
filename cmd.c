@@ -197,18 +197,8 @@ cmdcopy(struct mace *m)
     }
 
     clipboardlen = sequenceget(t->sequence, s->start,
-			                                         clipboard, clipboardlen);
+			                         clipboard, clipboardlen);
   }
-}
-
-static void
-cmdpaste(struct mace *m)
-{
-  if (clipboard == NULL) {
-    return;
-  }
-
-	handletyping(m, clipboard, clipboardlen);
 }
 
 static void
@@ -237,6 +227,24 @@ deleteselections(struct mace *m)
 	}
 			
 	selectionremoveall(m);
+}
+
+static void
+cmdpaste(struct mace *m)
+{
+	struct cursor *c;
+
+  if (clipboard == NULL) {
+    return;
+  }
+
+	deleteselections(m);
+
+	for (c = m->cursors; c != NULL; c = c->next) {
+		sequenceinsert(c->tb->sequence, c->pos, clipboard, clipboardlen);
+		shiftselections(m, c->tb, c->pos, clipboardlen);
+		shiftcursors(m, c->tb, c->pos, clipboardlen);
+	}
 }
 
 static void

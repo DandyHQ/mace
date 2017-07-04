@@ -15,35 +15,6 @@
 
 #include "utf8.h"
 
-/* Most keys are just text and are given to functions as a utf8 
-   encoded string. But some are not. And these are those special keys.
-*/
-
-typedef enum {
-  KEY_none,
-
-  KEY_shift,
-  KEY_alt,
-  KEY_super,
-  KEY_control,
-
-  KEY_left,
-  KEY_right,
-  KEY_up,
-  KEY_down,
-  KEY_pageup,
-  KEY_pagedown,
-  KEY_home,
-  KEY_end,
-
-  KEY_return,
-  KEY_tab,
-  KEY_backspace,
-  KEY_delete,
-
-  KEY_escape
-} keycode_t;
-
 /* Just a helper structure, not really used in many places. */
 struct colour {
   double r, g, b;
@@ -430,13 +401,7 @@ sequenceheight(struct sequence *s);
 /* Handle UI events. Return true if mace needs to be redrawn */
 
 bool
-handletyping(struct mace *mace, uint8_t *s, size_t n);
-
-bool
-handlekeypress(struct mace *mace, keycode_t k);
-
-bool
-handlekeyrelease(struct mace *mace, keycode_t k);
+handlekey(struct mace *mace, uint8_t *s, size_t n);
 
 bool
 handlebuttonpress(struct mace *mace, int x, int y, int b);

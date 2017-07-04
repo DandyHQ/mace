@@ -188,11 +188,11 @@ deleteselections(struct mace *m, struct cursor *c)
 	}
 }
 
-bool
+static bool
 handletyping(struct mace *m, uint8_t *s, size_t n)
 {
 	struct cursor *c;
-	
+
 	for (c = m->cursors; c != NULL; c = c->next) {
 		deleteselections(m, c);
 
@@ -205,38 +205,25 @@ handletyping(struct mace *m, uint8_t *s, size_t n)
 }
 
 bool
-handlekeypress(struct mace *m, keycode_t k)
+handlekey(struct mace *m, uint8_t *s, size_t n)
 {
-	uint8_t s[16];
-	size_t n;
-
-	switch (k) {
-	default:
-		break;
-
-	case KEY_tab:
-		n = snprintf((char *) s, sizeof(s), "\t");
-		return handletyping(m, s, n);
-
-	case KEY_return:
-		n = snprintf((char *) s, sizeof(s), "\n");
-		return handletyping(m, s, n);
-  
-	case KEY_delete:
+	if (strncmp((char *) s, "Tab", n) == 0) {
+		return handletyping(m, (uint8_t *) "\t", 1);
+	} else if (strncmp((char *) s, "Return", n) == 0) {
+		return handletyping(m, (uint8_t *) "\n", 1);
+	} else if (strncmp((char *) s, "Delete", n) == 0) {
 		command(m, (uint8_t *) "del");
 		return true;
-
-	case KEY_backspace:
+	} else if (strncmp((char *) s, "BackSpace", n) == 0) {
 		command(m, (uint8_t *) "back");
 		return true;
-
 	}
 
-	return false;
-}
+	/* Remove modifiers if we're putting it straight in. */
+	while (n > 2 && s[1] == '-') {
+		s += 2;
+		n -= 2;
+	}
 
-bool
-handlekeyrelease(struct mace *m, keycode_t k)
-{
-	return false;
+	return handletyping(m, s, n);
 }

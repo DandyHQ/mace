@@ -39,69 +39,13 @@ xresize(int w, int h)
   }
 }
 
-static keycode_t
-symtocode(KeySym sym)
+static int32_t
+symtounicode(KeySym sym)
 {
-  switch (sym) {
-  case XK_Shift_L:
-  case XK_Shift_R:
-    return KEY_shift;
-    
-  case XK_Alt_L:
-  case XK_Alt_R:
-  case XK_Meta_L:
-  case XK_Meta_R:
-    return KEY_alt;
-    
-  case XK_Super_L:
-  case XK_Super_R:
-    return KEY_super;
-
-  case XK_Control_L:
-  case XK_Control_R:
-    return KEY_control;
-
-  case XK_Left: return KEY_left;
-  case XK_Right: return KEY_right;
-  case XK_Up: return KEY_up;
-  case XK_Down: return KEY_down;
-  case XK_Page_Up: return KEY_pageup;
-  case XK_Page_Down: return KEY_pagedown;
-  case XK_Home: return KEY_home;
-  case XK_End: return KEY_end;
-
-  case XK_Return: return KEY_return;
-  case XK_Tab: return KEY_tab;
-  case XK_BackSpace: return KEY_backspace;
-  case XK_Delete: return KEY_delete;
-  case XK_Escape: return KEY_escape;
-
-  default:
-    return KEY_none;
-  }
-}
-
-static bool
-xhandlekeypress(XKeyEvent *e)
-{
-	int32_t code;
-  uint8_t s[4];
-  keycode_t c;
-  KeySym sym;
-  ssize_t n;
+	int32_t code = 0;
 	int i;
 
-  sym = XkbKeycodeToKeysym(display, e->keycode, 0,
-			   e->state & ShiftMask);
-
-  c = symtocode(sym);
-	if (c != KEY_none) {
-		return handlekeypress(mace, c);
-	}
-
-	/* Fucking Xorg */
-
-	code = 0;
+	/* Fuck Xorg */
 
 	/* Keysyms under 0x100 are ASCII so unicode. */
 	if (0x20 <= sym && sym < 0x100) {
@@ -123,37 +67,83 @@ xhandlekeypress(XKeyEvent *e)
 		}
 	}
 
-	/* Couldn't find a unicode mapping for the keysym. */
-	if (code == 0) {
-		fprintf(stderr, "No unicode mapping for keysym %i known!\n", 
-		        (int) sym);
-		return false;
-	}
+	return code;
+}
 
-	n = utf8encode(s, sizeof(s), code);
-  if (n > 0) {
-    return handletyping(mace, s, n);
-  } else {
-		return false;
-	}
+static size_t
+encodekey(KeySym sym, uint8_t *s, size_t n)
+{
+	int32_t code;
+
+  switch (sym) {
+  case XK_Shift_L:
+  case XK_Shift_R:
+  case XK_Alt_L:
+  case XK_Alt_R:
+  case XK_Meta_L:
+  case XK_Meta_R:
+  case XK_Super_L:
+  case XK_Super_R:
+  case XK_Control_L:
+  case XK_Control_R:
+    return 0;
+
+  case XK_Left:      return strlcpy((char *) s, "Left", n);
+  case XK_Right:     return strlcpy((char *) s, "Right", n);
+  case XK_Up:        return strlcpy((char *) s, "Up", n);
+  case XK_Down:      return strlcpy((char *) s, "Down", n);
+  case XK_Page_Up:   return strlcpy((char *) s, "PageUp", n);
+  case XK_Page_Down: return strlcpy((char *) s, "PageDown", n);
+  case XK_Home:      return strlcpy((char *) s, "Home", n);
+  case XK_End:       return strlcpy((char *) s, "End", n);
+  case XK_Return:    return strlcpy((char *) s, "Return", n);
+  case XK_Tab:       return strlcpy((char *) s, "Tab", n);
+  case XK_BackSpace: return strlcpy((char *) s, "BackSpace", n);
+  case XK_Delete:    return strlcpy((char *) s, "Delete", n);
+  case XK_Escape:    return strlcpy((char *) s, "Escape", n);
+
+  default:
+    code = symtounicode(sym);
+		if (code == 0) {
+			return 0;
+		}
+
+		return utf8encode(s, n, code);
+  }
 }
 
 static bool
-xhandlekeyrelease(XKeyEvent *e)
+xhandlekeypress(XKeyEvent *e)
 {
-  keycode_t c;
+  size_t n = 32, nn = 0;
+  uint8_t s[n];
   KeySym sym;
 
   sym = XkbKeycodeToKeysym(display, e->keycode, 0,
 			   e->state & ShiftMask);
 
-  c = symtocode(sym);
+	if ((e->state & ShiftMask) != 0) {
+		nn += strlcpy((char *) s + nn, "S-", n - nn);
+	}
 
-  if (c != KEY_none) {
-    return handlekeyrelease(mace, c);
+	if ((e->state & ControlMask) != 0) {
+		nn += strlcpy((char *) s + nn, "C-", n - nn);
+	}
+
+	if ((e->state & Mod1Mask) != 0) {
+		nn += strlcpy((char *) s + nn, "A-", n - nn);
+	}
+
+	if ((e->state & Mod4Mask) != 0) {
+		nn += strlcpy((char *) s + nn, "M-", n - nn);
+	}
+
+  n = encodekey(sym, s + nn, n - nn);
+  if (n > 0) {
+    return handlekey(mace, s, n + nn);
   } else {
-    return false;
-  }
+		return false;
+	}
 }
 
 static bool
@@ -224,10 +214,6 @@ eventLoop(void)
 
     case KeyPress:
       redraw = xhandlekeypress(&e.xkey);
-      break;
-
-    case KeyRelease:
-      redraw = xhandlekeyrelease(&e.xkey);
       break;
 
     case ButtonPress:
