@@ -6,29 +6,6 @@
 #include <cairo.h>
 #include <cairo-ft.h>
 
-#if defined(__linux__)
-
-#define PATH_MAX 1024
-
-static size_t
-strlcpy(char *dst, const char *src, size_t dstsize)
-{
-	size_t i;
-
-	for (i = 0; i + 1 < dstsize && src[i] != 0; i++) {
-		dst[i] = src[i];
-	}
-
-	dst[i] = 0;
-	return i;
-}
-
-#elif defined(__OpenBSD__)
-
-#include <limits.h>
-
-#endif
-
 #include "utf8.h"
 
 /* Just a helper structure, not really used in many places. */
@@ -40,7 +17,7 @@ struct colour {
    load fonts from patterns. */
 
 struct font {
-  char path[PATH_MAX];
+  char path[1024];
   double size;
   
   FT_Library library;

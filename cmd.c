@@ -39,7 +39,7 @@ getfilename(struct tab *t, uint8_t *buf, size_t len)
 static void
 cmdsave(struct mace *m)
 {
-  uint8_t filename[PATH_MAX], *buf;
+  uint8_t filename[1024], *buf;
   struct sequence *s;
   size_t len;
   int fd;
@@ -96,7 +96,7 @@ cmdsave(struct mace *m)
 static void
 openselection(struct mace *m, struct selection *s)
 {
-  uint8_t name[PATH_MAX];
+  uint8_t name[1024];
   struct tab *t;
   size_t len;
 

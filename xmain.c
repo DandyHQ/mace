@@ -88,19 +88,19 @@ encodekey(KeySym sym, uint8_t *s, size_t n)
   case XK_Control_R:
     return 0;
 
-  case XK_Left:      return strlcpy((char *) s, "Left", n);
-  case XK_Right:     return strlcpy((char *) s, "Right", n);
-  case XK_Up:        return strlcpy((char *) s, "Up", n);
-  case XK_Down:      return strlcpy((char *) s, "Down", n);
-  case XK_Page_Up:   return strlcpy((char *) s, "PageUp", n);
-  case XK_Page_Down: return strlcpy((char *) s, "PageDown", n);
-  case XK_Home:      return strlcpy((char *) s, "Home", n);
-  case XK_End:       return strlcpy((char *) s, "End", n);
-  case XK_Return:    return strlcpy((char *) s, "Return", n);
-  case XK_Tab:       return strlcpy((char *) s, "Tab", n);
-  case XK_BackSpace: return strlcpy((char *) s, "BackSpace", n);
-  case XK_Delete:    return strlcpy((char *) s, "Delete", n);
-  case XK_Escape:    return strlcpy((char *) s, "Escape", n);
+  case XK_Left:      strcpy((char *) s, "Left"); break;
+  case XK_Right:     strcpy((char *) s, "Right"); break;
+  case XK_Up:        strcpy((char *) s, "Up"); break;
+  case XK_Down:      strcpy((char *) s, "Down"); break;
+  case XK_Page_Up:   strcpy((char *) s, "PageUp"); break;
+  case XK_Page_Down: strcpy((char *) s, "PageDown"); break;
+  case XK_Home:      strcpy((char *) s, "Home"); break;
+  case XK_End:       strcpy((char *) s, "End"); break;
+  case XK_Return:    strcpy((char *) s, "Return"); break;
+  case XK_Tab:       strcpy((char *) s, "Tab"); break;
+	case XK_BackSpace:  strcpy((char *) s, "BackSpace"); break;
+  case XK_Delete:     strcpy((char *) s, "Delete"); break;
+  case XK_Escape:     strcpy((char *) s, "Escape"); break;
 
   default:
     code = symtounicode(sym);
@@ -110,6 +110,8 @@ encodekey(KeySym sym, uint8_t *s, size_t n)
 
 		return utf8encode(s, n, code);
   }
+
+	return strlen((char *) s);
 }
 
 static bool
@@ -123,19 +125,23 @@ xhandlekeypress(XKeyEvent *e)
 			   e->state & ShiftMask);
 
 	if ((e->state & ShiftMask) != 0) {
-		nn += strlcpy((char *) s + nn, "S-", n - nn);
+		strcpy((char *) s + nn, "S-");
+		nn = strlen((char *) s);
 	}
 
 	if ((e->state & ControlMask) != 0) {
-		nn += strlcpy((char *) s + nn, "C-", n - nn);
+		strcpy((char *) s + nn, "C-");
+		nn = strlen((char *) s);
 	}
 
 	if ((e->state & Mod1Mask) != 0) {
-		nn += strlcpy((char *) s + nn, "A-", n - nn);
+		strcpy((char *) s + nn, "A-");
+		nn = strlen((char *) s);
 	}
 
 	if ((e->state & Mod4Mask) != 0) {
-		nn += strlcpy((char *) s + nn, "M-", n - nn);
+		strcpy((char *) s + nn, "M-");
+		nn = strlen((char *) s);
 	}
 
   n = encodekey(sym, s + nn, n - nn);
