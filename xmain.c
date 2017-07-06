@@ -98,9 +98,9 @@ encodekey(KeySym sym, uint8_t *s, size_t n)
   case XK_End:       strcpy((char *) s, "End"); break;
   case XK_Return:    strcpy((char *) s, "Return"); break;
   case XK_Tab:       strcpy((char *) s, "Tab"); break;
-	case XK_BackSpace:  strcpy((char *) s, "BackSpace"); break;
-  case XK_Delete:     strcpy((char *) s, "Delete"); break;
-  case XK_Escape:     strcpy((char *) s, "Escape"); break;
+	case XK_BackSpace: strcpy((char *) s, "BackSpace"); break;
+  case XK_Delete:    strcpy((char *) s, "Delete"); break;
+  case XK_Escape:    strcpy((char *) s, "Escape"); break;
 
   default:
     code = symtounicode(sym);
@@ -118,30 +118,30 @@ static bool
 xhandlekeypress(XKeyEvent *e)
 {
   size_t n = 32, nn = 0;
-  uint8_t s[n];
   KeySym sym;
+  uint8_t s[n];
 
   sym = XkbKeycodeToKeysym(display, e->keycode, 0,
 			   e->state & ShiftMask);
 
 	if ((e->state & ShiftMask) != 0) {
-		strcpy((char *) s + nn, "S-");
-		nn = strlen((char *) s);
+		memmove(s + nn, "S-", 2);
+		nn += 2;
 	}
 
 	if ((e->state & ControlMask) != 0) {
-		strcpy((char *) s + nn, "C-");
-		nn = strlen((char *) s);
+		memmove(s + nn, "C-", 2);
+		nn += 2;
 	}
 
 	if ((e->state & Mod1Mask) != 0) {
-		strcpy((char *) s + nn, "A-");
-		nn = strlen((char *) s);
+		memmove(s + nn, "A-", 2);
+		nn += 2;;
 	}
 
 	if ((e->state & Mod4Mask) != 0) {
-		strcpy((char *) s + nn, "M-");
-		nn = strlen((char *) s);
+		memmove(s + nn, "M-", 2);
+		nn += 2;
 	}
 
   n = encodekey(sym, s + nn, n - nn);

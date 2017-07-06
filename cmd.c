@@ -18,20 +18,18 @@ static size_t clipboardlen = 0;
 static size_t
 getfilename(struct tab *t, uint8_t *buf, size_t len)
 {
-  char c;
   size_t l;
 
-  l = 0;
-  while (l < len && sequenceget(t->action->sequence, l,
-		    (uint8_t *) &c, sizeof(c)) == sizeof(c)) {
-    if (c == ':') {
-      break;
-    } else {
-      l++;
+  for (l = 0; l < len; l++) {
+		if (sequenceget(t->action->sequence, l, buf + l, sizeof(uint8_t)) 
+		    != sizeof(uint8_t)) {
+			break;
+		} else if (buf[l] == ':') {
+     	break;
     }
   }
   
-  sequenceget(t->action->sequence, 0, buf, l);
+	buf[l] = 0;
   
   return l;
 }
@@ -44,8 +42,6 @@ cmdsave(struct mace *m)
   size_t len;
   int fd;
 
-	printf("save\n");
-
   if (m->mousefocus == NULL) {
     return;
   }
@@ -55,12 +51,8 @@ cmdsave(struct mace *m)
     return;
   }
 
-	printf("filename: %s\n", filename);
-
   s = m->mousefocus->tab->main->sequence;
   len = sequencelen(s);
-
-	printf("alloc %zu\n", len);
 
   buf = malloc(len);
   if (buf == NULL) {
@@ -68,11 +60,8 @@ cmdsave(struct mace *m)
     return;
   }
 
-	printf("fill buffer\n");
   len = sequenceget(s, 0, buf, len);
 
-	printf("open file\n");
-  
   fd = open((char *) filename, O_WRONLY|O_TRUNC|O_CREAT, 0666);
   if (fd < 0) {
     printf("Failed to open %s\n", filename);
@@ -80,17 +69,12 @@ cmdsave(struct mace *m)
     return;
   }
 
-	printf("write data\n");
-
   if (write(fd, buf, len) != len) {
     printf("Failed to write to %s\n", filename);
   }
 
-	printf("close\n");
   close(fd);
-	printf("free\n");
   free(buf);
-	printf("file saved\n");
 }
 
 static void
@@ -325,7 +309,7 @@ bool
 command(struct mace *mace, const uint8_t *s)
 {
 	int i;
-	
+
 	for (i = 0; i < sizeof(cmds) / sizeof(struct cmd); i++) {
 		if (strcmp((const char *) s, cmds[i].name) == 0) {
  		  cmds[i].func(mace);
