@@ -257,10 +257,11 @@ cmddel(struct mace *m)
 {
 	struct cursor *c;
 	size_t start, n;
+	int32_t code;
 
 	if (m->selections == NULL) {
 		for (c = m->cursors; c != NULL; c = c->next) {
-			n = sequencecodepointlen(c->tb->sequence, c->pos);
+			n = sequencecodepoint(c->tb->sequence, c->pos, &code);
 
 			start = c->pos;
 
@@ -278,10 +279,11 @@ cmdback(struct mace *m)
 {
 	struct cursor *c;
 	size_t start, n;
+	int32_t code;
 
 	if (m->selections == NULL) {
 		for (c = m->cursors; c != NULL; c = c->next) {
-			n = sequenceprevcodepointlen(c->tb->sequence, c->pos);
+			n = sequenceprevcodepoint(c->tb->sequence, c->pos, &code);
 
 			start = c->pos - n;
 

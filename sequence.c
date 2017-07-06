@@ -3,6 +3,8 @@
 
 #include "mace.h"
 
+/* This file is ugly and needs to be redone properly. */
+
 static void
 placeglyphs(struct sequence *s);
 
@@ -22,6 +24,7 @@ sequencenew(struct font *font, uint8_t *data, size_t len)
   s->pmax = 10;
   s->pieces = malloc(sizeof(struct piece) * s->pmax);
   if (s->pieces == NULL) {
+		free(s);
     return NULL;
   }
 
@@ -145,6 +148,7 @@ pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 
     if (s->pieces == NULL) {
       s->pmax = 0;
+			free(glyphs);
       return -1;
     }
 
@@ -491,9 +495,8 @@ sequencefindword(struct sequence *s, size_t pos,
 }
 
 size_t
-sequencecodepointlen(struct sequence *s, size_t pos)
+sequencecodepoint(struct sequence *s, size_t pos, int32_t *code)
 {
-	int32_t code;
 	ssize_t p;
 	size_t i, l;
 
@@ -511,15 +514,14 @@ sequencecodepointlen(struct sequence *s, size_t pos)
 		i = 0;
 	}
 
-	l = utf8iterate(s->data + s->pieces[p].off + i, s->pieces[p].len - i, &code);
+	l = utf8iterate(s->data + s->pieces[p].off + i, s->pieces[p].len - i, code);
 		
 	return l;
 }
 
 size_t
-sequenceprevcodepointlen(struct sequence *s, size_t pos)
+sequenceprevcodepoint(struct sequence *s, size_t pos, int32_t *code)
 {
-	int32_t code;
 	ssize_t p;
 	size_t i, l;
 
@@ -537,7 +539,7 @@ sequenceprevcodepointlen(struct sequence *s, size_t pos)
 		i = s->pieces[p].len;
 	}
 
-	l = utf8deiterate(s->data + s->pieces[p].off, s->pieces[p].len, i, &code);
+	l = utf8deiterate(s->data + s->pieces[p].off, s->pieces[p].len, i, code);
 	return l;
 }
 
@@ -661,6 +663,7 @@ placeglyphs(struct sequence *s)
 
   x = 0;
   y = s->font->baseline;
+	a = 0;
   
   for (p = &s->pieces[SEQ_start]; 
 	          p->next != -1; 
@@ -668,14 +671,9 @@ placeglyphs(struct sequence *s)
 	
 	  startg = 0;
     for (i = 0, g = 0; i < p->len && g < p->nglyphs; i += a, g++) {
-			while (i < p->len) {
+			do {
    	   a = utf8iterate(s->data + p->off + i, p->len - i, &code);
-				if (a != 0) {
-					break;
-				} else {
-					i++;
-				}
-			}
+			} while (a == 0 && i++ < p->len);
 
 			if (i >= p->len) {
 				break;

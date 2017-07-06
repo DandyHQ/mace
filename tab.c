@@ -191,8 +191,6 @@ tabresize(struct tab *t, int x, int y, int w, int h)
     return false;
   }
 
-	h -= sequenceheight(t->action->sequence);
-
   return textboxresize(t->main, w - SCROLL_WIDTH);
 }
 
@@ -327,9 +325,7 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
 void
 tabdraw(struct tab *t, cairo_t *cr)
 {
-  int y;
-
-  y = 0;
+  int y = 0;
 
   y = tabdrawaction(t, cr, y);
 
@@ -340,5 +336,5 @@ tabdraw(struct tab *t, cairo_t *cr)
 
   y += 1;
 
-  y = tabdrawmain(t, cr, y);
+  tabdrawmain(t, cr, y);
 }

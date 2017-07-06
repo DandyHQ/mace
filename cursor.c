@@ -23,18 +23,12 @@ cursoradd(struct mace *m, struct textbox *t,
 void
 cursorremove(struct mace *m, struct cursor *c)
 {
-	struct cursor *p;
+	struct cursor **p;
 
-	if (m->cursors == c) {
-		m->cursors = c->next;
-	} else {
-		for (p = m->cursors; p->next != c && p->next != NULL; p = p->next)
-			;
+	for (p = &m->cursors; *p != NULL && *p != c; p = &(*p)->next)
+		;
 
-		if (p->next == c) {
-			p->next = c->next;
-		}
-	}
+	*p = c->next;
 
   free(c);
 }

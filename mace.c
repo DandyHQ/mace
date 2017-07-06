@@ -128,8 +128,8 @@ maceaddkeybinding(struct mace *m, uint8_t *key, uint8_t *cmd)
 		return false;
 	}
 
-	strcpy((char *) k->key, (char *) key);
-	strcpy((char *) k->cmd, (char *) cmd);
+	memmove(k->key, key, klen);
+	memmove(k->cmd, cmd, clen);
 
 	k->next = m->keybindings;
 	m->keybindings = k;

@@ -33,25 +33,13 @@ selectionadd(struct mace *m, struct textbox *t,
 void
 selectionremove(struct mace *m, struct selection *s)
 {
-	struct selection *p;
+	struct selection **p;
 
-	printf("selection remove\n");
+	for (p = &m->selections; *p != NULL && *p != s; p = &(*p)->next)
+		;
 
-	if (m->selections == s) {
-		printf("head\n");
-		m->selections = s->next;
-	} else {
-		for (p = m->selections; p->next != s && p->next != NULL; p = p->next)
-			;
+	*p = s->next;
 
-		printf("found sel/end\n");
-		if (p != NULL && p->next == s) {
-			printf("next is s\n");
-			p->next = s->next;
-		}
-	}
-
-	printf("free\n");
   free(s);
 }
 

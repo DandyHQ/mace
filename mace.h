@@ -381,10 +381,10 @@ sequencefindword(struct sequence *s, size_t pos,
                              size_t *start, size_t *len);
 
 size_t
-sequencecodepointlen(struct sequence *s, size_t pos);
+sequencecodepoint(struct sequence *s, size_t pos, int32_t *code);
 
 size_t
-sequenceprevcodepointlen(struct sequence *s, size_t pos);
+sequenceprevcodepoint(struct sequence *s, size_t pos, int32_t *code);
 
 /* Fulls out buf with the contentes of the sequence starting at pos
    and going for at most len bytes, buf must be of at least len + 1
