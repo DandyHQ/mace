@@ -78,7 +78,7 @@ cmdsave(struct mace *m)
 }
 
 static void
-openselection(struct mace *m, struct selection *s)
+openselection(struct mace *m, struct cursel *s)
 {
   uint8_t name[1024];
   struct tab *t;
@@ -100,10 +100,10 @@ openselection(struct mace *m, struct selection *s)
 static void
 cmdopen(struct mace *m)
 {
-  struct selection *s;
+  struct cursel *s;
 
-  for (s = m->selections; s != NULL; s = s->next) {
-		if (s->type == SELECTION_normal) {
+  for (s = m->cursels; s != NULL; s = s->next) {
+		if ((s->type & CURSEL_nrm) != 0 && s->start != s->end) {
 	    openselection(m, s);
 		}
   }
@@ -133,33 +133,37 @@ cmdclose(struct mace *m)
 static void
 cmdcut(struct mace *m)
 {
-  struct selection *s, *n;
+  struct cursel *s, *n;
 	struct textbox *t;
+	size_t start, len;
 
-  for (s = m->selections; s != NULL; s = n) {
+  for (s = m->cursels; s != NULL; s = n) {
     n = s->next;
-    if (s->type != SELECTION_normal) continue;
+    if ((s->type & CURSEL_cmd) != 0 || s->start == s->end) continue;
 		t = s->tb;
 
-    clipboardlen = s->end - s->start;
-    clipboard = realloc(clipboard, clipboardlen);
+		start = s->start;
+		len = s->end - s->start;
+
+    clipboard = realloc(clipboard, len);
     if (clipboard == NULL) {
       clipboardlen = 0;
       return;
     }
 
-    clipboardlen = sequenceget(t->sequence, s->start, 
-		                                           clipboard, clipboardlen);
+    clipboardlen = sequenceget(t->sequence, start, 
+		                                           clipboard, len);
 
-    sequencedelete(t->sequence, s->start, clipboardlen);
+    sequencedelete(t->sequence, start, clipboardlen);
     
 		/* TODO: shift cursors properly. This doesn't work if the cursor is
 		    in the selection. It will shift it to before the selection unlike the
 		    expected moving it to the start of the selection. */
 
-		shiftcursors(m, t, s->start, -clipboardlen);
-
-    selectionremove(m, s);
+		shiftcursels(m, t, start, -clipboardlen);
+		s->start = start;
+		s->end = start;
+		s->cur = 0;		
   }
 }
 
@@ -167,10 +171,10 @@ static void
 cmdcopy(struct mace *m)
 {
   struct textbox *t;
-  struct selection *s;
+  struct cursel *s;
 
-  for (s = m->selections; s != NULL; s = s->next) {
-    if (s->type != SELECTION_normal) continue;
+  for (s = m->cursels; s != NULL; s = s->next) {
+    if ((s->type & CURSEL_cmd) != 0 || s->start == s->end) continue;
 		t = s->tb;
     
     clipboardlen = s->end - s->start;
@@ -186,44 +190,25 @@ cmdcopy(struct mace *m)
 }
 
 static void
-deleteselections(struct mace *m)
-{
-	struct selection *sel;
-	struct cursor *c;
-	size_t start, n;
-
-	for (sel = m->selections; sel != NULL; sel = sel->next) {
-		start = sel->start;
-		n = sel->end - sel->start;
-
-		sequencedelete(sel->tb->sequence, start, n);
-
-		shiftselections(m, sel->tb, start, -n);
-
-		for (c = m->cursors; c != NULL; c = c->next) {
-			if (c->tb != sel->tb) continue;
-			if (sel->end < c->pos) {
-				c->pos -= n;
-			} else if (sel->start < c->pos && c->pos < sel->end) {
-				c->pos = sel->end;
-			}
-		}
-	}
-			
-	selectionremoveall(m);
-}
-
-static void
 insertstring(struct mace *m, uint8_t *s, size_t n)
 {
-	struct cursor *c;
+	struct cursel *c;
+	size_t start, len;
 
-	deleteselections(m);
+	for (c = m->cursels; c != NULL; c = c->next) {
+		start = c->start;
+		len = c->end - start;
 
-	for (c = m->cursors; c != NULL; c = c->next) {
-		sequenceinsert(c->tb->sequence, c->pos, s, n);
-		shiftselections(m, c->tb, c->pos, n);
-		shiftcursors(m, c->tb, c->pos, n);
+		if (len > 0) {
+			sequencedelete(c->tb->sequence, start, len);
+		}
+
+		sequenceinsert(c->tb->sequence, start, s, n);
+		shiftcursels(m, c->tb, start, n - len);
+
+		c->start = start + n;
+		c->end = start + n;
+		c->cur = 0;
 	}
 }
 
@@ -239,44 +224,51 @@ cmdpaste(struct mace *m)
 static void
 cmddel(struct mace *m)
 {
-	struct cursor *c;
+	struct cursel *c;
 	size_t start, n;
 	int32_t code;
 
-	if (m->selections == NULL) {
-		for (c = m->cursors; c != NULL; c = c->next) {
-			n = sequencecodepoint(c->tb->sequence, c->pos, &code);
+	for (c = m->cursels; c != NULL; c = c->next) {
+		start = c->start;
+		n = c->end - c->start;
 
-			start = c->pos;
-
+		if (n > 0) {
 			sequencedelete(c->tb->sequence, start, n);
-			shiftselections(m, c->tb, start + n, -n);
-			shiftcursors(m, c->tb, start + n, -n);
+		} else {
+			n = sequencecodepoint(c->tb->sequence, start, &code);
+			sequencedelete(c->tb->sequence, start, n);
 		}
-	} else {
-		deleteselections(m);
+
+		shiftcursels(m, c->tb, start, -n);
+		c->start = start;
+		c->end = start;
+		c->cur = 0;
 	}
 }
 
 static void
 cmdback(struct mace *m)
 {
-	struct cursor *c;
+	struct cursel *c;
 	size_t start, n;
 	int32_t code;
 
-	if (m->selections == NULL) {
-		for (c = m->cursors; c != NULL; c = c->next) {
-			n = sequenceprevcodepoint(c->tb->sequence, c->pos, &code);
+	for (c = m->cursels; c != NULL; c = c->next) {
+		start = c->start;
+		n = c->end - c->start;
 
-			start = c->pos - n;
-
+		if (n > 0) {
 			sequencedelete(c->tb->sequence, start, n);
-			shiftselections(m, c->tb, start, -n);
-			shiftcursors(m, c->tb, start, -n);
+		} else {
+			n = sequenceprevcodepoint(c->tb->sequence, start, &code);
+			start -= n;
+			sequencedelete(c->tb->sequence, start, n);
 		}
-	} else {
-		deleteselections(m);
+
+		shiftcursels(m, c->tb, start, -n);
+		c->start = start;
+		c->end = start;
+		c->cur = 0;
 	}
 }
 

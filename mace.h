@@ -41,17 +41,19 @@ struct cursor {
 	struct cursor *next;
 };
 
-typedef enum { SELECTION_left, SELECTION_right } selection_direction_t;
-typedef enum { SELECTION_normal, SELECTION_command } selection_t;
+#define CURSEL_left      (0<<0)
+#define CURSEL_right   (1<<0)
+#define CURSEL_nrm    (1<<1)
+#define CURSEL_cmd    (1<<2)
 
-struct selection {
+struct cursel {
+	int type; /* Some OR of the above options. */
+
 	struct textbox *tb;
-	selection_t type;
-
-	size_t start, end;
-	selection_direction_t direction;
+	size_t start, end;     /* Start and end of selection in tb. */
+	size_t cur;              /* Offset of cursor from start. */
 	
-	struct selection *next;
+	struct cursel *next;
 };
 
 #define SEQ_start  0
@@ -96,10 +98,7 @@ struct textbox {
 
   struct sequence *sequence;
 
-	/* For adding a selection. */
-  struct selection *csel;
-	struct cursor *ccur;
-	size_t newselpos;
+  struct cursel *curcs;
 };
 
 struct tab {
@@ -155,8 +154,7 @@ struct mace {
 
   struct textbox *mousefocus;
 
-	struct selection *selections;
-	struct cursor *cursors;
+	struct cursel *cursels;
 };
 
 
@@ -198,6 +196,28 @@ loadglyph(FT_Face face, int32_t code);
 void 
 drawglyph(struct font *f, cairo_t *cr, int x, int y,
 	  struct colour *fg, struct colour *bg);
+
+
+
+
+struct cursel *
+curseladd(struct mace *mace, struct textbox *t, int type, size_t pos);
+
+void
+curselremove(struct mace *mace, struct cursel *c);
+
+void
+curselremoveall(struct mace *mace);
+
+bool
+curselupdate(struct cursel *c, size_t pos);
+
+struct cursel *
+curselat(struct mace *mace, struct textbox *t,  size_t pos);
+
+void
+shiftcursels(struct mace *mace, struct textbox *t,
+                   size_t from, int dist);
 
 
 
@@ -299,49 +319,6 @@ textboxfindpos(struct textbox *t, int x, int y);
 void
 textboxdraw(struct textbox *t, cairo_t *cr, int x, int y, 
                     int width, int height);
-
-
-
-struct cursor *
-cursoradd(struct mace *mace, struct textbox *t,
-                size_t pos);
-
-void
-cursorremove(struct mace *mace, struct cursor *c);
-
-void
-cursorremoveall(struct mace *mace);
-
-struct cursor *
-cursorat(struct mace *mace, struct textbox *t,
-              size_t pos);
-
-void
-shiftcursors(struct mace *mace, struct textbox *t,
-                   size_t from, int dist);
-
-
-
-struct selection *
-selectionadd(struct mace *mace, struct textbox *t, 
-                    selection_t type, size_t pos1, size_t pos2);
-
-void
-selectionremove(struct mace *mace, struct selection *s);
-
-void
-selectionremoveall(struct mace *mace);
-
-bool
-selectionupdate(struct selection *s, size_t pos);
-
-struct selection *
-inselections(struct mace *mace, struct textbox *t, size_t pos);
-
-void
-shiftselections(struct mace *mace, struct textbox *t,
-                      size_t from, int dist);
-
 
 
 /* Creates a new sequence around data, data may be NULL.

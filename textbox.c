@@ -17,8 +17,7 @@ textboxnew(struct mace *m, struct tab *tab,
   t->sequence = seq;
   t->tab = tab;
 
-  t->newselpos = SIZE_MAX;
-  t->csel = NULL;
+  t->curcs = NULL;
 
   t->yoff = 0;
 	t->linewidth = 0;
@@ -31,12 +30,12 @@ textboxnew(struct mace *m, struct tab *tab,
 void
 textboxfree(struct textbox *t)
 {
-	struct selection *s, *sn;
+	struct cursel *c, *cn;
 
-	for (s = t->mace->selections; s != NULL; s = sn) {
-		sn = s->next;
-		if (s->tb == t) {
-			selectionremove(t->mace, s);
+	for (c = t->mace->cursels; c != NULL; c = cn) {
+		cn = c->next;
+		if (c->tb == t) {
+			curselremove(t->mace, c);
 		}
 	}
 
@@ -58,38 +57,35 @@ bool
 textboxbuttonpress(struct textbox *t, int x, int y,
 		   unsigned int button)
 {
-  struct selection *sel;
+  struct cursel *c;
   size_t pos, start, len;
 
   pos = textboxfindpos(t, x, y);
   
   switch (button) {
   case 1:
-    selectionremoveall(t->mace);
-		cursorremoveall(t->mace);
+    curselremoveall(t->mace);
 
-		t->ccur = cursoradd(t->mace, t, pos);
-    t->newselpos = pos;
+		t->curcs = curseladd(t->mace, t, CURSEL_nrm, pos);
 
     return true;
 
 	case 2:
 		/* Temparary */
 
-		t->ccur = cursoradd(t->mace, t, pos);
-		t->newselpos = pos;
+		t->curcs= curseladd(t->mace, t, CURSEL_nrm, pos);
 
     return true;
 
   case 3:
-    sel = inselections(t->mace, t, pos);
-    if (sel != NULL) {
-      sel->type = SELECTION_command;
+    c = curselat(t->mace, t, pos);
+    if (c != NULL) {
+      c->type |= CURSEL_cmd;
       return true;
 
     } else if (sequencefindword(t->sequence, pos, &start, &len)) {
-      selectionadd(t->mace, t, SELECTION_command,
-			                    start, start + len);
+      c = curseladd(t->mace, t, CURSEL_cmd, start);
+			curselupdate(c, start + len);
       return true;
 
     } else {
@@ -104,13 +100,11 @@ bool
 textboxbuttonrelease(struct textbox *t, int x, int y,
 		     unsigned int button)
 {
-  struct selection *sel, *seln;
+  struct cursel *c, *cn;
   size_t pos, start, len;
   uint8_t *buf;
 
-  t->csel = NULL;
-	t->ccur = NULL;
-  t->newselpos = SIZE_MAX;
+  t->curcs = NULL;
 
   switch (button) {
   case 1:
@@ -120,21 +114,23 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
   case 3:
 	  pos = textboxfindpos(t, x, y);
 
-    sel = inselections(t->mace, t, pos);
-    if (sel != NULL && sel->type == SELECTION_command) {
-      start = sel->start;
-      len = sel->end - start;
+    c = curselat(t->mace, t, pos);
+    if (c != NULL && (c->type & CURSEL_cmd) != 0) {
+      start = c->start;
+      len = c->end - start;
 		} else {
 			len = 0;
 		}
 
-		sel = t->mace->selections;
-		while (sel != NULL) {
-			seln = sel->next;
-			if (sel->type == SELECTION_command) {
-				selectionremove(t->mace, sel);
+		for (c = t->mace->cursels; c != NULL; c = cn) {
+			cn = c->next;
+			if ((c->type & CURSEL_cmd) != 0) {
+				if ((c->type & CURSEL_nrm) != 0) {
+					c->type &= ~CURSEL_cmd;
+				} else {
+					curselremove(t->mace, c);
+				}
 			}
-			sel = seln;
 		}
     
 		if (len > 0) {
@@ -165,32 +161,13 @@ textboxmotion(struct textbox *t, int x, int y)
 {
   size_t pos;
 
-  if (t->newselpos != SIZE_MAX) {
-    pos = textboxfindpos(t, x, y);
-    if (pos == t->newselpos) {
-      return false;
-    }
-
-    t->csel = selectionadd(t->mace, t, SELECTION_normal,
-		                                   t->newselpos, pos);
-    if (t->csel == NULL) {
-      return false;
-    }
-
-    t->newselpos = SIZE_MAX;
-    return true;
-
-  } else if (t->csel != NULL && t->ccur != NULL) {
+  if (t->curcs != NULL) {
     pos = textboxfindpos(t, x, y);
 
-		t->ccur->pos = pos;
-
-    if (selectionupdate(t->csel, pos)) {
-      return true;
-    }
-  }
-  
-  return false;
+    return curselupdate(t->curcs, pos);
+  } else {
+ 	 return false;
+	}
 }
 
 bool

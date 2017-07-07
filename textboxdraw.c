@@ -88,7 +88,7 @@ void
 textboxdraw(struct textbox *t, cairo_t *cr, 
             int x, int y, int width, int height)
 {
-  struct selection *sel, *nsel;
+  struct cursel *cs, *ncs;
   struct sequence *s;
   size_t i, g, start;
   struct colour *bg;
@@ -117,7 +117,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
   g = 0;
   start = 0;
 
-  sel = NULL;
+  cs = NULL;
   bg = &t->bg;
 
   while (true) {
@@ -130,31 +130,34 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 				continue;
       }
 
-      nsel = inselections(t->mace, t, p->pos + i);
-      if (nsel != sel) {
-				if (start < g) {
-          /* Draw the undrawn glyphs with the previous selection. */
-					drawglyphs(t, cr, 
-					           &p->glyphs[start], g - start,
-					           &nfg, bg, ay, by);
-				}
+			if (cs == NULL || cs->end == p->pos + i) {
+				/* Maybe new cursel or end of current cursel. */
+				ncs = curselat(t->mace, t, p->pos + i);
 
-				start = g;
+				if (ncs != cs || (ncs != NULL && ncs->end == p->pos + i)) {
+					/* Difference cursel, may be null. */
 
-				sel = nsel;
-				if (sel != NULL) {
-					switch (sel->type) {
-					case SELECTION_normal:
-						bg = &sbg;
-						break;
-					case SELECTION_command:
-						bg = &cbg;
-						break;
+					if (start < g) {
+      	    /* Draw the undrawn glyphs with the previous selection. */
+						drawglyphs(t, cr, 
+						           &p->glyphs[start], g - start,
+						           &nfg, bg, ay, by);
 					}
-				} else {
-					bg = &t->bg;
+
+					start = g;
+					cs = ncs;
+
+					if (cs != NULL && cs->end > p->pos + i) {
+						if ((cs->type & CURSEL_cmd) != 0) {
+							bg = &cbg;
+						} else {
+							bg = &sbg;
+						}
+					} else {
+						bg = &t->bg;
+					}
 				}
-      }
+			}
 
       /* Line Break. */
       if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
@@ -166,18 +169,14 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 
 				start = g + 1;
 
-				if (sel != NULL) {
-          /* Draw selection on rest of line. */
-
-					cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
-					cairo_rectangle(cr,
-					                p->glyphs[g].x,
-					                p->glyphs[g].y - ay,
-					                t->linewidth - PAD * 2 - p->glyphs[g].x,
-					                ay + by);
+				cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+				cairo_rectangle(cr,
+				                        p->glyphs[g].x,
+					                      p->glyphs[g].y - ay,
+					                      t->linewidth - PAD * 2 - p->glyphs[g].x,
+					                     ay + by);
 		  
-					cairo_fill(cr); 
-				}
+				cairo_fill(cr); 
 	
       } else if (code == '\t') {
 				if (start < g) {
@@ -188,32 +187,32 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 
 				start = g + 1;
 
-				if (sel != NULL) {
-          /* Draw selection on tab. */
-					cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
-					cairo_rectangle(cr,
-					                p->glyphs[g].x,
-									        p->glyphs[g].y - ay,
-										      t->mace->font->tabwidthpixels,
-					                ay + by);
+				cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+				cairo_rectangle(cr,
+				                        p->glyphs[g].x,
+					                      p->glyphs[g].y - ay,
+					                      t->mace->font->tabwidth,
+					                     ay + by);
 		  
-					cairo_fill(cr); 
-				}
+				cairo_fill(cr); 
       }
 
-      if (cursorat(t->mace, t, p->pos + i) != NULL) {
+      if (cs != NULL && 
+			   (cs->type & CURSEL_nrm) != 0 && 
+			   cs->start + cs->cur == p->pos + i) {
+
 				if (start <= g) {
 					drawglyphs(t, cr, 
-					           &p->glyphs[start], g - start + 1,
-					           &nfg, bg, ay, by);
+					                  &p->glyphs[start], g - start + 1,
+					                  &nfg, bg, ay, by);
 				}
 
 				start = g + 1;
 
 				drawcursor(t, cr,
-						   p->glyphs[g].x,
-						   p->glyphs[g].y - ay,
-				       ay + by);
+		           				   p->glyphs[g].x,
+			           			   p->glyphs[g].y - ay,
+				                  ay + by);
       }
 
       i += a;
@@ -238,12 +237,15 @@ textboxdraw(struct textbox *t, cairo_t *cr,
     }
   }
 
-  if (cursorat(t->mace, t, sequencelen(s)) != NULL) {
+  if (cs != NULL &&
+	    (cs->type & CURSEL_nrm) != 0 &&
+	    cs->start + cs->cur == sequencelen(s)) {
+
     p = &s->pieces[SEQ_end];
     drawcursor(t, cr,
-	       p->glyphs[0].x,
-	       p->glyphs[0].y - ay,
-	       ay + by);
+	                    p->glyphs[0].x,
+	                    p->glyphs[0].y - ay,
+	                    ay + by);
   }
   
 	cairo_restore(cr);

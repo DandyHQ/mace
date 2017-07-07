@@ -90,6 +90,8 @@ macequit(struct mace *m)
 void
 macefree(struct mace *m)
 {
+	curselremoveall(m);
+
   if (m->pane != NULL) {
     panefree(m->pane);
   }
@@ -214,42 +216,28 @@ handlescroll(struct mace *m, int x, int y, int dx, int dy)
   }
 }
 
-static void
-deleteselections(struct mace *m, struct cursor *c)
-{
-	struct selection *s, *sn;
-	size_t start, len;
-
-	s = m->selections; 
-	while (s != NULL) {
-		sn = s->next;
-	
-		if (s->tb == c->tb && s->start <= c->pos && c->pos <= s->end) {
-			start = s->start;
-			len = s->end - s->start;
-
-			sequencedelete(s->tb->sequence, start, len);
-			shiftselections(m, s->tb, start, -len);
-			shiftcursors(m, s->tb, start, -len);
-			c->pos = start;
-			selectionremove(m, s);
-		}
-
-		s  = sn;
-	}
-}
-
 static bool
 handletyping(struct mace *m, uint8_t *s, size_t n)
 {
-	struct cursor *c;
+	struct cursel *c;
+	size_t start, len;
 
-	for (c = m->cursors; c != NULL; c = c->next) {
-		deleteselections(m, c);
+	for (c = m->cursels; c != NULL; c = c->next) {
+		if ((c->type & CURSEL_nrm) == 0) continue;
 
-		sequenceinsert(c->tb->sequence, c->pos, s, n);
-		shiftselections(m, c->tb, c->pos, n);
-		shiftcursors(m, c->tb, c->pos, n);
+		start = c->start;
+		len = c->end - c->start;
+
+		if (len > 0) {
+			sequencedelete(c->tb->sequence, start, len);
+		}
+
+		sequenceinsert(c->tb->sequence, start, s, n);
+
+		shiftcursels(m, c->tb, start, (int) n - (int) len);
+		c->start = start + n;
+		c->end = start + n;
+		c->cur = 0;
 	}
 
 	return true;
