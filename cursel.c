@@ -99,9 +99,9 @@ curselat(struct mace *m, struct textbox *t, size_t pos)
 
   for (s = m->cursels; s != NULL; s = s->next) {
     if (s->tb == t && s->start <= pos && pos <= s->end) {
-      return s;
-    }
-  }
+			return s;
+		}
+	}
 
   return NULL;
 }

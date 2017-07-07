@@ -73,7 +73,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
 	case 2:
 		/* Temparary */
 
-		t->curcs= curseladd(t->mace, t, CURSEL_nrm, pos);
+		t->curcs = curseladd(t->mace, t, CURSEL_nrm, pos);
 
     return true;
 

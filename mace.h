@@ -30,17 +30,6 @@ struct font {
   int tabwidthpixels;
 };
 
-/* Cursors and selections could possibly be merged. Every selection has
-    a cursor except commands. So selections may end up with a cursor 
-    position field at some point. */
-
-struct cursor {
-	struct textbox *tb;
-	size_t pos;
-
-	struct cursor *next;
-};
-
 #define CURSEL_left      (0<<0)
 #define CURSEL_right   (1<<0)
 #define CURSEL_nrm    (1<<1)

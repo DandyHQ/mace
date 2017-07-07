@@ -130,7 +130,9 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 				continue;
       }
 
-			if (cs == NULL || cs->end == p->pos + i) {
+			/* I don't like this code. */
+
+			if (cs == NULL || cs->end <= p->pos + i) {
 				/* Maybe new cursel or end of current cursel. */
 				ncs = curselat(t->mace, t, p->pos + i);
 
