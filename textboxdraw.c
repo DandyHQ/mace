@@ -209,7 +209,9 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 	if (cs != NULL && (cs->type & CURSEL_nrm) != 0 &&
 	    cs->start + cs->cur == sequencelen(t->sequence)) {
 
-			drawcursor(cr, t->glyphs[g].x, t->glyphs[g].y - ay, 
+			drawcursor(cr, 
+			           t->glyphs[t->nglyphs].x, 
+			           t->glyphs[t->nglyphs].y - ay, 
 			           ay + by);
 	}
 
@@ -228,7 +230,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   ly += t->yoff;
 
 	if (ly <= 0) {
-		ly = 0;
+		return t->starti;
 	}
   
   ay = (t->mace->font->face->size->metrics.ascender >> 6);
@@ -236,8 +238,6 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 	 
   s = t->sequence;
 	i = t->starti;
-	g = 0;
-	a = 0;
 
 	for (g = 0; g < t->nglyphs; g++, i += a) {
 		a = sequencecodepoint(t->sequence, i, &code);
@@ -350,14 +350,13 @@ textboxplaceglyphs(struct textbox *t)
   x = 0;
   y = t->mace->font->baseline;
 	g = 0;
-	i = 0;
 	startg = 0;
+	
+	t->starti = 0;
   
-  while (true) {
-		a = sequencecodepoint(s, i, &code);
-		if (a == 0) {
-			break;
-		}
+  for (i = 0;
+	     (a = sequencecodepoint(s, i, &code)) != 0;
+	     i += a) {
 
 		if (islinebreak(code)) {
 			if (startg < g) {
@@ -374,8 +373,18 @@ textboxplaceglyphs(struct textbox *t)
 			x = 0;
 			y += t->mace->font->lineheight;
 
-      startg = g + 1;
+			if (y < t->yoff) {
+				g = startg = 0;
+				t->starti = i + a;
+				continue;
 
+			} else if (t->yoff + t->maxheight < y - t->mace->font->lineheight) {
+				/* This is only to work out the height */
+				g = startg;
+				continue;
+			} else {
+     	 startg = g + 1;
+			}
     } else if (code == '\t') {
       if (startg < g) {
 				placesomeglyphs(t, 
@@ -395,13 +404,18 @@ textboxplaceglyphs(struct textbox *t)
 
 			x += t->mace->font->tabwidthpixels;
 
-      startg = g + 1;
+			if (t->yoff + t->maxheight < y - t->mace->font->lineheight) {
+				/* This is only to work out the height */
+				g = startg;
+				continue;
+			} else {
+     	 startg = g + 1;
+			}
 
     } else {
 			t->glyphs[g].index = code;
 		}
 
-		i += a;
 		if (++g == t->nglyphsmax) {
 			t->nglyphsmax += 100;
 			t->glyphs = realloc(t->glyphs, t->nglyphsmax * sizeof(cairo_glyph_t));
@@ -419,12 +433,19 @@ textboxplaceglyphs(struct textbox *t)
 		                g - startg,
                     &x, &y);
   }
+	
+	if (t->yoff + t->maxheight < y - t->mace->font->lineheight) {
+		/* This is only to work out the height */
+		g = startg;
+	}
 
-	/* End which has one glyph. */
-	t->glyphs[g].index = 0;
-	t->glyphs[g].x = x;
-	t->glyphs[g].y = y;
+	/* Last glyph stores the end. */
+
 	t->nglyphs = g;
+	t->glyphs[t->nglyphs].index = 0;
+	t->glyphs[t->nglyphs].x = x;
+	t->glyphs[t->nglyphs].y = y;
+
 	t->height = y - (t->mace->font->face->size->metrics.descender >> 6);
 }
 
