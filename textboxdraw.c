@@ -239,15 +239,16 @@ textboxdraw(struct textbox *t, cairo_t *cr,
     }
   }
 
+	cs = curselat(t->mace, t, sequencelen(s));
   if (cs != NULL &&
 	    (cs->type & CURSEL_nrm) != 0 &&
 	    cs->start + cs->cur == sequencelen(s)) {
 
     p = &s->pieces[SEQ_end];
     drawcursor(t, cr,
-	                    p->glyphs[0].x,
-	                    p->glyphs[0].y - ay,
-	                    ay + by);
+	             p->glyphs[0].x,
+	             p->glyphs[0].y - ay,
+	             ay + by);
   }
   
 	cairo_restore(cr);
