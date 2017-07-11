@@ -74,9 +74,11 @@ void
 textboxdraw(struct textbox *t, cairo_t *cr, 
             int x, int y, int width, int height)
 {
+	size_t g, startg, ii, a;
 	struct colour *fg, *bg;
-	size_t g, startg, i, a;
+	struct sequence *s;
 	struct cursel *cs;
+	struct piece *p;
 	int32_t code;
 	int ay, by;
 	bool cur;
@@ -99,31 +101,41 @@ textboxdraw(struct textbox *t, cairo_t *cr,
   cairo_set_font_face(cr, t->mace->font->cface);
   cairo_set_font_size(cr, t->mace->font->size);
 
-	i = t->starti;
-
 	cs = t->mace->cursels;
 	while (cs != NULL) {
-		if (cs->tb == t && i <= cs->start) {
+		if (cs->tb == t) {
 			break;
 		} else {
 			cs = cs->next;
 		}
 	}
 
-	for (startg = 0, g = 0; g < t->nglyphs; g++, i += a) {
-		a = sequencecodepoint(t->sequence, i, &code);
+	s = t->sequence;
+	p = &s->pieces[SEQ_start];
+	ii = 0;
+
+	for (startg = 0, g = 0; g < t->nglyphs; g++, ii += a) {
+		while (ii >= p->len) {
+			if (p->next == -1) {
+				goto end;
+			}
+			p = &s->pieces[p->next];
+			ii = 0;
+		}
+
+		a = utf8iterate(s->data + p->off + ii, p->len - ii, &code);
 		if (a == 0) {
 			break;
 		}
 
 		if (cs != NULL) {
-			if (cs->start + cs->cur == i) {
+			if (cs->start + cs->cur == p->pos + ii) {
 				cur = true;
 			} else {
 				cur = false;
 			}
 
-			if (cs->end == i) {
+			if (cs->end == p->pos + ii) {
 				drawglyphs(cr, &t->glyphs[startg], g - startg,
 				           &nfg, bg,
 				           t->linewidth - PAD * 2, ay, by);
@@ -138,7 +150,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 			}
 		}
 
-		if (cs != NULL && cs->start == i) {
+		if (cs != NULL && cs->start == p->pos + ii) {
 			drawglyphs(cr, &t->glyphs[startg], g - startg,
 			           &nfg, bg,
 			           t->linewidth - PAD * 2, ay, by);
@@ -202,6 +214,8 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 		}
 	}
 
+end:
+
 	drawglyphs(cr, &t->glyphs[startg], g - startg,
 	           &nfg, bg,
 	           t->linewidth - PAD * 2, ay, by);
@@ -230,14 +244,14 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   ly += t->yoff;
 
 	if (ly <= 0) {
-		return t->starti;
+		ly = 0;
 	}
   
   ay = (t->mace->font->face->size->metrics.ascender >> 6);
   by = -(t->mace->font->face->size->metrics.descender >> 6);
 	 
   s = t->sequence;
-	i = t->starti;
+	i = 0;
 
 	for (g = 0; g < t->nglyphs; g++, i += a) {
 		a = sequencecodepoint(t->sequence, i, &code);
@@ -342,21 +356,35 @@ textboxplaceglyphs(struct textbox *t)
 {
   size_t i, g, a, startg;
 	struct sequence *s;
+	struct piece *p;
   int32_t code;
   int x, y;
 
 	s = t->sequence;
+	p = &s->pieces[SEQ_start];
 
   x = 0;
   y = t->mace->font->baseline;
 	g = 0;
 	startg = 0;
-	
-	t->starti = 0;
-  
-  for (i = 0;
-	     (a = sequencecodepoint(s, i, &code)) != 0;
-	     i += a) {
+  i = 0;
+
+	while (true) {
+		while (i >= p->len) {
+			if (p->next == -1) {
+				goto end;
+			} else {
+				p = &s->pieces[p->next];
+				i = 0;
+			}
+		}
+
+		a = utf8iterate(s->data + p->off + i, p->len - i, &code);
+		if (a == 0) {
+			goto end;
+		} else {
+			i += a;
+		}
 
 		if (islinebreak(code)) {
 			if (startg < g) {
@@ -373,18 +401,8 @@ textboxplaceglyphs(struct textbox *t)
 			x = 0;
 			y += t->mace->font->lineheight;
 
-			if (y < t->yoff) {
-				g = startg = 0;
-				t->starti = i + a;
-				continue;
+      startg = g + 1;
 
-			} else if (t->yoff + t->maxheight < y - t->mace->font->lineheight) {
-				/* This is only to work out the height */
-				g = startg;
-				continue;
-			} else {
-     	 startg = g + 1;
-			}
     } else if (code == '\t') {
       if (startg < g) {
 				placesomeglyphs(t, 
@@ -404,13 +422,7 @@ textboxplaceglyphs(struct textbox *t)
 
 			x += t->mace->font->tabwidthpixels;
 
-			if (t->yoff + t->maxheight < y - t->mace->font->lineheight) {
-				/* This is only to work out the height */
-				g = startg;
-				continue;
-			} else {
-     	 startg = g + 1;
-			}
+      startg = g + 1;
 
     } else {
 			t->glyphs[g].index = code;
@@ -427,17 +439,14 @@ textboxplaceglyphs(struct textbox *t)
     }
 	}
 
+end:
+
   if (startg < g) {
     placesomeglyphs(t,
 		                &t->glyphs[startg],
 		                g - startg,
                     &x, &y);
   }
-	
-	if (t->yoff + t->maxheight < y - t->mace->font->lineheight) {
-		/* This is only to work out the height */
-		g = startg;
-	}
 
 	/* Last glyph stores the end. */
 

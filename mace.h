@@ -58,15 +58,22 @@ struct textbox {
 
   /* Maximum width a line can be. */
   int linewidth;
+
 	/* Maximum height that will be displayed. */
 	int maxheight;
+
 	/* Total height of text. */
 	int height;
 
 	/* How far from the top have we scrolled */
   int yoff;
-	size_t starti; /* Index in sequence of first glyph displayed */
-	size_t nglyphs, nglyphsmax;
+
+	/* This is not done quite how I want, currently it is the placing
+	   all the glyphs in the sequence. */
+	/* Number of glyphs to display. */
+	size_t nglyphs;
+	/* Number of glyphs glphys can currently fit. */
+	size_t nglyphsmax;
 	cairo_glyph_t *glyphs;
 
   struct colour bg;

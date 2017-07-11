@@ -22,7 +22,6 @@ textboxnew(struct mace *m, struct tab *tab,
   t->yoff = 0;
 	t->linewidth = 0;
 
-	t->starti = 0;
 	t->nglyphs = 0;
 	t->nglyphsmax = 1024;
 	t->glyphs = malloc(sizeof(cairo_glyph_t) * t->nglyphsmax);
@@ -49,17 +48,34 @@ textboxfree(struct textbox *t)
 	}
 
   sequencefree(t->sequence);
-
+	free(t->glyphs);
   free(t);
 }
 
 bool
 textboxresize(struct textbox *t, int lw, int h)
 {
+	float pos;
+
+	pos = (float) t->yoff / (float) t->height;
+
 	t->linewidth = lw;
 	t->maxheight = h;
 
+	free(t->glyphs);
+
+	t->nglyphs = 0;
+	t->nglyphsmax = 1024;
+	t->glyphs = malloc(sizeof(cairo_glyph_t) * t->nglyphsmax);
+	if (t->glyphs == NULL) {
+		free(t);	
+		return NULL;
+	}
+
+	/* Calculate new height */
   textboxplaceglyphs(t);
+
+//	t->yoff = (int) (pos * t->height);
 
   return true;
 }
@@ -191,8 +207,7 @@ textboxscroll(struct textbox *t, int xoff, int yoff)
   }
 
   if (yoff != t->yoff) {
-    t->yoff = yoff;
-		textboxplaceglyphs(t);
+		t->yoff = yoff;
     return true;
   } else {
     return false;
