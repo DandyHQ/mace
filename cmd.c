@@ -155,11 +155,8 @@ cmdcut(struct mace *m)
 		                                           clipboard, len);
 
     sequencedelete(t->sequence, start, clipboardlen);
+		textboxplaceglyphs(t);
     
-		/* TODO: shift cursors properly. This doesn't work if the cursor is
-		    in the selection. It will shift it to before the selection unlike the
-		    expected moving it to the start of the selection. */
-
 		shiftcursels(m, t, start, -clipboardlen);
 		s->start = start;
 		s->end = start;
@@ -204,6 +201,8 @@ insertstring(struct mace *m, uint8_t *s, size_t n)
 		}
 
 		sequenceinsert(c->tb->sequence, start, s, n);
+		textboxplaceglyphs(c->tb);
+
 		shiftcursels(m, c->tb, start, n - len);
 
 		c->start = start + n;
@@ -239,6 +238,8 @@ cmddel(struct mace *m)
 			sequencedelete(c->tb->sequence, start, n);
 		}
 
+		textboxplaceglyphs(c->tb);
+
 		shiftcursels(m, c->tb, start, -n);
 		c->start = start;
 		c->end = start;
@@ -264,6 +265,8 @@ cmdback(struct mace *m)
 			start -= n;
 			sequencedelete(c->tb->sequence, start, n);
 		}
+
+		textboxplaceglyphs(c->tb);
 
 		shiftcursels(m, c->tb, start, -n);
 		c->start = start;

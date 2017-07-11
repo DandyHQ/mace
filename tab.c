@@ -34,7 +34,7 @@ tabnew(struct mace *mace,
     return NULL;
   }
 
-  actionseq = sequencenew(mace->font, NULL, 0);
+  actionseq = sequencenew(NULL, 0);
   if (actionseq == NULL) {
     tabfree(t);
     return NULL;
@@ -76,7 +76,7 @@ tabnewemptyfile(struct mace *mace,
   struct sequence *seq;
   struct tab *t;
 
-  seq = sequencenew(mace->font, NULL, 0);
+  seq = sequencenew(NULL, 0);
   if (seq == NULL) {
     return NULL;
   }
@@ -114,8 +114,8 @@ tabnewfromfile(struct mace *mace,
   fd = open((const char *) filename, O_RDONLY);
   if (fd < 0) {
     return tabnewemptyfile(mace, 
-		                                     name, strlen((char *) name), 
-		                                     filename, flen);
+		                       name, strlen((char *) name), 
+		                       filename, flen);
   }
 
   if (fstat(fd, &st) != 0) {
@@ -128,8 +128,8 @@ tabnewfromfile(struct mace *mace,
     close(fd);
 
     return tabnewemptyfile(mace, 
-		                                     name, strlen((char *) name), 
-		                                     filename, flen);
+		                       name, strlen((char *) name), 
+		                       filename, flen);
   }
 
   data = malloc(dlen);
@@ -146,7 +146,7 @@ tabnewfromfile(struct mace *mace,
   
   close(fd);
 
-  seq = sequencenew(mace->font, data, dlen);
+  seq = sequencenew(data, dlen);
   if (seq == NULL) {
     free(data);
     return NULL;
@@ -187,11 +187,11 @@ tabresize(struct tab *t, int x, int y, int w, int h)
   t->width = w;
   t->height = h;
 
-  if (!textboxresize(t->action, w)) {
+  if (!textboxresize(t->action, w, h)) {
     return false;
   }
 
-  return textboxresize(t->main, w - SCROLL_WIDTH);
+  return textboxresize(t->main, w - SCROLL_WIDTH, h);
 }
 
 bool
@@ -220,7 +220,7 @@ tabsetname(struct tab *t, const uint8_t *name, size_t len)
 bool
 tabscroll(struct tab *t, int x, int y, int dx, int dy)
 {
-  if (y < sequenceheight(t->action->sequence)) {
+  if (y < t->action->height) {
     return false;
   } else {
     return textboxscroll(t->main, dx, t->main->yoff + dy);
@@ -232,14 +232,14 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 {
   int yoff, ah, mh;
   
-	ah = sequenceheight(t->action->sequence);
+	ah = t->action->height;
 
   if (y < ah) {
 		t->mace->mousefocus = t->action;
     return textboxbuttonpress(t->action, x, y, button);
   } 
 
-	mh = sequenceheight(t->main->sequence);
+	mh = t->main->height;
 
 	if (x < t->width - SCROLL_WIDTH) {
 		t->mace->mousefocus = t->main;
@@ -256,11 +256,11 @@ tabdrawaction(struct tab *t, cairo_t *cr, int y)
 {
   int h, ah;
   
-	ah = sequenceheight(t->action->sequence);
+	ah = t->action->height;
 	h = ah > t->height - y ? t->height - y : ah;
 
 	textboxdraw(t->action, cr, t->x, t->y + y,
-	                    t->width, h);
+	            t->width, h);
   
    return y + h;
 }
@@ -273,11 +273,11 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
   h = t->height - y;
 
 	textboxdraw(t->main, cr, t->x, t->y + y, 
-	                    t->width - SCROLL_WIDTH, h);
+	            t->width - SCROLL_WIDTH, h);
   
   /* Draw scroll bar */
 
-	mh = sequenceheight(t->main->sequence);
+	mh = t->main->height;
 
   pos = t->main->yoff * (t->height - y) / mh;
   size = h * (t->height - y) / mh;

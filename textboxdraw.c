@@ -13,10 +13,10 @@ static struct colour sbg = { 0.5, 0.8, 0.7 };
 static struct colour cbg = { 0.9, 0.5, 0.2 };
 
 static void
-drawcursor(struct textbox *t, cairo_t *cr, int x, int y, int h)
+drawcursor(cairo_t *cr, int x, int y, int h)
 {
   cairo_set_source_rgb(cr, 0, 0, 0);
-  cairo_set_line_width (cr, 1.3);
+  cairo_set_line_width(cr, 1.3);
 
   cairo_move_to(cr, x, y + 1);
   cairo_line_to(cr, x, y + h - 2);
@@ -32,69 +32,60 @@ drawcursor(struct textbox *t, cairo_t *cr, int x, int y, int h)
 }
 
 static void
-drawglyphs(struct textbox *t, cairo_t *cr, 
-     cairo_glyph_t *glyphs, size_t len,
-	   struct colour *fg, struct colour *bg,
-	   int ay, int by)
+drawglyphs(cairo_t *cr,
+           cairo_glyph_t *glyphs, size_t len,
+           struct colour *fg, struct colour *bg,
+           int lw, int ay, int by)
 {
-  cairo_text_extents_t extents;
-  size_t g, start;
+	size_t g, start;
 
-  cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+	if (len == 0) return;
 
-  /* Go through glyphs and find lines, draw background. */
-  start = 0;
-  for (g = 1; g < len; g++) {
-    if (glyphs[g].x != 0) {
-      continue;
-    }
+	cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
 
-    cairo_rectangle(cr,
-		    glyphs[start].x,
-		    glyphs[start].y - ay,
-		    t->linewidth - PAD * 2 - glyphs[start].x,
-		    ay + by);
-		  
-    cairo_fill(cr);
+	for (start = 0, g = 1; g < len; g++) {
+		if (glyphs[g].x != 0.0) continue;
 
-    start = g;
-  }
+		cairo_rectangle(cr,
+		                glyphs[start].x,
+                    glyphs[start].y - ay,
+		                lw - glyphs[start].x,
+                    ay + by);
 
-  /* Draw background of remaining glyphs. */
+		cairo_fill(cr);
+		start = g;
+	}
 
-  if (start < g) {
-    cairo_glyph_extents(cr, &glyphs[start], g - start, &extents);
+	if (start < g) {
+		cairo_rectangle(cr,
+		                glyphs[start].x,
+                    glyphs[start].y - ay,
+		                glyphs[g].x - glyphs[start].x,
+                    ay + by);
 
-    cairo_rectangle(cr,
-		    glyphs[start].x,
-		    glyphs[start].y - ay,
-		    extents.x_advance,
-		    ay + by);
-		  
-    cairo_fill(cr);
-  }
+		cairo_fill(cr);
+	}
 
-  /* Draw glyphs */
   cairo_set_source_rgb(cr, fg->r, fg->g, fg->b);
   cairo_show_glyphs(cr, glyphs, len);
 }
-
-/* This is pretty horrible. */
-
-/* TODO: cursors and selections could be ordered to make search faster.
-    I doubt this will improve it much but maybe in future. */
 
 void
 textboxdraw(struct textbox *t, cairo_t *cr, 
             int x, int y, int width, int height)
 {
-  struct cursel *cs, *ncs;
-  struct sequence *s;
-  size_t i, g, start;
-  struct colour *bg;
-  struct piece *p;
-  int32_t code, a;
-  int ay, by;
+	struct colour *fg, *bg;
+	size_t g, startg, i, a;
+	struct cursel *cs;
+	int32_t code;
+	int ay, by;
+	bool cur;
+	
+	fg = &nfg;
+	bg = &t->bg;
+
+  ay = (t->mace->font->face->size->metrics.ascender >> 6);
+  by = -(t->mace->font->face->size->metrics.descender >> 6);
 
 	cairo_save(cr);
 	cairo_rectangle(cr, x, y, width, height);
@@ -108,149 +99,120 @@ textboxdraw(struct textbox *t, cairo_t *cr,
   cairo_set_font_face(cr, t->mace->font->cface);
   cairo_set_font_size(cr, t->mace->font->size);
 
-  ay = (t->mace->font->face->size->metrics.ascender >> 6);
-  by = -(t->mace->font->face->size->metrics.descender >> 6);
-	 
-  s = t->sequence;
-  p = &s->pieces[SEQ_start];
-  i = 0;
-  g = 0;
-  start = 0;
+	i = t->starti;
 
-  cs = NULL;
-  bg = &t->bg;
+	cs = t->mace->cursels;
+	while (cs != NULL) {
+		if (cs->tb == t && i <= cs->start) {
+			break;
+		} else {
+			cs = cs->next;
+		}
+	}
 
-  while (true) {
-		while (i < p->len && g < p->nglyphs
-	    	     && p->glyphs[g].y < t->yoff + height) {
+	for (startg = 0, g = 0; g < t->nglyphs; g++, i += a) {
+		a = sequencecodepoint(t->sequence, i, &code);
+		if (a == 0) {
+			break;
+		}
 
-      a = utf8iterate(s->data + p->off + i, p->len - i, &code);
-      if (a == 0) {
-				i++;
-				continue;
-      }
-
-			/* I don't like this code. */
-
-			if (cs == NULL || cs->end <= p->pos + i) {
-				/* Maybe new cursel or end of current cursel. */
-				ncs = curselat(t->mace, t, p->pos + i);
-
-				if (ncs != cs || (ncs != NULL && ncs->end == p->pos + i)) {
-					/* Difference cursel, may be null. */
-
-					if (start < g) {
-      	    /* Draw the undrawn glyphs with the previous selection. */
-						drawglyphs(t, cr, 
-						           &p->glyphs[start], g - start,
-						           &nfg, bg, ay, by);
-					}
-
-					start = g;
-					cs = ncs;
-
-					if (cs != NULL && cs->end > p->pos + i) {
-						if ((cs->type & CURSEL_cmd) != 0) {
-							bg = &cbg;
-						} else {
-							bg = &sbg;
-						}
-					} else {
-						bg = &t->bg;
-					}
-				}
+		if (cs != NULL) {
+			if (cs->start + cs->cur == i) {
+				cur = true;
+			} else {
+				cur = false;
 			}
 
-      /* Line Break. */
-      if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
-				if (start < g) {
-					drawglyphs(t, cr, 
-					                  &p->glyphs[start], g - start,
-					                  &nfg, bg, ay, by);
+			if (cs->end == i) {
+				drawglyphs(cr, &t->glyphs[startg], g - startg,
+				           &nfg, bg,
+				           t->linewidth - PAD * 2, ay, by);
+
+				startg = g;
+
+				bg = &t->bg;
+				cs = cs->next;
+				if (cs != NULL && cs->tb != t) {
+					cs = NULL;
 				}
+			}
+		}
 
-				start = g + 1;
+		if (cs != NULL && cs->start == i) {
+			drawglyphs(cr, &t->glyphs[startg], g - startg,
+			           &nfg, bg,
+			           t->linewidth - PAD * 2, ay, by);
 
-				cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
-				cairo_rectangle(cr,
-				                        p->glyphs[g].x,
-					                      p->glyphs[g].y - ay,
-					                      t->linewidth - PAD * 2 - p->glyphs[g].x,
-					                     ay + by);
-		  
-				cairo_fill(cr); 
-	
-      } else if (code == '\t') {
-				if (start < g) {
-					drawglyphs(t, cr, 
-					           &p->glyphs[start], g - start,
-					           &nfg, bg, ay, by);
-				}
+			startg = g;
 
-				start = g + 1;
+			if (cs->start == cs->end) {
+				bg = &t->bg;
+				cur = true;
+			} else if ((cs->type & CURSEL_cmd) != 0) {
+				bg = &cbg;
+			} else {
+				bg = &sbg;
+			}
+		}
 
-				cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
-				cairo_rectangle(cr,
-				                        p->glyphs[g].x,
-					                      p->glyphs[g].y - ay,
-					                      t->mace->font->tabwidth,
-					                     ay + by);
-		  
-				cairo_fill(cr); 
-      }
+		if (islinebreak(code)) {
+			drawglyphs(cr, &t->glyphs[startg], g - startg,
+			           &nfg, bg,
+			           t->linewidth - PAD * 2, ay, by);
 
-      if (cs != NULL && 
-			   (cs->type & CURSEL_nrm) != 0 && 
-			   cs->start + cs->cur == p->pos + i) {
+			startg = g + 1;
+			
+			cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+			cairo_rectangle(cr,
+		  	              t->glyphs[g].x,
+    	                t->glyphs[g].y - ay,
+			                t->linewidth - PAD * 2 - t->glyphs[g].x,
+    	                ay + by);
 
-				if (start <= g) {
-					drawglyphs(t, cr, 
-					                  &p->glyphs[start], g - start + 1,
-					                  &nfg, bg, ay, by);
-				}
+			cairo_fill(cr);
+			
+		} else if (code == '\t') {
+			drawglyphs(cr, &t->glyphs[startg], g - startg,
+			           &nfg, bg,
+			           t->linewidth - PAD * 2, ay, by);
 
-				start = g + 1;
+			startg = g + 1;
+			
+			cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
+			cairo_rectangle(cr,
+		  	              t->glyphs[g].x,
+    	                t->glyphs[g].y - ay,
+			                t->mace->font->tabwidthpixels,
+    	                ay + by);
 
-				drawcursor(t, cr,
-		           				   p->glyphs[g].x,
-			           			   p->glyphs[g].y - ay,
-				                  ay + by);
-      }
+			cairo_fill(cr);
+		}
 
-      i += a;
-      g++;
-    }
+		if (cur) {
+			drawglyphs(cr, &t->glyphs[startg], g - startg + 1,
+			           &nfg, bg,
+			           t->linewidth - PAD * 2, ay, by);
 
-    if (start < g) {
-      drawglyphs(t, cr,
-			                  &p->glyphs[start], g - start,
-			                  &nfg, bg, ay, by);
-    }
+			startg = g + 1;
 
-    if (g < p->nglyphs && p->glyphs[g].y >= t->yoff + height) {
-      break;
-    } else if (p->next != -1) {
-      p = &s->pieces[p->next];
-      i = 0;
-      start = 0;
-      g = 0;
-    } else {
-      break;
-    }
-  }
+			drawcursor(cr, t->glyphs[g].x, t->glyphs[g].y - ay, 
+			           ay + by);
 
-	cs = curselat(t->mace, t, sequencelen(s));
-  if (cs != NULL &&
-	    (cs->type & CURSEL_nrm) != 0 &&
-	    cs->start + cs->cur == sequencelen(s)) {
+			cur = false;
+		}
+	}
 
-    p = &s->pieces[SEQ_end];
-    drawcursor(t, cr,
-	             p->glyphs[0].x,
-	             p->glyphs[0].y - ay,
-	             ay + by);
-  }
-  
+	drawglyphs(cr, &t->glyphs[startg], g - startg,
+	           &nfg, bg,
+	           t->linewidth - PAD * 2, ay, by);
+
+	if (cs != NULL && (cs->type & CURSEL_nrm) != 0 &&
+	    cs->start + cs->cur == sequencelen(t->sequence)) {
+
+			drawcursor(cr, t->glyphs[g].x, t->glyphs[g].y - ay, 
+			           ay + by);
+	}
+
 	cairo_restore(cr);
 } 
 
@@ -258,10 +220,9 @@ size_t
 textboxfindpos(struct textbox *t, int lx, int ly)
 {
   struct sequence *s;
-  struct piece *p;
-  int32_t code, a;
+  int32_t code;
   int ww, ay, by;
-  size_t i, g;
+  size_t i, g, a;
 
 	lx -= PAD;
   ly += t->yoff;
@@ -274,55 +235,198 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   by = -(t->mace->font->face->size->metrics.descender >> 6);
 	 
   s = t->sequence;
-  
-  for (p = &s->pieces[SEQ_start]; p->next != -1; p = &s->pieces[p->next]) {
-    for (i = 0, g = 0; i < p->len && g < p->nglyphs; i += a, g++) {
-			while (i < p->len) {
-   	   a = utf8iterate(s->data + p->off + i, p->len - i, &code);
-				if (a != 0) {
-					break;
-				} else {
-					i++;
-				}
-			}
+	i = t->starti;
+	g = 0;
+	a = 0;
 
-			if (i >= p->len) {
-				break;
-			}
+	for (g = 0; g < t->nglyphs; g++, i += a) {
+		a = sequencecodepoint(t->sequence, i, &code);
+		if (a == 0) {
+			break;
+		}
+		
+		if (ly < t->glyphs[g].y - ay || t->glyphs[g].y + by <= ly) {
+			continue;
+		}
 
-			if (ly < p->glyphs[g].y - ay || p->glyphs[g].y + by <= ly) {
+		if (islinebreak(code)) {
+			return i;
+
+		} else if (g + 1 < t->nglyphs && t->glyphs[g + 1].x == 0.0) {
+			/* Word wrapping. */
+			return i;
+
+		} else if (code == '\t') {
+			ww = t->mace->font->tabwidthpixels;
+
+		} else {
+			if (FT_Load_Glyph(t->mace->font->face, t->glyphs[g].index,
+			    FT_LOAD_DEFAULT) != 0) {
 				continue;
 			}
 
-      if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
-				return p->pos + i;
+			ww = t->mace->font->face->glyph->advance.x >> 6;
+		}
 
-			} else if (g + 1 < p->nglyphs && p->glyphs[g + 1].x == 0.0) {
-				/* Word wrapping. */
-				return p->pos + i;
+		if (lx <= t->glyphs[g].x + ww * 0.75f) {
+			/* Left three quarters of the glyph so go to the left side. */
+			return i;
 
-      } else if (code == '\t') {
-				ww = t->mace->font->tabwidthpixels;
-
-      } else {
-				if (FT_Load_Glyph(t->mace->font->face, p->glyphs[g].index,
-			      FT_LOAD_DEFAULT) != 0) {
-					continue;
-				}
-
-				ww = t->mace->font->face->glyph->advance.x >> 6;
-			}
-
-			if (lx <= p->glyphs[g].x + ww * 0.75f) {
-				/* Left three quarters of the glyph so go to the left side. */
-				return p->pos + i;
-
-			} else if (lx <= p->glyphs[g].x + ww) {
-				/* Right quarters of the glyph so go to the right side. */
-				return p->pos + i + a;
-			}
-    }
+		} else if (lx <= t->glyphs[g].x + ww) {
+			/* Right quarters of the glyph so go to the right side. */
+			return i + a;
+		}
   }
 
-  return sequencelen(s);
+	/* Probably off the screen. */
+  return i;
 }
+
+static void
+placesomeglyphs(struct textbox *t,
+                cairo_glyph_t *glyphs, size_t nglyphs,
+                int *x, int *y)
+{
+  size_t g, gg, linestart, lineend;
+	int32_t index;
+  int ww;
+
+	linestart = 0;
+	lineend = 0;
+
+  for (g = 0; g < nglyphs; g++) {
+		index = FT_Get_Char_Index(t->mace->font->face, glyphs[g].index);
+		if (FT_Load_Glyph(t->mace->font->face, index, FT_LOAD_DEFAULT) != 0) {
+			continue;
+		}
+
+    ww = t->mace->font->face->glyph->advance.x >> 6;
+
+    if (*x + ww >= t->linewidth) {
+			*x = 0;
+			*y += t->mace->font->lineheight;
+
+			if (linestart < lineend) {
+				/* Only attempt word breaks if there are words to break. */
+
+				for (gg = lineend; gg < g; gg++) {
+					glyphs[gg].x = *x;
+					glyphs[gg].y = *y;
+				
+					if (FT_Load_Glyph(t->mace->font->face, 
+					                  glyphs[gg].index, 
+					                  FT_LOAD_DEFAULT) != 0) {
+						continue;
+					}
+
+					*x += t->mace->font->face->glyph->advance.x >> 6;
+				}
+			}
+
+			linestart = lineend;
+
+    } else if (iswordbreak(glyphs[g].index)) {
+			lineend = g + 1;
+		}
+
+    glyphs[g].index = index;
+    glyphs[g].x = *x;
+    glyphs[g].y = *y;
+
+    *x += ww;
+  }
+}
+
+void
+textboxplaceglyphs(struct textbox *t)
+{
+  size_t i, g, a, startg;
+	struct sequence *s;
+  int32_t code;
+  int x, y;
+
+	s = t->sequence;
+
+  x = 0;
+  y = t->mace->font->baseline;
+	g = 0;
+	i = 0;
+	startg = 0;
+  
+  while (true) {
+		a = sequencecodepoint(s, i, &code);
+		if (a == 0) {
+			break;
+		}
+
+		if (islinebreak(code)) {
+			if (startg < g) {
+				placesomeglyphs(t, 
+			                  &t->glyphs[startg],
+			                  g - startg,
+			                  &x, &y);
+      }
+
+			t->glyphs[g].index = 0;
+			t->glyphs[g].x = x;
+			t->glyphs[g].y = y;
+
+			x = 0;
+			y += t->mace->font->lineheight;
+
+      startg = g + 1;
+
+    } else if (code == '\t') {
+      if (startg < g) {
+				placesomeglyphs(t, 
+			                  &t->glyphs[startg],
+			                  g - startg,
+			                  &x, &y);
+			}
+
+			if (x + t->mace->font->tabwidthpixels >= t->linewidth) {
+				x = 0;
+				y += t->mace->font->lineheight;
+			}
+
+			t->glyphs[g].index = 0;
+			t->glyphs[g].x = x; 
+			t->glyphs[g].y = y;
+
+			x += t->mace->font->tabwidthpixels;
+
+      startg = g + 1;
+
+    } else {
+			t->glyphs[g].index = code;
+		}
+
+		i += a;
+		if (++g == t->nglyphsmax) {
+			t->nglyphsmax += 100;
+			t->glyphs = realloc(t->glyphs, t->nglyphsmax * sizeof(cairo_glyph_t));
+			if (t->glyphs == NULL) {
+				t->nglyphs = 0;
+				t->nglyphsmax = 0;
+				return;
+			}
+    }
+	}
+
+  if (startg < g) {
+    placesomeglyphs(t,
+		                &t->glyphs[startg],
+		                g - startg,
+                    &x, &y);
+  }
+
+	/* End which has one glyph. */
+	t->glyphs[g].index = 0;
+	t->glyphs[g].x = x;
+	t->glyphs[g].y = y;
+	t->nglyphs = g;
+	t->height = y - (t->mace->font->face->size->metrics.descender >> 6);
+}
+
+
+

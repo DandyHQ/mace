@@ -3,10 +3,10 @@
 #include <stdint.h>
 
 /* Checks if code warrents a line break.
-   May update l if code requires consuming more code points such as a 
-   "\r\n". */
+   There should be some way of specifying if it needs to eat another byte
+   such as with \n\r but I can not be bothered at the moment. */
 bool
-islinebreak(int32_t code, const uint8_t *s, int32_t max, int32_t *l);
+islinebreak(int32_t code);
 
 /* Checks if code is a word break. */
 bool

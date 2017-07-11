@@ -12,14 +12,7 @@ main(int argc, char *argv[])
   const char *s12 = "Hello there.This is a test.";
   const char *s3 = "Hello test.";
   struct sequence *s;
-	struct font *font;
   uint8_t buf[512];
-
-	font = fontnew();
-	if (font == NULL) {
-		printf("failed to create font for sequence!\n");
-		return 1;
-	}
 
   s1len = strlen(s1);
   s2len = strlen(s2);
@@ -27,12 +20,10 @@ main(int argc, char *argv[])
   s3len = strlen(s3);
   
   printf("Start with empty sequence\n");
-  s = sequencenew(font, NULL, 0);
+  s = sequencenew(NULL, 0);
   if (s == NULL) {
     return 1;
   }
-
-	sequencesetlinewidth(s, 100);
 
   printf("Insert %zu : '%s'\n", s1len, s1);
 

@@ -5,11 +5,8 @@
 
 /* This file is ugly and needs to be redone properly. */
 
-static void
-placeglyphs(struct sequence *s);
-
 struct sequence *
-sequencenew(struct font *font, uint8_t *data, size_t len)
+sequencenew( uint8_t *data, size_t len)
 {
   struct sequence *s;
 
@@ -17,9 +14,6 @@ sequencenew(struct font *font, uint8_t *data, size_t len)
   if (s == NULL) {
     return NULL;
   }
-
-	s->font = font;
-	s->linewidth = -1;
 
   s->pmax = 10;
   s->pieces = malloc(sizeof(struct piece) * s->pmax);
@@ -35,20 +29,12 @@ sequencenew(struct font *font, uint8_t *data, size_t len)
   s->pieces[SEQ_start].off = 0;
   s->pieces[SEQ_start].pos = 0;
   s->pieces[SEQ_start].len = 0;
-  s->pieces[SEQ_start].nglyphs = 0;
-  s->pieces[SEQ_start].glyphs = NULL;
   s->pieces[SEQ_start].prev = -1;
   s->pieces[SEQ_start].next = SEQ_end;
 
   s->pieces[SEQ_end].off = 0;
   s->pieces[SEQ_end].pos = 0;
   s->pieces[SEQ_end].len = 0;
-  s->pieces[SEQ_end].nglyphs = 1;
-  s->pieces[SEQ_end].glyphs = calloc(1, sizeof(cairo_glyph_t));
-  if (s->pieces[SEQ_end].glyphs == NULL) {
-    sequencefree(s);
-    return NULL;
-  }
   s->pieces[SEQ_end].prev = SEQ_start;
   s->pieces[SEQ_end].next = -1;
 
@@ -59,16 +45,6 @@ sequencenew(struct font *font, uint8_t *data, size_t len)
     s->pieces[SEQ_first].prev = SEQ_start;
     s->pieces[SEQ_first].next = SEQ_end;
 
-    s->pieces[SEQ_first].nglyphs = utf8codepoints(data, len);
-    s->pieces[SEQ_first].glyphs =
-      calloc(s->pieces[SEQ_first].nglyphs,
-	     sizeof(cairo_glyph_t));
-
-    if (s->pieces[SEQ_first].glyphs == NULL) {
-      sequencefree(s);
-      return NULL;
-    }
- 
     s->pieces[SEQ_start].next = SEQ_first;
     s->pieces[SEQ_end].prev = SEQ_first;
 
@@ -96,9 +72,7 @@ void
 sequencefree(struct sequence *s)
 {
   free(s->pieces);
-
   free(s->data);
-
   free(s);
 }
 
@@ -133,22 +107,12 @@ piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
 static ssize_t
 pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 {
-  cairo_glyph_t *glyphs;
-  size_t nglyphs;
-
-  nglyphs = utf8codepoints(s->data + off, len);
-  glyphs = calloc(nglyphs, sizeof(cairo_glyph_t));
-  if (glyphs == NULL) {
-    return -1;
-  }
-
   if (s->plen + 1 >= s->pmax) {
     s->pieces = realloc(s->pieces,
 			sizeof(struct piece) * (s->plen + 10));
 
     if (s->pieces == NULL) {
       s->pmax = 0;
-			free(glyphs);
       return -1;
     }
 
@@ -158,8 +122,6 @@ pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
   s->pieces[s->plen].pos = pos;
   s->pieces[s->plen].off = off;
   s->pieces[s->plen].len = len;
-  s->pieces[s->plen].nglyphs = nglyphs;
-  s->pieces[s->plen].glyphs = glyphs;
 
   return s->plen++;
 }
@@ -194,35 +156,17 @@ static bool
 sequenceappend(struct sequence *s, ssize_t p, size_t pos,
 	       const uint8_t *data, size_t len)
 {
-  cairo_glyph_t *glyphs;
-  size_t nglyphs;
-  
   if (p != SEQ_start && p != SEQ_end
       && s->pieces[p].pos + s->pieces[p].len == pos
       && s->pieces[p].off + s->pieces[p].len == s->dlen) {
 
-    nglyphs = s->pieces[p].nglyphs + utf8codepoints(data, len);
-    glyphs = calloc(nglyphs, sizeof(cairo_glyph_t));
-    if (glyphs == NULL) {
-      return false;
-    }
-   
     if (!appenddata(s, data, len)) {
-      free(glyphs);
       return false;
     }
 
     s->pieces[p].len += len;
 
-    if (s->pieces[p].glyphs != NULL) {
-      free(s->pieces[p].glyphs);
-    }
-
-    s->pieces[p].nglyphs = nglyphs;
-    s->pieces[p].glyphs = glyphs;
-
     shiftpieces(s, p, s->pieces[p].pos);
-		placeglyphs(s);
 
     return true;
   } else {
@@ -295,16 +239,9 @@ sequenceinsert(struct sequence *s, size_t pos,
     s->pieces[r].prev = n;
     s->pieces[r].next = pnext;
     s->pieces[pnext].prev = r;
-
-    if (s->pieces[p].glyphs != NULL) {
-      free(s->pieces[p].glyphs);
-      s->pieces[p].glyphs = NULL;
-      s->pieces[p].nglyphs = 0;
-    }
   }
 
   shiftpieces(s, n, pos);
-	placeglyphs(s);
 
   return true;
 }
@@ -374,20 +311,7 @@ sequencedelete(struct sequence *s, size_t pos, size_t len)
     /* Can't give up now. */
   }
 
-  if (s->pieces[start].glyphs != NULL) {
-    free(s->pieces[start].glyphs);
-    s->pieces[start].glyphs = NULL;
-    s->pieces[start].nglyphs = 0;
-  }
- 
-  if (s->pieces[end].glyphs != NULL) {
-    free(s->pieces[end].glyphs);
-    s->pieces[end].glyphs = NULL;
-    s->pieces[end].nglyphs = 0;
-  }
-
   shiftpieces(s, nend, pos);
-	placeglyphs(s);
 
   return true;
 }
@@ -408,10 +332,7 @@ findwordend(struct sequence *s, ssize_t p, size_t i)
 				continue;
       }
 
-      if (iswordbreak(code)
-			    || islinebreak(code, s->data + s->pieces[p].off + i,
-			                        s->pieces[p].len - i, &a)) {
-
+      if (iswordbreak(code) || islinebreak(code)) {
 					return end;
       }
 
@@ -446,10 +367,7 @@ findwordstart(struct sequence *s, ssize_t p, size_t ii)
 				continue;
       }
 
-      if (iswordbreak(code)
-			    || islinebreak(code, s->data + s->pieces[p].off + i,
-					                    s->pieces[p].len - i, &a)) {
-
+      if (iswordbreak(code) || islinebreak(code)) {
 				in = i + a;
       }
 
@@ -581,158 +499,3 @@ sequencelen(struct sequence *s)
 {
   return s->pieces[SEQ_end].pos;
 }
-
-void
-sequencesetlinewidth(struct sequence *s, int l)
-{
-	if (s->linewidth != l) {
-		s->linewidth = l;
-		placeglyphs(s);
-	}
-}
-
-int
-sequenceheight(struct sequence *s)
-{
-	return s->pieces[SEQ_end].glyphs[0].y 
-	    - (s->font->face->size->metrics.descender >> 6);
-}
-
-static void
-placesomeglyphs(struct sequence *s,
-                           cairo_glyph_t *glyphs, size_t nglyphs,
-                           int *x, int *y)
-{
-  size_t g, gg, linestart, lineend;
-	int32_t index;
-  int ww;
-
-	linestart = 0;
-	lineend = 0;
-
-  for (g = 0; g < nglyphs; g++) {
-		index = FT_Get_Char_Index(s->font->face, glyphs[g].index);
-		if (FT_Load_Glyph(s->font->face, index, FT_LOAD_DEFAULT) != 0) {
-			continue;
-		}
-
-    ww = s->font->face->glyph->advance.x >> 6;
-
-    if (*x + ww >= s->linewidth) {
-			*x = 0;
-			*y += s->font->lineheight;
-
-			if (linestart < lineend) {
-				/* Only attempt word breaks if there are words to break. */
-
-				for (gg = lineend; gg < g; gg++) {
-					glyphs[gg].x = *x;
-					glyphs[gg].y = *y;
-				
-					if (FT_Load_Glyph(s->font->face, 
-					                           glyphs[gg].index, 
-					                           FT_LOAD_DEFAULT) != 0) {
-						continue;
-					}
-
-					*x += s->font->face->glyph->advance.x >> 6;
-				}
-			}
-
-			linestart = lineend;
-
-    } else if (iswordbreak(glyphs[g].index)) {
-			lineend = g + 1;
-		}
-
-    glyphs[g].index = index;
-    glyphs[g].x = *x;
-    glyphs[g].y = *y;
-
-    *x += ww;
-  }
-}
-
-static void
-placeglyphs(struct sequence *s)
-{
-  size_t i, g, startg;
-  struct piece *p;
-  int32_t code, a;
-  int x, y;
-
-  x = 0;
-  y = s->font->baseline;
-	a = 0;
-  
-  for (p = &s->pieces[SEQ_start]; 
-	          p->next != -1; 
-	          p = &s->pieces[p->next]) {
-	
-	  startg = 0;
-    for (i = 0, g = 0; i < p->len && g < p->nglyphs; i += a, g++) {
-			do {
-   	   a = utf8iterate(s->data + p->off + i, p->len - i, &code);
-			} while (a == 0 && i++ < p->len);
-
-			if (i >= p->len) {
-				break;
-			}
-
-      if (islinebreak(code, s->data + p->off + i, p->len - i, &a)) {
-        if (startg < g) {
-					placesomeglyphs(s, 
-				              &p->glyphs[startg],
-				              g - startg,
-				              &x, &y);
-        }
-
-				p->glyphs[g].index = 0;
-				p->glyphs[g].x = x;
-				p->glyphs[g].y = y;
-
-				x = 0;
-				y += s->font->lineheight;
-
-        startg = g + 1;
-
-      } else if (code == '\t') {
-        if (startg < g) {
-					placesomeglyphs(s, 
-				                  &p->glyphs[startg],
-				                  g - startg,
-				                  &x, &y);
-				}
-
-				if (x + s->font->tabwidthpixels >= s->linewidth) {
-					x = 0;
-					y += s->font->lineheight;
-				}
-
-				p->glyphs[g].index = 0;
-				p->glyphs[g].x = x; 
-				p->glyphs[g].y = y;
-
-				x += s->font->tabwidthpixels;
-
-        startg = g + 1;
-
-      } else {
-				p->glyphs[g].index = code;
-			}
-    }
-
-    if (startg < p->nglyphs) {
-      placesomeglyphs(s,
-			       &p->glyphs[startg],
-			       p->nglyphs - startg,
-             &x, &y);
-    }
-  }
-
-	/* End which has one glyph. */
-	p->glyphs[0].index = 0;
-	p->glyphs[0].x = x;
-	p->glyphs[0].y = y;
-}
-

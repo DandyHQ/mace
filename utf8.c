@@ -2,10 +2,8 @@
 #include <stdio.h>
 
 bool
-islinebreak(int32_t code, const uint8_t *s, int32_t max, int32_t *l)
+islinebreak(int32_t code)
 {
-  size_t a;
-  
   switch (code) {
   default:
     return false;
@@ -20,14 +18,7 @@ islinebreak(int32_t code, const uint8_t *s, int32_t max, int32_t *l)
     return true;
 
   case 0x000D: /* Carriage Return */
-    a = utf8iterate(s + *l, max - *l, &code);
-    if (a > 0 && code == 0x000A) {
-      /* Carriage Return Followed by Line Feed. */
-      *l += a;
-      return true;
-    } else {
-      return true;
-    }
+    return true;
 
   case 0x0085: /* Next Line */
     return true;

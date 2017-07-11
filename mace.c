@@ -49,7 +49,7 @@ macenew(void)
 
   l = snprintf((char *) buf, sizeof(message), "%s", message);
   
-  s = sequencenew(m->font, buf, l);
+  s = sequencenew(buf, l);
   if (s == NULL) {
     free(buf);
     macefree(m);
@@ -63,7 +63,7 @@ macenew(void)
   }
 
   t = tabnew(m, name, strlen((const char *) name),
-	     name, strlen((const char *) name), s);
+	           name, strlen((const char *) name), s);
   if (t == NULL) {
     macefree(m);
     return NULL;
@@ -175,7 +175,7 @@ handlebuttonrelease(struct mace *m, int x, int y, int button)
 		y -= m->mousefocus->tab->y;
 
 		if (m->mousefocus->tab->main == m->mousefocus) {
-			y -= sequenceheight(m->mousefocus->tab->action->sequence);
+			y -= m->mousefocus->tab->action->height;
 		}
 		
   	return textboxbuttonrelease(m->mousefocus, x, y, button);
@@ -192,7 +192,7 @@ handlemotion(struct mace *m, int x, int y)
 		y -= m->mousefocus->tab->y;
 
 		if (m->mousefocus->tab->main == m->mousefocus) {
-			y -= sequenceheight(m->mousefocus->tab->action->sequence);
+			y -= m->mousefocus->tab->action->height;
 		}
 
 		return textboxmotion(m->mousefocus, x, y);
@@ -233,6 +233,7 @@ handletyping(struct mace *m, uint8_t *s, size_t n)
 		}
 
 		sequenceinsert(c->tb->sequence, start, s, n);
+		textboxplaceglyphs(c->tb);
 
 		shiftcursels(m, c->tb, start, (int) n - (int) len);
 		c->start = start + n;

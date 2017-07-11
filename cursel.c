@@ -2,23 +2,35 @@
 
 struct cursel *
 curseladd(struct mace *m, struct textbox *t, 
-                int type, size_t pos)
+          int type, size_t pos)
 {
-  struct cursel *c;
+  struct cursel *c, **h;
 
   c = malloc(sizeof(struct cursel));
   if (c == NULL) {
     return NULL;
   }
 
-  c->next = m->cursels;
-	m->cursels = c;
 
-  c->tb= t;
+  c->tb = t;
 	c->type = type | CURSEL_right;
 	c->cur = 0;
 	c->start = pos;
 	c->end = pos;
+
+	/* Insert new cursel in order */
+
+	h = &m->cursels;
+	while (*h != NULL) {
+		if ((*h)->tb == c->tb && c->start < (*h)->start) {
+			break;
+		}
+
+		h = &(*h)->next;
+	}
+
+	c->next = *h;
+	*h = c;
 
   return c;
 }

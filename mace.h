@@ -13,27 +13,12 @@ struct colour {
   double r, g, b;
 };
 
-/* A wrapper around freetype with functions that use fontconfig to
-   load fonts from patterns. */
-
-struct font {
-  char path[1024];
-  double size;
-  
-  FT_Library library;
-
-  FT_Face face;
-  cairo_font_face_t *cface;
-
-  int baseline, lineheight;
-  size_t tabwidth;
-  int tabwidthpixels;
-};
-
-#define CURSEL_left      (0<<0)
-#define CURSEL_right   (1<<0)
+#define CURSEL_left   (0<<0)
+#define CURSEL_right  (1<<0)
 #define CURSEL_nrm    (1<<1)
 #define CURSEL_cmd    (1<<2)
+
+/* Should be in a ordered list in mace. Order by start and group by tb. */
 
 struct cursel {
 	int type; /* Some OR of the above options. */
@@ -54,9 +39,6 @@ struct piece {
 	size_t len;
 	size_t pos; /* In sequence */
 	size_t off; /* In data buffer */
-
-	cairo_glyph_t *glyphs;
-	size_t nglyphs;
 };
 
 struct sequence {
@@ -65,9 +47,6 @@ struct sequence {
 
   uint8_t *data;
   size_t dlen, dmax;
-
-	int linewidth;
-	struct font *font;
 };
 
 /* Padding used for textbox's. */
@@ -79,9 +58,16 @@ struct textbox {
 
   /* Maximum width a line can be. */
   int linewidth;
+	/* Maximum height that will be displayed. */
+	int maxheight;
+	/* Total height of text. */
+	int height;
 
 	/* How far from the top have we scrolled */
   int yoff;
+	size_t starti; /* Index in sequence of first glyph displayed */
+	size_t nglyphs, nglyphsmax;
+	cairo_glyph_t *glyphs;
 
   struct colour bg;
 
@@ -127,6 +113,23 @@ struct pane {
 struct keybinding {
 	uint8_t *key, *cmd;
 	struct keybinding *next;
+};
+
+/* A wrapper around freetype with functions that use fontconfig to
+   load fonts from patterns. */
+
+struct font {
+  char path[1024];
+  double size;
+  
+  FT_Library library;
+
+  FT_Face face;
+  cairo_font_face_t *cface;
+
+  int baseline, lineheight;
+  size_t tabwidth;
+  int tabwidthpixels;
 };
 
 /* A mace structure. Each structure represents a window and lua
@@ -286,7 +289,7 @@ void
 textboxfree(struct textbox *t);
 
 bool
-textboxresize(struct textbox *t, int width);
+textboxresize(struct textbox *t, int width, int maxheight);
 
 bool
 textboxscroll(struct textbox *t, int xoff, int yoff);
@@ -306,28 +309,26 @@ size_t
 textboxfindpos(struct textbox *t, int x, int y);
 
 void
+textboxplaceglyphs(struct textbox *t);
+
+/* Width should be t->linewidth otherwise it will not be drawn properly. */
+void
 textboxdraw(struct textbox *t, cairo_t *cr, int x, int y, 
-                    int width, int height);
+            int width, int height);
 
 
 /* Creates a new sequence around data, data may be NULL.
    len is the number of set bytes in data, max is the current size of the
    allocation for data. 
-
-   font is controlled by the caller and should not be free'd until the
-   new sequence is freed.
 */
 
 struct sequence *
-sequencenew(struct font *font, uint8_t *data, size_t len);
+sequencenew(uint8_t *data, size_t len);
 
 /* Frees a sequence and all it's pieces. */
 
 void
 sequencefree(struct sequence *s);
-
-void
-sequencesetlinewidth(struct sequence *s, int l);
 
 /* Inserts data into the sequence at position pos. */
 
@@ -362,9 +363,6 @@ sequenceget(struct sequence *s, size_t pos,
 
 size_t
 sequencelen(struct sequence *s);
-
-int
-sequenceheight(struct sequence *s);
 
 
 /* Handle UI events. Return true if mace needs to be redrawn */
