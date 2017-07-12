@@ -121,3 +121,5 @@ Repeat until the chunk has been placed.
 - [Text Piece Chain](https://github.com/martanne/vis/wiki/Text-management-using-a-piece-chain)
 - [Some interesting text management documents](https://github.com/google/xi-editor/blob/master/doc/rope_science/intro.md) 
 - [A Paper on Text Management](https://www.cs.unm.edu/~crowley/papers/sds.pdf),
+- [A Blog Post about Mace by Mytchel](https://lackname.org/blog/Mace/)
+
