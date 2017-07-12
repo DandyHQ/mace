@@ -62,8 +62,6 @@ fontloadfile(struct font *font, const char *path, double size)
 {
   FT_Face new;
 
-	printf("loading %s size %f\n", path, size);
-
   if (FT_New_Face(font->library, path, 0, &new) != 0) {
     return 1;
   }
