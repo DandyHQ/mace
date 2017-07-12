@@ -230,6 +230,37 @@ main(int argc, char **argv)
   width = 800;
   height = 500;
   
+	mace = macenew();
+  if (mace == NULL) {
+    errx(1, "Failed to initalize mace!");
+  }
+
+	for (i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-v") == 0) {
+			printf ("This is Mace version %s\n", VERSION_STR);
+			macefree(mace);
+			return 0;
+
+		} else {
+			t = tabnewfromfile(mace, (uint8_t *) argv[i], strlen(argv[i]));
+			if (t == NULL) {
+				continue;
+			}
+			paneaddtab(mace->pane, t, -1);
+			mace->pane->focus = t;
+			mace->mousefocus = t->main;
+			mace->keyfocus = t->main;
+		}	
+	}
+
+	/* This is ugly. Removes default tab is files were opened. */
+	if (mace->pane->focus != mace->pane->tabs) {
+		t = mace->pane->tabs;
+		paneremovetab(mace->pane, t);
+		tabfree(t);
+	}
+
+
   display = XOpenDisplay(NULL);
   if (display == NULL) {
     err(1, "Failed to open X display!");
@@ -254,30 +285,6 @@ main(int argc, char **argv)
 				  width, height);
 
   cr = cairo_create(sfc);
-
-  mace = macenew();
-  if (mace == NULL) {
-    errx(1, "Failed to initalize mace!");
-  }
-
-	for (i = 1; i < argc; i++) {
-		t = tabnewfromfile(mace, (uint8_t *) argv[i], strlen(argv[i]));
-		if (t == NULL) {
-			continue;
-		}
-
-		paneaddtab(mace->pane, t, -1);
-		mace->pane->focus = t;
-		mace->mousefocus = t->main;
-		mace->keyfocus = t->main;
-	}
-
-	/* This is ugly. Removes default tab is files were opened. */
-	if (mace->pane->focus != mace->pane->tabs) {
-		t = mace->pane->tabs;
-		paneremovetab(mace->pane, t);
-		tabfree(t);
-	}
 
   xresize(width, height);
 
