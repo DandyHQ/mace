@@ -75,7 +75,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
             int x, int y, int width, int height)
 {
 	size_t g, startg, ii, a;
-	struct colour *fg, *bg;
+	struct colour *bg;
 	struct sequence *s;
 	struct cursel *cs;
 	struct piece *p;
@@ -83,7 +83,6 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 	int ay, by;
 	bool cur;
 	
-	fg = &nfg;
 	bg = &t->bg;
 
   ay = (t->mace->font->face->size->metrics.ascender >> 6);
@@ -129,7 +128,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 		}
 
 		if (cs != NULL) {
-			if (cs->start + cs->cur == p->pos + ii) {
+			if (cs->start + cs->cur == p->pos + ii && (cs->type & CURSEL_nrm) != 0) {
 				cur = true;
 			} else {
 				cur = false;
@@ -235,7 +234,6 @@ end:
 size_t
 textboxfindpos(struct textbox *t, int lx, int ly)
 {
-  struct sequence *s;
   int32_t code;
   int ww, ay, by;
   size_t i, g, a;
@@ -250,7 +248,6 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   ay = (t->mace->font->face->size->metrics.ascender >> 6);
   by = -(t->mace->font->face->size->metrics.descender >> 6);
 	 
-  s = t->sequence;
 	i = 0;
 
 	for (g = 0; g < t->nglyphs; g++, i += a) {
@@ -461,12 +458,10 @@ end:
 size_t
 textboxindexabove(struct textbox *t, size_t pos)
 {
-  struct sequence *s;
   int32_t code;
   size_t i, g, a;
 	int x, y;
 	 
-  s = t->sequence;
 	i = 0;
 
 	for (g = 0; g < t->nglyphs && i < pos; g++, i += a) {
@@ -502,12 +497,10 @@ textboxindexabove(struct textbox *t, size_t pos)
 size_t
 textboxindexbelow(struct textbox *t, size_t pos)
 {
-	struct sequence *s;
   int32_t code;
   size_t i, g, a;
 	int x, y;
 	 
-  s = t->sequence;
 	i = 0;
 
 	for (g = 0; g < t->nglyphs && i < pos; g++, i += a) {

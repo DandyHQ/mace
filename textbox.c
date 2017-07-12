@@ -55,10 +55,6 @@ textboxfree(struct textbox *t)
 bool
 textboxresize(struct textbox *t, int lw, int h)
 {
-	float pos;
-
-	pos = (float) t->yoff / (float) t->height;
-
 	t->linewidth = lw;
 	t->maxheight = h;
 
@@ -74,8 +70,6 @@ textboxresize(struct textbox *t, int lw, int h)
 
 	/* Calculate new height */
   textboxplaceglyphs(t);
-
-//	t->yoff = (int) (pos * t->height);
 
   return true;
 }
