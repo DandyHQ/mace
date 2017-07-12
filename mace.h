@@ -313,6 +313,12 @@ bool
 textboxmotion(struct textbox *t, int x, int y);
 
 size_t
+textboxindexabove(struct textbox *t, size_t i);
+
+size_t
+textboxindexbelow(struct textbox *t, size_t i);
+
+size_t
 textboxfindpos(struct textbox *t, int x, int y);
 
 void

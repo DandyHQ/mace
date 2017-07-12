@@ -327,6 +327,40 @@ cmdright(struct mace *m)
 	}
 }
 
+static void
+cmdup(struct mace *m)
+{
+	struct cursel *c;
+	size_t n;
+
+	for (c = m->cursels; c != NULL; c = c->next) {
+		n = c->end - c->start;
+		if (n == 0) {
+			c->start = c->end = textboxindexabove(c->tb, c->start);
+		} else {
+			c->end = c->start;
+			c->cur = 0;
+		}
+	}
+}
+
+static void
+cmddown(struct mace *m)
+{
+	struct cursel *c;
+	size_t n;
+
+	for (c = m->cursels; c != NULL; c = c->next) {
+		n = c->end - c->start;
+		if (n == 0) {
+			c->start = c->end = textboxindexbelow(c->tb, c->start);
+		} else {
+			c->start = c->end;
+			c->cur = 0;
+		}
+	}
+}
+
 static struct cmd cmds[] = {
 	{ "save",       cmdsave },
 	{ "open",       cmdopen },
@@ -340,6 +374,8 @@ static struct cmd cmds[] = {
 	{ "return",     cmdreturn },
 	{ "left",       cmdleft },
   { "right",      cmdright },
+	{ "up",         cmdup },
+	{ "down",       cmddown },
 };
 
 bool

@@ -20,6 +20,8 @@ static struct defkeybinding defaultkeybindings[] = {
 	{ (uint8_t *) "BackSpace",   (uint8_t *) "back" },
 	{ (uint8_t *) "Left",        (uint8_t *) "left" },
 	{ (uint8_t *) "Right",       (uint8_t *) "right" },
+	{ (uint8_t *) "Up",          (uint8_t *) "up" },
+	{ (uint8_t *) "Down",        (uint8_t *) "down" },
 };
 
 struct mace *

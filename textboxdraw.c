@@ -458,5 +458,90 @@ end:
 	t->height = y - (t->mace->font->face->size->metrics.descender >> 6);
 }
 
+size_t
+textboxindexabove(struct textbox *t, size_t pos)
+{
+  struct sequence *s;
+  int32_t code;
+  size_t i, g, a;
+	int x, y;
+	 
+  s = t->sequence;
+	i = 0;
+
+	for (g = 0; g < t->nglyphs && i < pos; g++, i += a) {
+		a = sequencecodepoint(t->sequence, i, &code);
+		if (a == 0) {
+			break;
+		}
+  }
+
+	if (i != pos) {
+		return 0;
+	} else {
+		x = t->glyphs[g].x;
+		y = t->glyphs[g].y;
+	}
+
+	while (--g > 0) {
+		a = sequenceprevcodepoint(t->sequence, i, &code);
+		if (a == 0) {
+			break;
+		} else {
+			i -= a;
+		}
+
+	 if (t->glyphs[g].y < y && t->glyphs[g].x <= x) {
+			return i;
+		}
+	}
+
+  return 0;
+}
+
+size_t
+textboxindexbelow(struct textbox *t, size_t pos)
+{
+	struct sequence *s;
+  int32_t code;
+  size_t i, g, a;
+	int x, y;
+	 
+  s = t->sequence;
+	i = 0;
+
+	for (g = 0; g < t->nglyphs && i < pos; g++, i += a) {
+		a = sequencecodepoint(t->sequence, i, &code);
+		if (a == 0) {
+			break;
+		}
+  }
+
+	if (i != pos) {
+		return 0;
+	} else {
+		x = t->glyphs[g].x;
+		y = t->glyphs[g].y;
+	}
+
+	while (++g < t->nglyphs) {
+		a = sequencecodepoint(t->sequence, i, &code);
+		if (a == 0) {
+			break;
+		} else {
+			i += a;
+		}
+
+		if (t->glyphs[g].y > y) {
+			if (g+1 < t->nglyphs && t->glyphs[g+1].y > t->glyphs[g].y) {
+				return i;
+			} else if (t->glyphs[g].x >= x) {
+				return i;
+			}
+		}
+	}
+
+  return sequencelen(t->sequence);
+}
 
 
