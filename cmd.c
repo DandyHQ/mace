@@ -217,7 +217,6 @@ cmdpaste(struct mace *m)
   if (clipboard != NULL) {
     insertstring(m, clipboard, clipboardlen);
   }
-
 }
 
 static void
@@ -284,7 +283,30 @@ cmdtab(struct mace *m)
 static void
 cmdreturn(struct mace *m)
 {
-	insertstring(m, (uint8_t *) "\n", 1);
+	uint8_t buf[64];
+	struct cursel *c;
+	size_t start, len, n;
+	
+	for (c = m->cursels; c != NULL; c = c->next) {
+		start = c->start;
+		len = c->end - start;
+
+		if (len > 0) {
+			sequencedelete(c->tb->sequence, start, len);
+		}
+		
+		n = textboxindentation(c->tb, start, buf, sizeof(buf));
+
+		sequenceinsert(c->tb->sequence, start, (uint8_t *) "\n", 1);
+		sequenceinsert(c->tb->sequence, start + 1, buf, n);
+		textboxplaceglyphs(c->tb);
+
+		shiftcursels(m, c->tb, start, 1 + n - len);
+
+		c->start = start + 1 + n;
+		c->end = start + 1 + n;
+		c->cur = 0;
+	}
 }
 
 static void

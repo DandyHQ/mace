@@ -319,6 +319,10 @@ size_t
 textboxindexbelow(struct textbox *t, size_t i);
 
 size_t
+textboxindentation(struct textbox *t, size_t i,
+                   uint8_t *buf, size_t len);
+
+size_t
 textboxfindpos(struct textbox *t, int x, int y);
 
 void

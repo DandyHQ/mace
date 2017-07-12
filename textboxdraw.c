@@ -544,4 +544,33 @@ textboxindexbelow(struct textbox *t, size_t pos)
   return sequencelen(t->sequence);
 }
 
+size_t
+textboxindentation(struct textbox *t, size_t i,
+                   uint8_t *buf, size_t len)
+{
+	size_t a, ii;
+	int32_t code;
+
+	while ((a = sequenceprevcodepoint(t->sequence, i, &code)) != 0) {
+		if (islinebreak(code)) {
+			break;
+		} else {
+			i -= a;
+		}
+	}
+
+	for (ii = 0; ii < len; ii += a) {
+		a = sequencecodepoint(t->sequence, i + ii, &code);
+		if (a == 0) {
+			break;
+		} else if (!iswordbreak(code)) {
+			break;
+		} else if (islinebreak(code)) {
+			break;
+		}
+	}
+
+	return sequenceget(t->sequence, i, buf, ii);
+}
+
 
