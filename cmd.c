@@ -287,6 +287,80 @@ cmdreturn(struct mace *m)
 	insertstring(m, (uint8_t *) "\n", 1);
 }
 
+static void
+cmdleft(struct mace *m)
+{
+	struct cursel *c;
+	int32_t code;
+	size_t n;
+
+	for (c = m->cursels; c != NULL; c = c->next) {
+		n = c->end - c->start;
+		if (n == 0) {
+			n = sequenceprevcodepoint(c->tb->sequence, c->start, &code);
+			c->start -= n;
+			c->end -= n;
+		} else {
+			c->end = c->start;
+			c->cur = 0;
+		}
+	}
+}
+
+static void
+cmdright(struct mace *m)
+{
+	struct cursel *c;
+	int32_t code;
+	size_t n;
+
+	for (c = m->cursels; c != NULL; c = c->next) {
+		n = c->end - c->start;
+		if (n == 0) {
+			n = sequencecodepoint(c->tb->sequence, c->start, &code);
+			c->start += n;
+			c->end += n;
+		} else {
+			c->start = c->end;
+			c->cur = 0;
+		}
+	}
+}
+
+static void
+cmdup(struct mace *m)
+{
+	struct cursel *c;
+	size_t n;
+
+	for (c = m->cursels; c != NULL; c = c->next) {
+		n = c->end - c->start;
+		if (n == 0) {
+			c->start = c->end = textboxindexabove(c->tb, c->start);
+		} else {
+			c->end = c->start;
+			c->cur = 0;
+		}
+	}
+}
+
+static void
+cmddown(struct mace *m)
+{
+	struct cursel *c;
+	size_t n;
+
+	for (c = m->cursels; c != NULL; c = c->next) {
+		n = c->end - c->start;
+		if (n == 0) {
+			c->start = c->end = textboxindexbelow(c->tb, c->start);
+		} else {
+			c->start = c->end;
+			c->cur = 0;
+		}
+	}
+}
+
 static struct cmd cmds[] = {
 	{ "save",       cmdsave },
 	{ "open",       cmdopen },
@@ -298,6 +372,10 @@ static struct cmd cmds[] = {
 	{ "del",        cmddel },
 	{ "tab",        cmdtab },
 	{ "return",     cmdreturn },
+	{ "left",       cmdleft },
+  { "right",      cmdright },
+	{ "up",         cmdup },
+	{ "down",       cmddown },
 };
 
 bool

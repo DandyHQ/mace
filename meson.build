@@ -6,7 +6,7 @@ fc         = dependency('fontconfig')
 cairo      = dependency('cairo')
 
 conf_data = configuration_data()
-conf_data.set('version', '0.1.0')
+conf_data.set('version', '0.2')
 
 configure_file(input : 'config.h.in',
 	       output : 'config.h',
