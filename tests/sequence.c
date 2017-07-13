@@ -1,4 +1,8 @@
-#include "mace.h"
+#include <string.h>
+#include <stdio.h>
+
+#include "sequence.h"
+#include "utf8.h"
 
 /* This needs to be improved. Needs some checks on how the chain is
    held together. eg 1 -> 2 -> 3 and 3 <- 2 <- 1. */

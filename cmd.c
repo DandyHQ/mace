@@ -386,8 +386,7 @@ cmddown(struct mace *m)
 static void
 cmdjump(struct mace *m)
 {
-	struct cursel *c;
-	size_t n;
+	printf("Not yet implimented\n");
 }
 
 static struct cmd cmds[] = {

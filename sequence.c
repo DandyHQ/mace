@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mace.h"
+#include "sequence.h"
+#include "utf8.h"
 
 /* This file is ugly and needs to be redone properly. */
 

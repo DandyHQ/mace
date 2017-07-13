@@ -41,14 +41,7 @@ seqtest = executable('tests/sequence',
 		'tests/sequence.c',
 		'sequence.c',
 		'utf8.c',
-		'font.c'
 	],
-
-	dependencies: [
-		cairo,
-		fc,
-		ft,
-	]
 )
 
 test('Sequence Test', seqtest)
