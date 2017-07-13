@@ -81,7 +81,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 	struct piece *p;
 	int32_t code;
 	int ay, by;
-	bool cur;
+	bool drawcursornow;
 	
 	bg = &t->bg;
 
@@ -112,6 +112,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 	s = t->sequence;
 	p = &s->pieces[SEQ_start];
 	ii = 0;
+	drawcursornow = false;
 
 	for (startg = 0, g = 0; g < t->nglyphs; g++, ii += a) {
 		while (ii >= p->len) {
@@ -129,9 +130,9 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 
 		if (cs != NULL) {
 			if (cs->start + cs->cur == p->pos + ii && (cs->type & CURSEL_nrm) != 0) {
-				cur = true;
+				drawcursornow= true;
 			} else {
-				cur = false;
+				drawcursornow = false;
 			}
 
 			if (cs->end == p->pos + ii) {
@@ -158,7 +159,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 
 			if (cs->start == cs->end) {
 				bg = &t->bg;
-				cur = true;
+				drawcursornow = true;
 			} else if ((cs->type & CURSEL_cmd) != 0) {
 				bg = &cbg;
 			} else {
@@ -199,7 +200,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 			cairo_fill(cr);
 		}
 
-		if (cur) {
+		if (drawcursornow) {
 			drawglyphs(cr, &t->glyphs[startg], g - startg + 1,
 			           &nfg, bg,
 			           t->linewidth - PAD * 2, ay, by);
@@ -209,7 +210,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 			drawcursor(cr, t->glyphs[g].x, t->glyphs[g].y - ay, 
 			           ay + by);
 
-			cur = false;
+			drawcursornow = false;
 		}
 	}
 
