@@ -383,6 +383,13 @@ cmddown(struct mace *m)
 	}
 }
 
+static void
+cmdjump(struct mace *m)
+{
+	struct cursel *c;
+	size_t n;
+}
+
 static struct cmd cmds[] = {
 	{ "save",       cmdsave },
 	{ "open",       cmdopen },
@@ -398,6 +405,7 @@ static struct cmd cmds[] = {
   { "right",      cmdright },
 	{ "up",         cmdup },
 	{ "down",       cmddown },
+	{ "jump",       cmdjump },
 };
 
 bool
