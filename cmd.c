@@ -54,6 +54,8 @@ cmdsave(struct mace *m)
   s = m->mousefocus->tab->main->sequence;
   len = sequencelen(s);
 
+	printf("Allocating %zu bytes\n", len);
+	
   buf = malloc(len);
   if (buf == NULL) {
     printf("Failed to allocate buffer for file!\n");
@@ -61,7 +63,8 @@ cmdsave(struct mace *m)
   }
 
   len = sequenceget(s, 0, buf, len);
-
+	printf("Copied %zu bytes\n", len);
+	
   fd = open((char *) filename, O_WRONLY|O_TRUNC|O_CREAT, 0666);
   if (fd < 0) {
     printf("Failed to open %s\n", filename);
@@ -73,6 +76,7 @@ cmdsave(struct mace *m)
     printf("Failed to write to %s\n", filename);
   }
 
+	printf("Closing\n");
   close(fd);
   free(buf);
 }
@@ -85,9 +89,16 @@ openselection(struct mace *m, struct cursel *s)
   size_t len;
 
   len = s->end - s->start;
+  if (len >= sizeof(name)) {
+  	return;
+  }
+  
   len = sequenceget(s->tb->sequence, s->start, name, len);
+  name[len] = 0;
+  
+  printf("open file '%s' name len %zu\n", name, len);
 
-  t = tabnewfromfile(m, name, len);
+  t = tabnewfromfile(m, name);
   if (t == NULL) {
     return;
   }

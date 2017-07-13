@@ -155,7 +155,7 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 		}
     
 		if (len > 0) {
-      buf = malloc(len);
+      buf = malloc(len + 1);
       if (buf == NULL) {
 				return false;
       }
@@ -165,6 +165,8 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 				return false;
       }
 
+			buf[len] = 0;
+			
       /* TODO: Show an error somehow if this returns false. */
       command(t->mace, buf);
 

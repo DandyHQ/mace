@@ -98,16 +98,18 @@ tabnewempty(struct mace *mace, const uint8_t *name, size_t nlen)
 
 struct tab *
 tabnewfromfile(struct mace *mace,
-               const uint8_t *filename, size_t flen)
+               const uint8_t *filename)
 {
   struct sequence *seq;
+  size_t dlen, flen;
 	uint8_t *name;
   uint8_t *data;
   struct stat st;
   struct tab *t;
-  size_t dlen;
   int fd;
 
+	flen = strlen((char *) filename);
+	
 	/* I am not sure if basename allocates name or if it is a slice of filename. */
 	name = (uint8_t *) basename((char *) filename);
 	

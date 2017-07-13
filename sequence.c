@@ -464,7 +464,7 @@ sequenceprevcodepoint(struct sequence *s, size_t pos, int32_t *code)
 
 size_t
 sequenceget(struct sequence *s, size_t pos,
-	    uint8_t *buf, size_t len)
+	          uint8_t *buf, size_t len)
 {
   size_t i, ii, l;
   ssize_t p;
@@ -476,22 +476,20 @@ sequenceget(struct sequence *s, size_t pos,
 
   ii = 0;
   while (p != -1 && ii < len) {
-    if (ii + s->pieces[p].len - i >= len) {
+  	l = s->pieces[p].len - i;
+    if (ii + l >= len) {
       l = len - ii;
-    } else {
-      l = s->pieces[p].len - i;
     }
 
     memmove(buf + ii,
-	    s->data + s->pieces[p].off + i,
-	    l);
+	          s->data + s->pieces[p].off + i,
+	          l);
 
     ii += l;
     p = s->pieces[p].next;
     i = 0;
   }
 
-  buf[ii] = 0;
   return ii;
 }
 
