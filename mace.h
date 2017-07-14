@@ -315,7 +315,6 @@ void
 textboxdraw(struct textbox *t, cairo_t *cr, int x, int y, 
             int width, int height);
 
-
 /* Handle UI events. Return true if mace needs to be redrawn */
 
 bool

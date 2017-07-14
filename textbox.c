@@ -166,7 +166,7 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
       }
 
 			buf[len] = 0;
-			
+
       /* TODO: Show an error somehow if this returns false. */
       command(t->mace, buf);
 

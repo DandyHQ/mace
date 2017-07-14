@@ -20,7 +20,7 @@ getfilename(struct tab *t, uint8_t *buf, size_t len)
 {
   size_t l;
 
-  for (l = 0; l < len; l++) {
+  for (l = 0; l + 1 < len; l++) {
 		if (sequenceget(t->action->sequence, l, buf + l, sizeof(uint8_t)) 
 		    != sizeof(uint8_t)) {
 			break;
@@ -89,14 +89,13 @@ openselection(struct mace *m, struct cursel *s)
   size_t len;
 
   len = s->end - s->start;
-  if (len >= sizeof(name)) {
-  	return;
-  }
-  
+	if (len + 1 >= sizeof(name)) {
+		fprintf(stderr, "Selection is too long to be a name!\n");
+		return;
+	}
+
   len = sequenceget(s->tb->sequence, s->start, name, len);
-  name[len] = 0;
-  
-  printf("open file '%s' name len %zu\n", name, len);
+	name[len] = 0;
 
   t = tabnewfromfile(m, name);
   if (t == NULL) {
