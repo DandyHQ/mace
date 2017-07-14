@@ -429,5 +429,6 @@ command(struct mace *mace, const uint8_t *s)
 		}
 	}
 
+	fprintf(stderr, "no command '%s' found\n", s);
 	return false;
 }
