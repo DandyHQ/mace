@@ -31,8 +31,13 @@ getfilename(struct tab *t, uint8_t *buf, size_t len)
     }
   }
   
+	if (l >= len) {
+		return 0;
+	}
+
   sequenceget(t->action->sequence, 0, buf, l);
-  
+  buf[l] = 0;
+
   return l;
 }
 
@@ -87,7 +92,13 @@ openselection(struct mace *m, struct selection *s)
   size_t len;
 
   len = s->end - s->start;
+	if (len + 1 >= sizeof(name)) {
+		fprintf(stderr, "Selection is too long to be a name!\n");
+		return;
+	}
+
   len = sequenceget(s->textbox->sequence, s->start, name, len);
+	name[len] = 0;
 
   t = tabnewfromfile(m, name, len);
   if (t == NULL) {

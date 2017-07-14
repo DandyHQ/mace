@@ -519,7 +519,6 @@ sequenceget(struct sequence *s, size_t pos,
     i = 0;
   }
 
-  buf[ii] = 0;
   return ii;
 }
 

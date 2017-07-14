@@ -374,8 +374,8 @@ sequencefindword(struct sequence *s, size_t pos,
                  size_t *start, size_t *len);
 
 /* Fulls out buf with the contentes of the sequence starting at pos
-   and going for at most len bytes, buf must be of at least len + 1
-   bytes and will be null terminated. */
+   and going for at most len bytes. Is not null terminated. Returns
+   the number of bytes filled out.  */
 
 size_t
 sequenceget(struct sequence *s, size_t pos,
