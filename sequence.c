@@ -434,7 +434,7 @@ findwordstart(struct sequence *s, ssize_t p, size_t ii)
 
   while (true) {
     i = 0;
-    while (i < ii) {
+    while (i <= ii) {
       a = utf8iterate(s->data + s->pieces[p].off + i,
 		      s->pieces[p].len - i, &code);
       if (a == 0) {
@@ -464,6 +464,8 @@ findwordstart(struct sequence *s, ssize_t p, size_t ii)
 
   if (in == -1) {
     return piecedist;
+	} else if (piecedist < in) {
+		return 0;
   } else {
     return piecedist - in;
   }
