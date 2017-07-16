@@ -18,6 +18,7 @@ static struct defkeybinding defaultkeybindings[] = {
 	{ (uint8_t *) "Return",      (uint8_t *) "return" },
 	{ (uint8_t *) "Delete",      (uint8_t *) "del" },
 	{ (uint8_t *) "BackSpace",   (uint8_t *) "back" },
+	{ (uint8_t *) "S-BackSpace", (uint8_t *) "back" },
 	{ (uint8_t *) "Left",        (uint8_t *) "left" },
 	{ (uint8_t *) "Right",       (uint8_t *) "right" },
 	{ (uint8_t *) "Up",          (uint8_t *) "up" },
