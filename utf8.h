@@ -12,6 +12,10 @@ islinebreak(int32_t code);
 bool
 iswordbreak(int32_t code);
 
+/* Checks if code is whitespace. */
+bool
+iswhitespace(int32_t code);
+
 size_t
 utf8iterate(const uint8_t *s, size_t len, int32_t *code);
 

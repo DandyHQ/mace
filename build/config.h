@@ -1,0 +1,4 @@
+#define VERSION_STR "0.2"
+
+#define DEFAULT_TAB_WIDTH 2
+#define DEFAULT_FONT_PATTERN "mono-12"

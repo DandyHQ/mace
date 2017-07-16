@@ -1,0 +1,72 @@
+[
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/mace.c.o' '-MF' 'mace@exe/mace.c.o.d' -o 'mace@exe/mace.c.o' -c ../mace.c",
+    "file": "../mace.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/pane.c.o' '-MF' 'mace@exe/pane.c.o.d' -o 'mace@exe/pane.c.o' -c ../pane.c",
+    "file": "../pane.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/tab.c.o' '-MF' 'mace@exe/tab.c.o.d' -o 'mace@exe/tab.c.o' -c ../tab.c",
+    "file": "../tab.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/textbox.c.o' '-MF' 'mace@exe/textbox.c.o.d' -o 'mace@exe/textbox.c.o' -c ../textbox.c",
+    "file": "../textbox.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/textboxdraw.c.o' '-MF' 'mace@exe/textboxdraw.c.o.d' -o 'mace@exe/textboxdraw.c.o' -c ../textboxdraw.c",
+    "file": "../textboxdraw.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/cursel.c.o' '-MF' 'mace@exe/cursel.c.o.d' -o 'mace@exe/cursel.c.o' -c ../cursel.c",
+    "file": "../cursel.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/sequence.c.o' '-MF' 'mace@exe/sequence.c.o.d' -o 'mace@exe/sequence.c.o' -c ../sequence.c",
+    "file": "../sequence.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/font.c.o' '-MF' 'mace@exe/font.c.o.d' -o 'mace@exe/font.c.o' -c ../font.c",
+    "file": "../font.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/utf8.c.o' '-MF' 'mace@exe/utf8.c.o.d' -o 'mace@exe/utf8.c.o' -c ../utf8.c",
+    "file": "../utf8.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/cmd.c.o' '-MF' 'mace@exe/cmd.c.o.d' -o 'mace@exe/cmd.c.o' -c ../cmd.c",
+    "file": "../cmd.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Imace@exe' '-I.' '-I..' '-I/usr/include/freetype2' '-I/usr/include/libpng16' '-I/usr/include/cairo' '-I/usr/include/glib-2.0' '-I/usr/lib64/glib-2.0/include' '-I/usr/include/pixman-1' '-I/usr/include/libdrm' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'mace@exe/xmain.c.o' '-MF' 'mace@exe/xmain.c.o.d' -o 'mace@exe/xmain.c.o' -c ../xmain.c",
+    "file": "../xmain.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Itests/sequence@exe' '-I.' '-I..' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'tests/sequence@exe/tests_sequence.c.o' '-MF' 'tests/sequence@exe/tests_sequence.c.o.d' -o 'tests/sequence@exe/tests_sequence.c.o' -c ../tests/sequence.c",
+    "file": "../tests/sequence.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Itests/sequence@exe' '-I.' '-I..' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'tests/sequence@exe/sequence.c.o' '-MF' 'tests/sequence@exe/sequence.c.o.d' -o 'tests/sequence@exe/sequence.c.o' -c ../sequence.c",
+    "file": "../sequence.c"
+  },
+  {
+    "directory": "/home/ryan/mace/mace/build",
+    "command": "cc  '-Itests/sequence@exe' '-I.' '-I..' '-fdiagnostics-color=always' '-pipe' '-D_FILE_OFFSET_BITS=64' '-Wall' '-Winvalid-pch' '-O0' '-g' '-MMD' '-MQ' 'tests/sequence@exe/utf8.c.o' '-MF' 'tests/sequence@exe/utf8.c.o.d' -o 'tests/sequence@exe/utf8.c.o' -c ../utf8.c",
+    "file": "../utf8.c"
+  }
+]
