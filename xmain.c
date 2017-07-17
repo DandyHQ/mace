@@ -14,6 +14,19 @@
 
 #include "resources/xlib-keysyms.h"
 
+#define OPTPARSE_IMPLEMENTATION
+#define OPTPARSE_API static
+#include "resources/optparse/optparse.h"
+
+static const char* help_message = "\
+Usage:\n\
+  mace [OPTIONS...] [FILES...]\n\
+\n\
+Options:\n\
+  -h, --help                        Show help options\n\
+  -v, --version                     Show the mace version\n\
+";
+
 static Display *display;
 static Window win;
 static int screen;
@@ -252,6 +265,14 @@ main(int argc, char **argv)
 {
   int width, height, i;
 	struct tab *t;
+	struct optparse_long longopts[] = {
+		{"help", 'h', OPTPARSE_NONE},
+		{"version", 'v', OPTPARSE_NONE},
+		{0}
+	};
+	
+	bool help = false;
+  bool version = false;
 
   width = 800;
   height = 500;
@@ -260,23 +281,45 @@ main(int argc, char **argv)
   if (mace == NULL) {
     errx(1, "Failed to initalize mace!");
   }
+  
+  int option;
+  struct optparse options;
+  // Parse options so we know what we're doing.
+  optparse_init(&options, argv);
+	while ((option = optparse_long(&options, longopts, NULL)) != -1) {
+		switch(option) {
+		case 'h':
+			help = true;
+			break;
+		case 'v':
+			version = true;
+			break;
+		case '?':
+			fprintf(stderr, "%s: %s\n", argv[0], options.errmsg);
+			exit(EXIT_FAILURE);
+		}
+	}
+	if (help) {
+		puts(help_message);
+		macefree(mace);
+		return 0;
+	}
+	if (version) {
+		printf("Mace %s\n", VERSION_STR);
+		macefree(mace);
+		return 0;
+	}
 
+	// Now begin opening files
 	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-v") == 0) {
-			printf ("This is Mace version %s\n", VERSION_STR);
-			macefree(mace);
-			return 0;
-
-		} else {
-			t = tabnewfromfile(mace, (uint8_t *) argv[i]);
-			if (t == NULL) {
-				continue;
-			}
-			
-			paneaddtab(mace->pane, t, -1);
-			mace->pane->focus = t;
-			mace->mousefocus = t->main;
-		}	
+		t = tabnewfromfile(mace, (uint8_t *) argv[i]);
+		if (t == NULL) {
+			continue;
+		}
+		
+		paneaddtab(mace->pane, t, -1);
+		mace->pane->focus = t;
+		mace->mousefocus = t->main;
 	}
 
 	/* This is ugly. Removes default tab is files were opened. */
