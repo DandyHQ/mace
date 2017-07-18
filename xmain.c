@@ -15,7 +15,7 @@
 #include "resources/xlib-keysyms.h"
 
 #define OPTPARSE_IMPLEMENTATION
-#define OPTPARSE_API static
+//#define OPTPARSE_API static
 #include "resources/optparse/optparse.h"
 
 static const char* help_message = "\
@@ -263,8 +263,10 @@ eventLoop(void)
 int
 main(int argc, char **argv)
 {
-  int width, height, i;
+  int width, height, i, option;
+  struct optparse options;
 	struct tab *t;
+
 	struct optparse_long longopts[] = {
 		{"help", 'h', OPTPARSE_NONE},
 		{"version", 'v', OPTPARSE_NONE},
@@ -274,18 +276,14 @@ main(int argc, char **argv)
 	bool help = false;
   bool version = false;
 
-  width = 800;
-  height = 500;
-  
 	mace = macenew();
   if (mace == NULL) {
     errx(1, "Failed to initalize mace!");
   }
   
-  int option;
-  struct optparse options;
   // Parse options so we know what we're doing.
   optparse_init(&options, argv);
+
 	while ((option = optparse_long(&options, longopts, NULL)) != -1) {
 		switch(option) {
 		case 'h':
@@ -299,12 +297,13 @@ main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 	}
+
 	if (help) {
 		puts(help_message);
 		macefree(mace);
 		return 0;
-	}
-	if (version) {
+
+	} else if (version) {
 		printf("Mace %s\n", VERSION_STR);
 		macefree(mace);
 		return 0;
@@ -329,6 +328,8 @@ main(int argc, char **argv)
 		tabfree(t);
 	}
 
+  width = 800;
+  height = 500;
 
   display = XOpenDisplay(NULL);
   if (display == NULL) {

@@ -1,4 +1,4 @@
-#include "../resources/Unity/src/unity.h"
+#include "resources/Unity/src/unity.h"
 #include "utf8.h"
 
 /* Should add more tests for these cases but that is 
