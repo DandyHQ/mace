@@ -3,6 +3,7 @@ dist: trusty
 sudo: required
 
 install:
+  - pip install --user cpp-coveralls
   - pip3 install meson
   - mkdir build
   - export PATH="`pwd`/build:${PATH}"
@@ -10,7 +11,24 @@ install:
 
 script:
   - meson build
-  - ninja -C build
+  - ninja -C build test
+
+after_success:
+  - if [ "$CODECOV_RUN" == 1 ]; then coveralls --build-root build --gcov-options '\-lp'; fi
+
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      
+    - os: linux
+      compiler: clang
+    
+    - os: linux
+      compiler: gcc
+      env:
+        CODECOV_RUN=1
+        CFLAGS="-g -O0 -fprofile-arcs -ftest-coverage"
 
 addons:
   apt:
