@@ -2,7 +2,11 @@
 #include "utf8.h"
 
 /* Should add more tests for these cases but that is 
-   too much work. */
+   too much work.
+   Or don't test these first few functions. They don't
+   really have any logic. There tests are basically there
+   implimentations.
+*/
 
 void
 test_islinebreak(void)
@@ -21,6 +25,13 @@ test_iswordbreak(void)
 	/* Should this really be a word break? In natural languages
 	   yes but not in programming languages. */
 	TEST_ASSERT_TRUE(iswordbreak('.'));
+}
+
+void
+test_iswhitespace(void)
+{
+	TEST_ASSERT_TRUE(iswhitespace(' '));
+	TEST_ASSERT_TRUE(iswhitespace('\t'));
 }
 
 uint8_t   su[] = { 0x24, 0xc2, 0xa2, 0xe2, 0x82, 0xac, 0xf0, 0xa4, 0xad, 0xa2 };
@@ -118,6 +129,7 @@ main(void)
 
 	RUN_TEST(test_islinebreak);
 	RUN_TEST(test_iswordbreak);
+	RUN_TEST(test_iswhitespace);
 	RUN_TEST(test_iterate);
 	RUN_TEST(test_deiterate);
 	RUN_TEST(test_codepoints);
