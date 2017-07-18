@@ -255,7 +255,9 @@ handlekey(struct mace *m, uint8_t *s, size_t n)
 	struct keybinding *k;
 
 	for (k = m->keybindings; k != NULL; k = k->next) {
-		if ((n == strlen((char *) k->key)) && (strncmp((char *) s, (char *) k->key, n) == 0)) {
+		if ((n == strlen((char *) k->key)) && 
+		    (strncmp((char *) s, (char *) k->key, n) == 0)) {
+
 			command(m, k->cmd);
 			return true;
 		}

@@ -1,4 +1,4 @@
-#include "unity.h"
+#include "../resources/Unity/src/unity.h"
 #include "sequence.h"
 
 void
@@ -14,7 +14,7 @@ test_sequencenewfree(void)
 void
 test_sequenceinsert(void)
 {
-	struct sequence *s;
+
 }
 
 void

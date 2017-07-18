@@ -1,4 +1,4 @@
-#include "unity.h"
+#include "../resources/Unity/src/unity.h"
 #include "utf8.h"
 
 /* Should add more tests for these cases but that is 
@@ -70,19 +70,22 @@ test_deiterate(void)
 	size_t l, ou, oU, ol;
 	int32_t c;
 	
-	ou = sumax - 1;
-	oU = sUmax - 1;
-	ol = slmax - 1;
+	ou = sumax;
+	oU = sUmax;
+	ol = slmax;
 
 	while (ou > 0 && oU > 0 && ol > 0) {
+		oU--;
+		ol--;
+
 		l = utf8deiterate(su, sizeof(su), ou, &c);
+
+		printf("got code 0x%X of len %zu with end pos %zu\n", c, l, ou);
 
 		TEST_ASSERT_EQUAL_INT(sl[ol], l);
 		TEST_ASSERT_EQUAL_INT32(sU[oU], c);
 
 		ou -= l;
-		ol--;
-		oU--;
 	}
 
 	TEST_ASSERT_EQUAL_INT(0, ou);

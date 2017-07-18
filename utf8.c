@@ -145,8 +145,8 @@ utf8deiterate(const uint8_t *s, size_t slen, size_t off, int32_t *code)
 
 	for (l = 1; l <= off; l++) {
 		if ((s[off - l] & 0xc0) != 0x80) {
-			ll = utf8iterate(s + off - l, l + 1, code);
-			if (l + 1 == ll) {
+			ll = utf8iterate(s + off - l, l, code);
+			if (l == ll) {
 				return ll;
 			} else {
 				/* We were probably given an offput that was not a codepoint 

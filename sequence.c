@@ -444,7 +444,7 @@ size_t
 sequenceprevcodepoint(struct sequence *s, size_t pos, int32_t *code)
 {
 	ssize_t p;
-	size_t i, l;
+	size_t i;
 
 	p = piecefind(s, SEQ_start, pos, &i);
 	if (p == -1) {
@@ -460,8 +460,7 @@ sequenceprevcodepoint(struct sequence *s, size_t pos, int32_t *code)
 		i = s->pieces[p].len;
 	}
 
-	l = utf8deiterate(s->data + s->pieces[p].off, s->pieces[p].len, i, code);
-	return l;
+	return utf8deiterate(s->data + s->pieces[p].off, s->pieces[p].len, i, code);
 }
 
 size_t
