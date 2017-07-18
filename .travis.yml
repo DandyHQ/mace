@@ -14,7 +14,7 @@ script:
   - ninja -C build test
 
 after_success:
-  - if [ "$CODECOV_RUN" == 1 ]; then coveralls --gcov-options '\-lp'; fi
+  - if [ "$CODECOV_RUN" == 1 ]; then coveralls --build-root build --gcov-options '\-lp'; fi
 
 matrix:
   include:
