@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "resources/Unity/src/unity.h"
+#include "resources/unity/src/unity.h"
 #include "sequence.h"
 
 void

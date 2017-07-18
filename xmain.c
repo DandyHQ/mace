@@ -281,7 +281,7 @@ main(int argc, char **argv)
     errx(1, "Failed to initalize mace!");
   }
   
-  // Parse options so we know what we're doing.
+  /* Parse options so we know what we're doing. */
   optparse_init(&options, argv);
 
 	while ((option = optparse_long(&options, longopts, NULL)) != -1) {
@@ -309,7 +309,7 @@ main(int argc, char **argv)
 		return 0;
 	}
 
-	// Now begin opening files
+	/* Now begin opening files */
 	for (i = 1; i < argc; i++) {
 		t = tabnewfromfile(mace, (uint8_t *) argv[i]);
 		if (t == NULL) {
