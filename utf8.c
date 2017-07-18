@@ -37,6 +37,7 @@ islinebreak(int32_t code)
 static int32_t wordbreaks[] = {
 	'\t',
 	'\n',
+	'\r',
 	' ',
 	',',
 	'.',
@@ -130,11 +131,18 @@ utf8iterate(const uint8_t *s, size_t slen, int32_t *code)
 size_t
 utf8deiterate(const uint8_t *s, size_t slen, size_t off, int32_t *code)
 {
-	size_t l;
+	size_t l, ll;
 
 	for (l = 1; l <= off; l++) {
 		if ((s[off - l] & 0xc0) != 0x80) {
-			return utf8iterate(s + off - l, l, code);
+			ll = utf8iterate(s + off - l, l + 1, code);
+			if (l + 1 == ll) {
+				return ll;
+			} else {
+				/* We were probably given an offput that was not a codepoint 
+				   boundary. */
+				return 0;
+			}
 		}
 	}
 

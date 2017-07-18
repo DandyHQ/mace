@@ -38,6 +38,7 @@ executable('mace', install: true,
 
 seqtest = executable('tests/sequence',
 	sources: [
+		'tests/unity.c',
 		'tests/sequence.c',
 		'sequence.c',
 		'utf8.c',
@@ -45,3 +46,13 @@ seqtest = executable('tests/sequence',
 )
 
 test('Sequence Test', seqtest)
+
+utf8test = executable('tests/utf8',
+	sources: [
+		'tests/unity.c',
+		'tests/utf8.c',
+		'utf8.c',
+	],
+)
+
+test('utf8 Test', utf8test)
