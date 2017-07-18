@@ -401,6 +401,10 @@ sequencefindword(struct sequence *s, size_t pos,
   size_t start, end, i;
   ssize_t p;
 
+	if (pos >= s->pieces[SEQ_end].pos) {
+		return false;
+	}
+
   p = piecefind(s, SEQ_start, pos, &i);
   if (p == -1) {
     return false;
@@ -412,7 +416,7 @@ sequencefindword(struct sequence *s, size_t pos,
   *begin = pos - start;
   *len = start + end;
 
-  return true;
+  return *len > 0;
 }
 
 size_t

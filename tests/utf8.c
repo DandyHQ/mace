@@ -55,6 +55,7 @@ test_iterate(void)
 		TEST_ASSERT(ol < slmax);
 
 		l = utf8iterate(su + ou, sizeof(su) - ou, &c);
+
 		TEST_ASSERT_EQUAL_INT(sl[ol], l);
 		TEST_ASSERT_EQUAL_INT32(sU[oU], c);
 
@@ -79,8 +80,6 @@ test_deiterate(void)
 		ol--;
 
 		l = utf8deiterate(su, sizeof(su), ou, &c);
-
-		printf("got code 0x%X of len %zu with end pos %zu\n", c, l, ou);
 
 		TEST_ASSERT_EQUAL_INT(sl[ol], l);
 		TEST_ASSERT_EQUAL_INT32(sU[oU], c);

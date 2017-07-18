@@ -49,7 +49,7 @@ sequencedelete(struct sequence *s, size_t pos, size_t len);
 
 bool
 sequencefindword(struct sequence *s, size_t pos,
-                             size_t *start, size_t *len);
+                 size_t *start, size_t *len);
 
 size_t
 sequencecodepoint(struct sequence *s, size_t pos, int32_t *code);
