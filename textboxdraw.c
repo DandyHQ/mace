@@ -557,9 +557,7 @@ textboxindentation(struct textbox *t, size_t i,
 		a = sequencecodepoint(t->sequence, i + ii, &code);
 		if (a == 0) {
 			break;
-		} else if (!iswordbreak(code)) {
-			break;
-		} else if (islinebreak(code)) {
+		} else if (!iswhitespace(code)) {
 			break;
 		}
 	}

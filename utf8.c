@@ -31,6 +31,16 @@ islinebreak(int32_t code)
   }
 }
 
+bool
+iswhitespace(int32_t code)
+{
+	if (code == '\t' || code == ' ') {
+		return true;
+	}
+
+	return false;
+}
+
 /* Where could we get a proper list for this? Do libraries exist
 	for such things? */
 
