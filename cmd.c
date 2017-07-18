@@ -53,8 +53,6 @@ cmdsave(struct mace *m)
 
   s = m->mousefocus->tab->main->sequence;
   len = sequencelen(s);
-
-	printf("Allocating %zu bytes\n", len);
 	
   buf = malloc(len);
   if (buf == NULL) {
@@ -63,7 +61,6 @@ cmdsave(struct mace *m)
   }
 
   len = sequenceget(s, 0, buf, len);
-	printf("Copied %zu bytes\n", len);
 	
   fd = open((char *) filename, O_WRONLY|O_TRUNC|O_CREAT, 0666);
   if (fd < 0) {
@@ -76,7 +73,6 @@ cmdsave(struct mace *m)
     printf("Failed to write to %s\n", filename);
   }
 
-	printf("Closing\n");
   close(fd);
   free(buf);
 }
