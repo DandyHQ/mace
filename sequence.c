@@ -62,7 +62,8 @@ sequencenew(uint8_t *data, size_t len)
 
     s->data = malloc(s->dmax);
     if (s->data == NULL) {
-      sequencefree(s);
+    	free(s->pieces);
+      free(s);
       return NULL;
     }
   }
@@ -135,11 +136,11 @@ pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 static bool
 appenddata(struct sequence *s, const uint8_t *data, size_t len)
 {
-  while (s->dlen + len >= s->dmax) {
+  if (s->dlen + len >= s->dmax) {
   	if (s->data == NULL) {
-  		s->data = malloc(DATA_inc);
+  		s->data = malloc(len + DATA_inc);
   	} else {
-	    s->data = realloc(s->data, s->dmax + DATA_inc);
+	    s->data = realloc(s->data, s->dmax + len + DATA_inc);
 		}
 		
     if (s->data == NULL) {
@@ -151,7 +152,7 @@ appenddata(struct sequence *s, const uint8_t *data, size_t len)
       return false;
       
     } else {
-      s->dmax += DATA_inc;
+      s->dmax += len + DATA_inc;
     }
   }
 

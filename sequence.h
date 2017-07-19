@@ -67,7 +67,11 @@ size_t
 sequenceprevcodepoint(struct sequence *s, size_t pos, int32_t *code);
 
 /* Fulls out buf with the contentes of the sequence starting at pos
-   and going for at most len bytes. Does NOT null terminate buf. */
+   and going for at most len bytes. Does NOT null terminate buf.
+   
+   Yes you could use sequencecodepoint in a loop but this will be
+   much faster.
+*/
 
 size_t
 sequenceget(struct sequence *s, size_t pos,
@@ -75,6 +79,8 @@ sequenceget(struct sequence *s, size_t pos,
 
 size_t
 sequencelen(struct sequence *s);
+
+/* Attempts to find the word that the byte pos is part of. */
 
 bool
 sequencefindword(struct sequence *s, size_t pos,

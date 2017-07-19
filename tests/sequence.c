@@ -37,9 +37,10 @@ test_sequencereplaceget(void)
 	uint8_t *endstr = (uint8_t *) "a strange\tthing indeed\n.";
 	
 	struct sequence *s;
-	uint8_t buf[512];
-	size_t len;
+	uint8_t buf[512], *bbuf;
+	size_t len, l;
 	bool r;
+	int i;
 	
 	s = sequencenew(NULL, 0);
 
@@ -70,6 +71,14 @@ test_sequencereplaceget(void)
 	
 	/* Should fail. */
 	TEST_ASSERT_TRUE(!r);
+	
+	/* Try replace something overlapping the end. */
+	r = sequencereplace(s, strlen((char *) str) / 2, 
+	                    strlen((char *) str) + 200, 
+	                    NULL, 0);
+	
+	/* Should fail. */
+	TEST_ASSERT_TRUE(!r);
 
 	/* Now test pure removing stuff. */
 	r = sequencereplace(s, delstart, delend, NULL, 0);
@@ -94,6 +103,41 @@ test_sequencereplaceget(void)
 	
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(endstr, buf, len);
 
+	/* Now try add a whole heap. */
+	for (i = 0; i < 1000; i++) {
+		r = sequencereplace(s, 0, 0, str, strlen((char *) str));
+		TEST_ASSERT_TRUE(r);
+	}
+	
+	/* Try to grow the last piece. */
+	
+	for (i = 0; i < 1000; i++) {
+		len = sequencelen(s);
+		r = sequencereplace(s, len, len, str, strlen((char *) str));
+		TEST_ASSERT_TRUE(r);
+	}
+	
+	len = sequencelen(s);
+	
+	bbuf = malloc(len);
+	TEST_ASSERT_NOT_NULL(bbuf);
+	
+	l = sequenceget(s, 0, bbuf, len);
+	
+	TEST_ASSERT_EQUAL_INT(len, l);
+	
+	/* Should probably check if it was good? */
+	
+	free(bbuf);
+	
+	/* No way should it be able to allocate this much. Lets hope it cant
+	   at least. */
+
+	printf("can it allocate %zu?\n", SIZE_MAX / 2);
+	r = sequencereplace(s, 0, 0, NULL, SIZE_MAX / 2);
+	printf("can it?\n");
+	TEST_ASSERT_TRUE(!r);
+	
 	sequencefree(s);	
 }
 
@@ -180,7 +224,11 @@ test_sequencecodepoint(void)
 	s = sequencenew(NULL, 0);
 	TEST_ASSERT_NOT_NULL(s);
 
-	r = sequencereplace(s, 0, 0, su, sumax);
+	/* Load it in in parts */
+	r = sequencereplace(s, 0, 0, su, 3);
+	TEST_ASSERT_TRUE(r);
+	
+	r = sequencereplace(s, 3, 3, su + 3, sumax - 3);
 	TEST_ASSERT_TRUE(r);
 
 	ou = oU = ol = 0;
@@ -223,7 +271,11 @@ test_sequenceprevcodepoint(void)
 	s = sequencenew(NULL, 0);
 	TEST_ASSERT_NOT_NULL(s);
 
-	r = sequencereplace(s, 0, 0, su, sumax);
+	/* Load it in in parts */
+	r = sequencereplace(s, 0, 0, su, 3);
+	TEST_ASSERT_TRUE(r);
+	
+	r = sequencereplace(s, 3, 3, su + 3, sumax - 3);
 	TEST_ASSERT_TRUE(r);
 	
 	ou = sumax;
