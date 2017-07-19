@@ -16,27 +16,89 @@ test_sequencenewfree(void)
 }
 
 void
-test_sequenceinsert(void)
+test_sequenceinsertget(void)
 {
+	uint8_t *str = (uint8_t *) "This is a test.";
+	struct sequence *s;
+	uint8_t buf[512];
+	size_t len;
+	bool r;
+	
+	s = sequencenew(NULL, 0);
 
-}
+	TEST_ASSERT_NOT_NULL(s);
+	
+	r = sequenceinsert(s, 0, str, strlen((char *) str));
+	
+	TEST_ASSERT_TRUE(r);
+	
+	len = sequenceget(s, 0, buf, sizeof(buf));
+	
+	TEST_ASSERT_EQUAL_INT(strlen((char *) str), len);
+	
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(str, buf, len);
 
-void
-test_sequencelen(void)
-{
-
+	sequencefree(s);	
 }
 
 void
 test_sequencedelete(void)
 {
+	uint8_t *str = (uint8_t *) "This is a test.";
+	size_t delstart = 0, dellen = 8;
+	uint8_t *delstr = (uint8_t *) "a test.";
+	
+	struct sequence *s;
+	uint8_t buf[512];
+	size_t len;
+	bool r;
+	
+	s = sequencenew(NULL, 0);
 
+	TEST_ASSERT_NOT_NULL(s);
+	
+	r = sequenceinsert(s, 0, str, strlen((char *) str));
+	
+	TEST_ASSERT_TRUE(r);
+	
+	r = sequencedelete(s, delstart, dellen);
+	
+	len = sequenceget(s, 0, buf, sizeof(buf));
+	
+	TEST_ASSERT_EQUAL_INT(strlen((char *) delstr), len);
+	
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(delstr, buf, len);
+
+	sequencefree(s);
+}
+
+void
+test_sequencelen(void)
+{
+	uint8_t *str = (uint8_t *) "This is a test.";
+	struct sequence *s;
+	size_t len;
+	bool r;
+	
+	s = sequencenew(NULL, 0);
+
+	TEST_ASSERT_NOT_NULL(s);
+	
+	r = sequenceinsert(s, 0, str, strlen((char *) str));
+	
+	TEST_ASSERT_TRUE(r);
+	
+	len = sequencelen(s);
+	
+	TEST_ASSERT_EQUAL_INT(strlen((char *) str), len);
+
+	sequencefree(s);	
 }
 
 void
 test_sequencefindword(void)
 {
-	uint8_t *str = "Hello there. This is a test";
+	uint8_t *str = (uint8_t *) "Hello there. This is a test";
 
 	/* Word starts and lengths. */
 	size_t starts[] = { 0, 6, 13, 18, 21, 23 };
@@ -54,7 +116,7 @@ test_sequencefindword(void)
 	s = sequencenew(NULL, 0);
 	TEST_ASSERT_NOT_NULL(s);
 
-	sequenceinsert(s, 0, str, strlen(str));
+	sequenceinsert(s, 0, str, strlen((char *) str));
 
 	for (i = 0; i < sizeof(p)/sizeof(p[0]); i++) {
 		r = sequencefindword(s, p[i], &start, &len);
@@ -145,25 +207,18 @@ test_sequenceprevcodepoint(void)
 	TEST_ASSERT_EQUAL_INT(0, ol);
 }
 
-void
-test_sequenceget(void)
-{
-
-}
-
 int
 main(void)
 {
 	UNITY_BEGIN();
 
 	RUN_TEST(test_sequencenewfree);
-	RUN_TEST(test_sequenceinsert);
-	RUN_TEST(test_sequencelen);
+	RUN_TEST(test_sequenceinsertget);
 	RUN_TEST(test_sequencedelete);
+	RUN_TEST(test_sequencelen);
 	RUN_TEST(test_sequencefindword);
 	RUN_TEST(test_sequencecodepoint);
 	RUN_TEST(test_sequenceprevcodepoint);
-	RUN_TEST(test_sequenceget);
 
 	return UNITY_END();
 }
