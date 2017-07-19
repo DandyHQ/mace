@@ -1,4 +1,4 @@
-# Mace [![Travis build Status](https://travis-ci.org/DandyHQ/mace.svg?branch=master)](https://travis-ci.org/DandyHQ/mace)
+# Mace [![Travis build Status](https://travis-ci.org/DandyHQ/mace.svg?branch=master)](https://travis-ci.org/DandyHQ/mace) [![Coverage Status](https://coveralls.io/repos/github/DandyHQ/mace/badge.svg?branch=master)](https://coveralls.io/github/DandyHQ/mace?branch=master)
 
 A modern Unix text editor taking inspiration from Acme, Emacs and
 Atom.
