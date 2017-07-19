@@ -113,10 +113,12 @@ static ssize_t
 pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 {
 	if (s->plen + 1 >= s->pmax) {
-	    s->pieces = realloc(s->pieces,
-	                       sizeof(struct piece) * (s->plen + PIECE_inc));
+		s->pieces = realloc(s->pieces,
+		                    sizeof(struct piece) * 
+		                    (s->plen + PIECE_inc));
 
 		if (s->pieces == NULL) {
+			/* What should happen here? It is fucked. */
 			s->pmax = 0;
 			return -1;
 		}

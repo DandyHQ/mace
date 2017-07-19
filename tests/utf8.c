@@ -6,6 +6,8 @@
    Or don't test these first few functions. They don't
    really have any logic. There tests are basically there
    implimentations.
+   
+   Do need to add some tests with invalid utf8 though.
 */
 
 void
@@ -63,6 +65,10 @@ test_iterate(void)
 		ol++;
 		oU++;
 	}
+	
+	/* What if we go past the end? */
+	l = utf8iterate(su + ou, 0, &c);
+	TEST_ASSERT_EQUAL_INT(0, l);
 }
 
 void
@@ -90,6 +96,10 @@ test_deiterate(void)
 	TEST_ASSERT_EQUAL_INT(0, ou);
 	TEST_ASSERT_EQUAL_INT(0, oU);
 	TEST_ASSERT_EQUAL_INT(0, ol);
+	
+	/* What if we go past the start? */
+	l = utf8iterate(su, 0, &c);
+	TEST_ASSERT_EQUAL_INT(0, l);
 }
 
 void

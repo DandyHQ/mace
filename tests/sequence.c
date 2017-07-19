@@ -130,12 +130,10 @@ test_sequencereplaceget(void)
 	
 	free(bbuf);
 	
-	/* No way should it be able to allocate this much. Lets hope it cant
-	   at least. */
+	/* No way should it be able to allocate this much, at least 
+	   lets hope it cant. */
 
-	printf("can it allocate %zu?\n", SIZE_MAX / 2);
 	r = sequencereplace(s, 0, 0, NULL, SIZE_MAX / 2);
-	printf("can it?\n");
 	TEST_ASSERT_TRUE(!r);
 	
 	sequencefree(s);	
