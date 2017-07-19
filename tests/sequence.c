@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 
 #include "resources/unity/src/unity.h"
 #include "sequence.h"
@@ -7,12 +8,22 @@ void
 test_sequencenewfree(void)
 {
 	struct sequence *s;
+	uint8_t *buf;
+	size_t len;
 
+	/* Test without starting data. */
 	s = sequencenew(NULL, 0);
-
 	TEST_ASSERT_NOT_NULL(s);
-
 	sequencefree(s);	
+
+	/* Test with starting data. */
+	len = 512;
+	buf = malloc(sizeof(uint8_t) * len);
+	TEST_ASSERT_NOT_NULL(buf);
+	
+	s = sequencenew(buf, len);
+	TEST_ASSERT_NOT_NULL(s);
+	sequencefree(s);
 }
 
 void
@@ -21,6 +32,9 @@ test_sequencereplaceget(void)
 	uint8_t *str = (uint8_t *) "This is a test.";
 	size_t delstart = 0, delend = 8;
 	uint8_t *delstr = (uint8_t *) "a test.";
+	size_t repstart = 2, repend = 6;
+	uint8_t *replacestr = (uint8_t *) "strange\tthing indeed\n";
+	uint8_t *endstr = (uint8_t *) "a strange\tthing indeed\n.";
 	
 	struct sequence *s;
 	uint8_t buf[512];
@@ -41,6 +55,23 @@ test_sequencereplaceget(void)
 	
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(str, buf, len);
 	
+	/* Try get something past the end. */
+	
+	len = sequenceget(s, strlen((char *) str) + 100, 
+	                  buf, sizeof(buf));
+	
+	/* Should fail. */
+	TEST_ASSERT_EQUAL_INT(0, len);
+	
+	/* Try replace something past the end. */
+	r = sequencereplace(s, strlen((char *) str) + 100, 
+	                    strlen((char *) str) + 200, 
+	                    NULL, 0);
+	
+	/* Should fail. */
+	TEST_ASSERT_TRUE(!r);
+
+	/* Now test pure removing stuff. */
 	r = sequencereplace(s, delstart, delend, NULL, 0);
 	
 	TEST_ASSERT_TRUE(r);
@@ -50,6 +81,18 @@ test_sequencereplaceget(void)
 	TEST_ASSERT_EQUAL_INT(strlen((char *) delstr), len);
 	
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(delstr, buf, len);	
+	
+	/* Now test replacing stuff. */
+	r = sequencereplace(s, repstart, repend, replacestr,
+	                    strlen((char *) replacestr));
+	
+	TEST_ASSERT_TRUE(r);
+	
+	len = sequenceget(s, 0, buf, sizeof(buf));
+	
+	TEST_ASSERT_EQUAL_INT(strlen((char *) endstr), len);
+	
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(endstr, buf, len);
 
 	sequencefree(s);	
 }
@@ -155,7 +198,17 @@ test_sequencecodepoint(void)
 		ol++;
 		oU++;
 	}
+	
+	/* Try get a code point at the end. */
+	l = sequencecodepoint(s, sumax, &code);
+	/* Should fail. */
+	TEST_ASSERT_EQUAL_INT(0, l);
 
+	/* Try get a code point from past the end. */
+	l = sequencecodepoint(s, sumax + 100, &code);
+	/* Should fail */
+	TEST_ASSERT_EQUAL_INT(0, l);
+	
 	sequencefree(s);
 }
 
@@ -192,6 +245,18 @@ test_sequenceprevcodepoint(void)
 	TEST_ASSERT_EQUAL_INT(0, ou);
 	TEST_ASSERT_EQUAL_INT(0, oU);
 	TEST_ASSERT_EQUAL_INT(0, ol);
+	
+	/* Try get a code point at the start. */
+	l = sequenceprevcodepoint(s, 0, &code);
+	/* Should fail. */
+	TEST_ASSERT_EQUAL_INT(0, l);
+
+	/* Try get a code point from past the end. */
+	l = sequenceprevcodepoint(s, sumax + 100, &code);
+	/* Should fail */
+	TEST_ASSERT_EQUAL_INT(0, l);
+	
+	sequencefree(s);
 }
 
 int

@@ -8,7 +8,7 @@
 /* This file is ugly and needs to be redone properly. */
 
 struct sequence *
-sequencenew( uint8_t *data, size_t len)
+sequencenew(uint8_t *data, size_t len)
 {
   struct sequence *s;
 
