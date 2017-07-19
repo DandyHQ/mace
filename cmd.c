@@ -139,34 +139,34 @@ cmdclose(struct mace *m)
 static void
 cmdcut(struct mace *m)
 {
-  struct cursel *s, *n;
+  struct cursel *c, *n;
 	struct textbox *t;
 	size_t start, len;
 
-  for (s = m->cursels; s != NULL; s = n) {
-    n = s->next;
-    if ((s->type & CURSEL_cmd) != 0 || s->start == s->end) continue;
-		t = s->tb;
+  for (c = m->cursels; c != NULL; c = n) {
+    n = c->next;
+    if ((c->type & CURSEL_cmd) != 0 || c->start == c->end) continue;
+		t = c->tb;
 
-		start = s->start;
-		len = s->end - s->start;
+		start = c->start;
+		len = c->end - c->start;
 
-    clipboard = realloc(clipboard, len);
-    if (clipboard == NULL) {
-      clipboardlen = 0;
-      return;
-    }
+		clipboard = realloc(clipboard, len);
+		if (clipboard == NULL) {
+			clipboardlen = 0;
+			return;
+		}
 
-    clipboardlen = sequenceget(t->sequence, start, 
-		                                           clipboard, len);
+		clipboardlen = sequenceget(t->sequence, start, 
+		                           clipboard, len);
 
-    sequencedelete(t->sequence, start, clipboardlen);
+		sequencereplace(t->sequence, start, c->end, NULL, 0);
 		textboxplaceglyphs(t);
     
 		shiftcursels(m, t, start, -clipboardlen);
-		s->start = start;
-		s->end = start;
-		s->cur = 0;		
+		c->start = start;
+		c->end = start;
+		c->cur = 0;		
   }
 }
 
@@ -174,20 +174,20 @@ static void
 cmdcopy(struct mace *m)
 {
   struct textbox *t;
-  struct cursel *s;
+  struct cursel *c;
 
-  for (s = m->cursels; s != NULL; s = s->next) {
-    if ((s->type & CURSEL_cmd) != 0 || s->start == s->end) continue;
-		t = s->tb;
+  for (c = m->cursels; c != NULL; c = c->next) {
+    if ((c->type & CURSEL_cmd) != 0 || c->start == c->end) continue;
+		t = c->tb;
     
-    clipboardlen = s->end - s->start;
+    clipboardlen = c->end - c->start;
     clipboard = realloc(clipboard, clipboardlen);
     if (clipboard == NULL) {
       clipboardlen = 0;
       return;
     }
 
-    clipboardlen = sequenceget(t->sequence, s->start,
+    clipboardlen = sequenceget(t->sequence, c->start,
 			                         clipboard, clipboardlen);
   }
 }
@@ -196,20 +196,15 @@ static void
 insertstring(struct mace *m, uint8_t *s, size_t n)
 {
 	struct cursel *c;
-	size_t start, len;
+	size_t start;
 
 	for (c = m->cursels; c != NULL; c = c->next) {
 		start = c->start;
-		len = c->end - start;
-
-		if (len > 0) {
-			sequencedelete(c->tb->sequence, start, len);
-		}
-
-		sequenceinsert(c->tb->sequence, start, s, n);
+		
+		sequencereplace(c->tb->sequence, start, c->end, s, n);
 		textboxplaceglyphs(c->tb);
 
-		shiftcursels(m, c->tb, start, n - len);
+		shiftcursels(m, c->tb, start, n - (c->end - start));
 
 		c->start = start + n;
 		c->end = start + n;
@@ -237,10 +232,10 @@ cmddel(struct mace *m)
 		n = c->end - c->start;
 
 		if (n > 0) {
-			sequencedelete(c->tb->sequence, start, n);
+			sequencereplace(c->tb->sequence, start, c->end, NULL, 0);
 		} else {
 			n = sequencecodepoint(c->tb->sequence, start, &code);
-			sequencedelete(c->tb->sequence, start, n);
+			sequencereplace(c->tb->sequence, start, start + n, NULL, 0);
 		}
 
 		textboxplaceglyphs(c->tb);
@@ -264,11 +259,11 @@ cmdback(struct mace *m)
 		n = c->end - c->start;
 
 		if (n > 0) {
-			sequencedelete(c->tb->sequence, start, n);
+			sequencereplace(c->tb->sequence, start, c->end, NULL, 0);
 		} else {
 			n = sequenceprevcodepoint(c->tb->sequence, start, &code);
 			start -= n;
-			sequencedelete(c->tb->sequence, start, n);
+			sequencereplace(c->tb->sequence, start, start + n, NULL, 0);
 		}
 
 		textboxplaceglyphs(c->tb);
@@ -291,23 +286,18 @@ cmdreturn(struct mace *m)
 {
 	uint8_t buf[64];
 	struct cursel *c;
-	size_t start, len, n;
+	size_t start, n;
 	
 	for (c = m->cursels; c != NULL; c = c->next) {
 		start = c->start;
-		len = c->end - start;
 
-		if (len > 0) {
-			sequencedelete(c->tb->sequence, start, len);
-		}
-		
 		n = textboxindentation(c->tb, start, buf, sizeof(buf));
 
-		sequenceinsert(c->tb->sequence, start, (uint8_t *) "\n", 1);
-		sequenceinsert(c->tb->sequence, start + 1, buf, n);
+		sequencereplace(c->tb->sequence, start, c->end, (uint8_t *) "\n", 1);
+		sequencereplace(c->tb->sequence, start + 1, start + 1, buf, n);
 		textboxplaceglyphs(c->tb);
 
-		shiftcursels(m, c->tb, start, 1 + n - len);
+		shiftcursels(m, c->tb, start, 1 + n - (c->end - start));
 
 		c->start = start + 1 + n;
 		c->end = start + 1 + n;

@@ -69,11 +69,11 @@ macenew(void)
 
   t = tabnew(m, name, strlen((const char *) name),
 	           name, strlen((const char *) name), s);
+	           
   if (t == NULL) {
     macefree(m);
     return NULL;
   }
-
   paneaddtab(m->pane, t, 0);
   m->pane->focus = t;
 
@@ -225,22 +225,17 @@ static bool
 handletyping(struct mace *m, uint8_t *s, size_t n)
 {
 	struct cursel *c;
-	size_t start, len;
+	size_t start;
 
 	for (c = m->cursels; c != NULL; c = c->next) {
 		if ((c->type & CURSEL_nrm) == 0) continue;
 
-		start = c->start;
-		len = c->end - c->start;
-
-		if (len > 0) {
-			sequencedelete(c->tb->sequence, start, len);
-		}
-
-		sequenceinsert(c->tb->sequence, start, s, n);
+		sequencereplace(c->tb->sequence, c->start, c->end, s, n);
 		textboxplaceglyphs(c->tb);
+		
+		start = c->start;
 
-		shiftcursels(m, c->tb, start, (int) n - (int) len);
+		shiftcursels(m, c->tb, start, (int) n - (int) (c->end - start));
 		c->start = start + n;
 		c->end = start + n;
 		c->cur = 0;

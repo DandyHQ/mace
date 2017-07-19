@@ -16,36 +16,10 @@ test_sequencenewfree(void)
 }
 
 void
-test_sequenceinsertget(void)
+test_sequencereplaceget(void)
 {
 	uint8_t *str = (uint8_t *) "This is a test.";
-	struct sequence *s;
-	uint8_t buf[512];
-	size_t len;
-	bool r;
-	
-	s = sequencenew(NULL, 0);
-
-	TEST_ASSERT_NOT_NULL(s);
-	
-	r = sequenceinsert(s, 0, str, strlen((char *) str));
-	
-	TEST_ASSERT_TRUE(r);
-	
-	len = sequenceget(s, 0, buf, sizeof(buf));
-	
-	TEST_ASSERT_EQUAL_INT(strlen((char *) str), len);
-	
-	TEST_ASSERT_EQUAL_UINT8_ARRAY(str, buf, len);
-
-	sequencefree(s);	
-}
-
-void
-test_sequencedelete(void)
-{
-	uint8_t *str = (uint8_t *) "This is a test.";
-	size_t delstart = 0, dellen = 8;
+	size_t delstart = 0, delend = 8;
 	uint8_t *delstr = (uint8_t *) "a test.";
 	
 	struct sequence *s;
@@ -57,19 +31,27 @@ test_sequencedelete(void)
 
 	TEST_ASSERT_NOT_NULL(s);
 	
-	r = sequenceinsert(s, 0, str, strlen((char *) str));
+	r = sequencereplace(s, 0, 0, str, strlen((char *) str));
 	
 	TEST_ASSERT_TRUE(r);
 	
-	r = sequencedelete(s, delstart, dellen);
+	len = sequenceget(s, 0, buf, sizeof(buf));
+	
+	TEST_ASSERT_EQUAL_INT(strlen((char *) str), len);
+	
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(str, buf, len);
+	
+	r = sequencereplace(s, delstart, delend, NULL, 0);
+	
+	TEST_ASSERT_TRUE(r);
 	
 	len = sequenceget(s, 0, buf, sizeof(buf));
 	
 	TEST_ASSERT_EQUAL_INT(strlen((char *) delstr), len);
 	
-	TEST_ASSERT_EQUAL_UINT8_ARRAY(delstr, buf, len);
+	TEST_ASSERT_EQUAL_UINT8_ARRAY(delstr, buf, len);	
 
-	sequencefree(s);
+	sequencefree(s);	
 }
 
 void
@@ -84,7 +66,7 @@ test_sequencelen(void)
 
 	TEST_ASSERT_NOT_NULL(s);
 	
-	r = sequenceinsert(s, 0, str, strlen((char *) str));
+	r = sequencereplace(s, 0, 0, str, strlen((char *) str));
 	
 	TEST_ASSERT_TRUE(r);
 	
@@ -116,7 +98,8 @@ test_sequencefindword(void)
 	s = sequencenew(NULL, 0);
 	TEST_ASSERT_NOT_NULL(s);
 
-	sequenceinsert(s, 0, str, strlen((char *) str));
+	r = sequencereplace(s, 0, 0, str, strlen((char *) str));
+	TEST_ASSERT_TRUE(r);
 
 	for (i = 0; i < sizeof(p)/sizeof(p[0]); i++) {
 		r = sequencefindword(s, p[i], &start, &len);
@@ -149,11 +132,13 @@ test_sequencecodepoint(void)
 	size_t l, ou, oU, ol;
 	struct sequence *s;
 	int32_t code;
+	bool r;
 
 	s = sequencenew(NULL, 0);
 	TEST_ASSERT_NOT_NULL(s);
 
-	sequenceinsert(s, 0, su, sumax);
+	r = sequencereplace(s, 0, 0, su, sumax);
+	TEST_ASSERT_TRUE(r);
 
 	ou = oU = ol = 0;
 	while (ou != sumax && oU != sUmax && ol != slmax) {
@@ -180,11 +165,13 @@ test_sequenceprevcodepoint(void)
 	size_t l, ou, oU, ol;
 	struct sequence *s;
 	int32_t code;
+	bool r;
 
 	s = sequencenew(NULL, 0);
 	TEST_ASSERT_NOT_NULL(s);
 
-	sequenceinsert(s, 0, su, sumax);
+	r = sequencereplace(s, 0, 0, su, sumax);
+	TEST_ASSERT_TRUE(r);
 	
 	ou = sumax;
 	oU = sUmax;
@@ -213,8 +200,7 @@ main(void)
 	UNITY_BEGIN();
 
 	RUN_TEST(test_sequencenewfree);
-	RUN_TEST(test_sequenceinsertget);
-	RUN_TEST(test_sequencedelete);
+	RUN_TEST(test_sequencereplaceget);
 	RUN_TEST(test_sequencelen);
 	RUN_TEST(test_sequencefindword);
 	RUN_TEST(test_sequencecodepoint);

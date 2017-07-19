@@ -7,10 +7,22 @@
 #define SEQ_first   2
 
 struct piece {
-	ssize_t prev, next;
+	/* Offset of data in data buffer.
+	   Never changes. */
+	size_t off;
+	
+	/* Length of data.
+	   Only changes if the piece was the last added
+	   and more text is added onto the end of it. */
 	size_t len;
-	size_t pos; /* In sequence */
-	size_t off; /* In data buffer */
+	
+	/* Position in sequence.
+	   Changes whenever it needs to. */
+	size_t pos;
+	
+	/* Previous and next piece in linked list.
+	   Changes as it needs to. */
+	ssize_t prev, next;
 };
 
 struct sequence {
@@ -34,22 +46,19 @@ sequencenew(uint8_t *data, size_t len);
 void
 sequencefree(struct sequence *s);
 
-/* Inserts data into the sequence at position pos. */
+/* 
+   Replaces the text from and including begin up to but not
+   including end with the len bytes in data. 
+   data must be valid utf8 (encoding, bad code points don't matter) 
+   otherwise bad things will probably happen.
+   If len is zero this works as a delete. If end is equal to begin
+   this works as an insert. 
+*/
 
 bool
-sequenceinsert(struct sequence *s, size_t pos,
-	       const uint8_t *data, size_t len);
-
-/* Deletes from the sequence at pos a string of length len */
-
-bool
-sequencedelete(struct sequence *s, size_t pos, size_t len);
-
-/* Finds the start and end of a word around pos. */
-
-bool
-sequencefindword(struct sequence *s, size_t pos,
-                 size_t *start, size_t *len);
+sequencereplace(struct sequence *s, 
+                size_t begin, size_t end,
+                const uint8_t *data, size_t len);
 
 size_t
 sequencecodepoint(struct sequence *s, size_t pos, int32_t *code);
@@ -67,3 +76,6 @@ sequenceget(struct sequence *s, size_t pos,
 size_t
 sequencelen(struct sequence *s);
 
+bool
+sequencefindword(struct sequence *s, size_t pos,
+                 size_t *start, size_t *len);

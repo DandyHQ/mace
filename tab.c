@@ -40,14 +40,14 @@ tabnew(struct mace *mace,
     return NULL;
   }
 
-  if (!sequenceinsert(actionseq, 0, filename, flen)) {
+  if (!sequencereplace(actionseq, 0, 0, filename, flen)) {
     tabfree(t);
     return NULL;
   }
   
-  if (!sequenceinsert(actionseq, flen,
-		      actionstart,
-		      strlen((const char *) actionstart))) {
+  if (!sequencereplace(actionseq, flen, flen,
+		                   actionstart,
+		                   strlen((const char *) actionstart))) {
     tabfree(t);
     return NULL;
   }
