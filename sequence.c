@@ -139,13 +139,17 @@ piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
 static ssize_t
 piecenew(struct sequence *s, size_t pos, size_t off, size_t len)
 {
-	if (s->plen + 1 >= s->pmax) {
+	if (s->changes == NULL) {
+		/* Realloc failed in the past and we lost all the data. */
+		return -1;
+		
+	} else if (s->plen + 1 >= s->pmax) {
 		s->pieces = realloc(s->pieces,
 		                    sizeof(struct piece) * 
 		                    (s->pmax + PIECE_inc));
 
 		if (s->pieces == NULL) {
-			/* What should happen here? It is fucked. */
+			/* What should happen here? */
 			s->pmax = 0;
 			s->plen = 0;
 			return -1;
@@ -164,13 +168,17 @@ piecenew(struct sequence *s, size_t pos, size_t off, size_t len)
 static ssize_t
 changenew(struct sequence *s)
 {
-	if (s->clen + 1 >= s->cmax) {
+	if (s->changes == NULL) {
+		/* Realloc failed in the past and we lost all the data. */
+		return -1;
+		
+	} if (s->clen + 1 >= s->cmax) {
 		s->changes = realloc(s->changes,
 		                     sizeof(struct change) * 
 		                     (s->cmax + CHANGE_inc));
 
 		if (s->changes == NULL) {
-			/* What should happen here? It is fucked. */
+			/* What should happen here? */
 			s->cmax = 0;
 			s->clen = 0;
 			return -1;
@@ -186,12 +194,13 @@ changenew(struct sequence *s)
 static bool
 appenddata(struct sequence *s, const uint8_t *data, size_t len)
 {
+	if (s->data == NULL) {
+		/* Realloc failed in the past and we lost all the data. */
+		return false;
+	}
+	
   if (s->dlen + len >= s->dmax) {
-  	if (s->data == NULL) {
-  		s->data = malloc(len + DATA_inc);
-  	} else {
-	    s->data = realloc(s->data, s->dmax + len + DATA_inc);
-		}
+  	s->data = realloc(s->data, s->dmax + len + DATA_inc);
 		
     if (s->data == NULL) {
     	/* If this happens we're kinda fucked, we just 
