@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 #include "mace.h"
 #include "config.h"
@@ -113,6 +114,22 @@ cmdopen(struct mace *m)
 	    openselection(m, s);
 		}
   }
+}
+
+static void
+openfile(struct mace *m, const uint8_t *filename)
+{
+	struct tab *t;
+	struct cursel *s = m->cursels;
+	
+	t = tabnewfromfile(m, filename);
+	if (t == NULL) {
+		return;
+	}
+	
+	paneaddtab(s->tb->tab->pane, t, -1);
+	
+	s->tb->tab->pane->focus = t;
 }
 
 static void
@@ -423,6 +440,19 @@ cmdundocycle(struct mace *m)
 	}
 }
 
+
+
+static bool
+fileexists(const uint8_t *filename)
+{
+	uint8_t *name;
+	
+	/* I am not sure if basename allocates name or if it is a slice of filename. */
+	name = (uint8_t *) basename((char *) filename);
+	
+	return access((const char *)name, R_OK) != -1;
+}
+  
 static struct cmd cmds[] = {
 	{ "save",       cmdsave },
 	{ "open",       cmdopen },
@@ -454,6 +484,12 @@ command(struct mace *mace, const uint8_t *s)
  		  cmds[i].func(mace);
 			return true;
 		}
+	}
+	
+	// If it's a file. Load that instead.
+	if (fileexists(s)) {
+		openfile(mace, s);
+		return true;
 	}
 
 	fprintf(stderr, "no command '%s' found\n", s);

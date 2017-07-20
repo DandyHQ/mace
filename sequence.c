@@ -486,7 +486,7 @@ findwordstart(struct sequence *s, size_t i)
 	size_t a;
 	
 	while (i > 0 && (a = sequenceprevcodepoint(s, i, &code)) > 0) {
-		if (iswordbreak(code) || islinebreak(code) || iswhitespace(code)) {
+		if (islinebreak(code) || iswhitespace(code)) {
 			return i;
 		} else {
 			i -= a;
@@ -503,7 +503,7 @@ findwordend(struct sequence *s, size_t i)
 	size_t a;
 	
 	while ((a = sequencecodepoint(s, i, &code)) > 0) {
-		if (iswordbreak(code) || islinebreak(code) || iswhitespace(code)) {
+		if (islinebreak(code) || iswhitespace(code)) {
 			return i;
 		} else {
 			i += a;
