@@ -385,6 +385,11 @@ cmdjump(struct mace *m)
 	printf("Not yet implimented\n");
 }
 
+/* These should all do one action per text box if a text 
+   box has more than one cursels in it. 
+   They also need to update the cursels in ways I do not know.
+*/
+   
 static void
 cmdundo(struct mace *m)
 {
@@ -408,17 +413,15 @@ cmdredo(struct mace *m)
 }
 
 static void
-cmdnextbranch(struct mace *m)
+cmdundocycle(struct mace *m)
 {
-
+	struct cursel *c;
+	
+	for (c = m->cursels; c != NULL; c = c->next) {
+		sequencechangecycle(c->tb->sequence);
+		textboxplaceglyphs(c->tb);
+	}
 }
-
-static void
-cmdprevbranch(struct mace *m)
-{
-
-}
-
 
 static struct cmd cmds[] = {
 	{ "save",       cmdsave },
@@ -438,8 +441,7 @@ static struct cmd cmds[] = {
 	{ "jump",       cmdjump },
 	{ "undo",       cmdundo },
 	{ "redo",       cmdredo },
-	{ "nextbranch", cmdnextbranch },
-	{ "prevbranch", cmdprevbranch },
+	{ "undocycle",  cmdundocycle },
 };
 
 bool

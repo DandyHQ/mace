@@ -109,15 +109,14 @@ bool
 sequencefindword(struct sequence *s, size_t pos,
                  size_t *start, size_t *len);
 
+/* Go up change tree. */
 bool
 sequencechangeup(struct sequence *s);
 
+/* Go down change tree. */
 bool
 sequencechangedown(struct sequence *s);
 
+/* Cycle through sibling branches. */
 bool
-sequencechangeleft(struct sequence *s);
-
-bool
-sequencechangeright(struct sequence *s);
-
+sequencechangecycle(struct sequence *s);

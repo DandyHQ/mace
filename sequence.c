@@ -77,12 +77,9 @@ sequencenew(uint8_t *data, size_t len)
     s->dlen = len;
     s->dmax = len;
     
-    printf("update change root\n");
-    
   	s->changes[CHANGE_root].apieces[s->changes[CHANGE_root].napieces++]
   	  = s->plen;
   	
-  	printf("added starting piece %zi\n", s->plen);
   	s->plen++;
   	
   } else {
@@ -546,15 +543,10 @@ sequencefindword(struct sequence *s, size_t pos,
   return *len > 0;
 }
 
-bool
-sequencechangeup(struct sequence *s)
+static void
+undochange(struct sequence *s, ssize_t c)
 {
-	ssize_t c, p, pp, prev;
-	
-	c = s->changehead;
-	if (c == CHANGE_root) {
-		return false;
-	}
+	ssize_t p, pp, prev;
 	
 	/* Add removed pieces back in. */
 	
@@ -572,11 +564,42 @@ sequencechangeup(struct sequence *s)
 	s->changehead = s->changes[c].parent;
 	
 	shiftpieces(s, SEQ_start, 0);
+}
+
+static void
+redochange(struct sequence *s, ssize_t c)
+{
+	ssize_t p, pp, prev;
 	
-	/*
-	printchangetree(s, "", 0);
-	printsequence(s);
-	*/
+	/* Add removed pieces back in. */
+	
+	prev = s->changes[c].prev;
+	for (p = 0; p < s->changes[c].napieces; p++) {
+		pp = s->changes[c].apieces[p];
+		s->pieces[pp].prev = prev;
+		s->pieces[prev].next = pp;
+		prev = pp;
+	}
+	
+	s->pieces[prev].next = s->changes[c].next;
+	s->pieces[s->changes[c].next].prev = prev;
+	
+	s->changehead = c;
+	
+	shiftpieces(s, SEQ_start, 0);
+}
+
+bool
+sequencechangeup(struct sequence *s)
+{
+	ssize_t c;
+	
+	c = s->changehead;
+	if (c == CHANGE_root) {
+		return false;
+	}
+	
+	undochange(s, c);
 	
 	return true;
 }
@@ -584,19 +607,48 @@ sequencechangeup(struct sequence *s)
 bool
 sequencechangedown(struct sequence *s)
 {
-	return false;
+	ssize_t c;
+	
+	c = s->changes[s->changehead].children;
+	if (c == -1) {
+		return false;
+	}
+	
+	redochange(s, c);
+	
+	return true;
 }
 
 bool
-sequencechangeleft(struct sequence *s)
+sequencechangecycle(struct sequence *s)
 {
-	return false;
+	ssize_t c, n, p;
+	
+	c = s->changehead;
+	if (c == CHANGE_root) {
+		return false;
+	}
+	
+	n = s->changes[c].sibling;
+	if (n == -1) {
+		return false;
+	}
+	
+	undochange(s, c);
+	redochange(s, n);
+	
+	s->changes[s->changes[n].parent].children = n;
+	
+	/* Move c to the end of the sibling list. */
+	
+	while (n != -1) {
+		p = n;
+		n = s->changes[p].sibling;
+	}
+	
+	s->changes[p].sibling = c;
+	s->changes[c].sibling = -1;
+	
+	return true;
 }
-
-bool
-sequencechangeright(struct sequence *s)
-{
-	return false;
-}
-
 
