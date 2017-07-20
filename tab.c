@@ -10,7 +10,7 @@ static struct colour bg   = { 1, 1, 1 };
 static struct colour abg  = { 0.86, 0.94, 1 };
 
 static const uint8_t actionstart[] =
-  ": save open close cut copy paste";
+  ": save open close cut copy paste undo redo";
 
 struct tab *
 tabnew(struct mace *mace,
