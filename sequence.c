@@ -279,7 +279,6 @@ sequencereplace(struct sequence *s,
   /* Are we just inserting and is this the last piece added?
      If so then grow the piece and be done with it. */
  
- /*
   if (begin == end && len > 0 && 
 	    b != SEQ_start && b != SEQ_end &&
 	    s->pieces[b].pos + s->pieces[b].len == begin &&
@@ -291,7 +290,6 @@ sequencereplace(struct sequence *s,
       
 		return true;
   }
-  */
   
   /* Otherwise we have to do it this way. */
   
@@ -377,13 +375,6 @@ sequencereplace(struct sequence *s,
 	s->pieces[e].prev = p;
 	
 	shiftpieces(s, SEQ_start, 0);
-	
-	if (s->changes[c].napieces == 0) {
-		/* Umm? Don't add the change to the tree. */
-		printf("somehow the change added no pieces! begin = %zu, end = %zu, len = %zu\n",
-		       begin, end, len);
-		return false;
-	}
 	
 	s->changes[c].children = -1;
 	s->changes[c].parent = s->changehead;
