@@ -385,6 +385,41 @@ cmdjump(struct mace *m)
 	printf("Not yet implimented\n");
 }
 
+static void
+cmdundo(struct mace *m)
+{
+	struct cursel *c;
+	
+	for (c = m->cursels; c != NULL; c = c->next) {
+		sequencechangeup(c->tb->sequence);
+		textboxplaceglyphs(c->tb);
+	}
+}
+
+static void
+cmdredo(struct mace *m)
+{
+	struct cursel *c;
+	
+	for (c = m->cursels; c != NULL; c = c->next) {
+		sequencechangedown(c->tb->sequence);
+		textboxplaceglyphs(c->tb);
+	}
+}
+
+static void
+cmdnextbranch(struct mace *m)
+{
+
+}
+
+static void
+cmdprevbranch(struct mace *m)
+{
+
+}
+
+
 static struct cmd cmds[] = {
 	{ "save",       cmdsave },
 	{ "open",       cmdopen },
@@ -401,6 +436,10 @@ static struct cmd cmds[] = {
 	{ "up",         cmdup },
 	{ "down",       cmddown },
 	{ "jump",       cmdjump },
+	{ "undo",       cmdundo },
+	{ "redo",       cmdredo },
+	{ "nextbranch", cmdnextbranch },
+	{ "prevbranch", cmdprevbranch },
 };
 
 bool

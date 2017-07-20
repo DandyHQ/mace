@@ -116,11 +116,12 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 
 	for (startg = 0, g = 0; g < t->nglyphs; g++, ii += a) {
 		while (ii >= p->len) {
-			if (p->next == -1) {
+			if (p->next == SEQ_end) {
 				goto end;
+			} else {
+				p = &s->pieces[p->next];
+				ii = 0;
 			}
-			p = &s->pieces[p->next];
-			ii = 0;
 		}
 
 		a = utf8iterate(s->data + p->off + ii, p->len - ii, &code);
@@ -369,7 +370,7 @@ textboxplaceglyphs(struct textbox *t)
 
 	while (true) {
 		while (i >= p->len) {
-			if (p->next == -1) {
+			if (p->next == SEQ_end) {
 				goto end;
 			} else {
 				p = &s->pieces[p->next];

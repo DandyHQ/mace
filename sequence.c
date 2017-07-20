@@ -5,7 +5,11 @@
 #include "sequence.h"
 #include "utf8.h"
 
-/* This file is ugly and needs to be redone properly. */
+#define PIECE_inc 10
+#define CHANGE_inc 10
+#define DATA_inc 1024
+
+/* Much of this file is horrifically ugly. */
 
 struct sequence *
 sequencenew(uint8_t *data, size_t len)
@@ -17,51 +21,77 @@ sequencenew(uint8_t *data, size_t len)
     return NULL;
   }
 
-  s->pmax = 10;
+	s->cmax = CHANGE_inc;
+	s->changes = malloc(sizeof(struct change) * s->cmax);
+	if (s->changes == NULL) {
+		free(s);
+		return NULL;
+	}
+	
+	s->changehead = CHANGE_root;
+	s->clen = 1;
+	
+	s->changes[CHANGE_root].prev = SEQ_start;
+	s->changes[CHANGE_root].next = SEQ_end;
+	s->changes[CHANGE_root].children = -1;
+	s->changes[CHANGE_root].sibling = -1;
+	s->changes[CHANGE_root].parent = -1;
+	s->changes[CHANGE_root].napieces = 0;
+	s->changes[CHANGE_root].nrpieces = 0;
+	
+  s->pmax = PIECE_inc;
   s->pieces = malloc(sizeof(struct piece) * s->pmax);
   if (s->pieces == NULL) {
+  	free(s->changes);
 		free(s);
     return NULL;
   }
-
-  s->plen = 3;
-
-  /* This is pretty ugly. */
   
+  s->plen = 2;
+
   s->pieces[SEQ_start].off = 0;
   s->pieces[SEQ_start].pos = 0;
   s->pieces[SEQ_start].len = 0;
-  s->pieces[SEQ_start].prev = -1;
+  s->pieces[SEQ_start].prev = SEQ_start;
   s->pieces[SEQ_start].next = SEQ_end;
 
   s->pieces[SEQ_end].off = 0;
   s->pieces[SEQ_end].pos = 0;
   s->pieces[SEQ_end].len = 0;
   s->pieces[SEQ_end].prev = SEQ_start;
-  s->pieces[SEQ_end].next = -1;
+  s->pieces[SEQ_end].next = SEQ_end;
 
   if (data != NULL) {
-    s->pieces[SEQ_first].off = 0;
-    s->pieces[SEQ_first].pos = 0;
-    s->pieces[SEQ_first].len = len;
-    s->pieces[SEQ_first].prev = SEQ_start;
-    s->pieces[SEQ_first].next = SEQ_end;
+    s->pieces[s->plen].off = 0;
+    s->pieces[s->plen].pos = 0;
+    s->pieces[s->plen].len = len;
+    s->pieces[s->plen].prev = SEQ_start;
+    s->pieces[s->plen].next = SEQ_end;
 
-    s->pieces[SEQ_start].next = SEQ_first;
-    s->pieces[SEQ_end].prev = SEQ_first;
+    s->pieces[SEQ_start].next = s->plen;
+    s->pieces[SEQ_end].prev = s->plen;
 
     s->pieces[SEQ_end].pos = len;
 
     s->data = data;
     s->dlen = len;
     s->dmax = len;
-
+    
+    printf("update change root\n");
+    
+  	s->changes[CHANGE_root].apieces[s->changes[CHANGE_root].napieces++]
+  	  = s->plen;
+  	
+  	printf("added starting piece %zi\n", s->plen);
+  	s->plen++;
+  	
   } else {
     s->dlen = 0;
     s->dmax = 1024;
 
     s->data = malloc(s->dmax);
     if (s->data == NULL) {
+    	free(s->changes);
     	free(s->pieces);
       free(s);
       return NULL;
@@ -85,17 +115,19 @@ shiftpieces(struct sequence *s, ssize_t p, size_t pos)
   p = SEQ_start;
   pos = 0;
   
-  while (p != -1) {
+  while (p != SEQ_end) {
     s->pieces[p].pos = pos;
     pos += s->pieces[p].len;
     p = s->pieces[p].next;
   }
+  
+  s->pieces[SEQ_end].pos = pos;
 }
 
 static ssize_t
 piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
 {
-  while (p != -1) {
+  while (p != SEQ_end) {
     if (pos <= s->pieces[p].pos + s->pieces[p].len) {
       *i = pos - s->pieces[p].pos;
       return p;
@@ -107,23 +139,22 @@ piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
   return -1;
 }
 
-#define PIECE_inc 10
-
 static ssize_t
-pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
+piecenew(struct sequence *s, size_t pos, size_t off, size_t len)
 {
 	if (s->plen + 1 >= s->pmax) {
 		s->pieces = realloc(s->pieces,
 		                    sizeof(struct piece) * 
-		                    (s->plen + PIECE_inc));
+		                    (s->pmax + PIECE_inc));
 
 		if (s->pieces == NULL) {
 			/* What should happen here? It is fucked. */
 			s->pmax = 0;
+			s->plen = 0;
 			return -1;
 		}
 
-		s->pmax = s->plen + 10;
+		s->pmax += PIECE_inc;
 	}
 
 	s->pieces[s->plen].pos = pos;
@@ -133,7 +164,27 @@ pieceadd(struct sequence *s, size_t pos, size_t off, size_t len)
 	return s->plen++;
 }
 
-#define DATA_inc 1024
+static ssize_t
+changenew(struct sequence *s)
+{
+	if (s->clen + 1 >= s->cmax) {
+		s->changes = realloc(s->changes,
+		                     sizeof(struct change) * 
+		                     (s->cmax + CHANGE_inc));
+
+		if (s->changes == NULL) {
+			/* What should happen here? It is fucked. */
+			s->cmax = 0;
+			s->clen = 0;
+			return -1;
+		}
+
+		s->cmax += CHANGE_inc;
+	}
+
+	memset(&s->changes[s->clen], 0, sizeof(struct change));
+	return s->clen++;
+}
 
 static bool
 appenddata(struct sequence *s, const uint8_t *data, size_t len)
@@ -165,13 +216,65 @@ appenddata(struct sequence *s, const uint8_t *data, size_t len)
   return true;
 }
 
+/*
+static void
+printchangetree(struct sequence *s, char *h, ssize_t c)
+{
+	char buf[512];
+	size_t i;
+	
+	if (c == -1)
+		return;
+	
+	if (s->changehead == c) {
+		printf("%schange HEAD ", h);
+	} else {
+		printf("%schange ", h);
+	}
+	
+	printf("%zi has added %zu pieces: ", c, s->changes[c].napieces);
+	for (i = 0; i < s->changes[c].napieces; i++)
+		printf("%zi ", s->changes[c].apieces[i]);
+	
+	printf("and removed %zu pieces: ", s->changes[c].nrpieces);
+	for (i = 0; i < s->changes[c].nrpieces; i++)
+		printf("%zi ", s->changes[c].rpieces[i]);
+		
+	printf("\n");
+	
+	snprintf(buf, sizeof(buf), "%s    ", h);
+	printchangetree(s, buf, s->changes[c].children);
+	
+	printchangetree(s, h, s->changes[c].sibling);
+}
+
+static void
+printsequence(struct sequence *s)
+{
+	ssize_t p;
+	
+	printf("[START]");
+	
+	for (p = s->pieces[SEQ_start].next; p != SEQ_end; p = s->pieces[p].next) {
+		printf("[%zi len %zu at %zu]", p, s->pieces[p].len, s->pieces[p].pos);
+	}
+	
+	printf("[END at %zu]\n", s->pieces[SEQ_end].pos);
+}
+*/
+
 bool
 sequencereplace(struct sequence *s, 
                 size_t begin, size_t end,
 	              const uint8_t *data, size_t len)
 {
   size_t bi, ei, newoff;
-  ssize_t b, e, n, p;
+  ssize_t b, e, n, p, c;
+  
+  if (len == 0 && begin == end) {
+  	/* What are you trying to do? */
+  	return false;
+  }
   
   newoff = s->dlen;  
   if (len > 0 && !appenddata(s, data, len)) {
@@ -186,6 +289,7 @@ sequencereplace(struct sequence *s,
   /* Are we just inserting and is this the last piece added?
      If so then grow the piece and be done with it. */
  
+ /*
   if (begin == end && len > 0 && 
 	    b != SEQ_start && b != SEQ_end &&
 	    s->pieces[b].pos + s->pieces[b].len == begin &&
@@ -197,8 +301,14 @@ sequencereplace(struct sequence *s,
       
 		return true;
   }
+  */
   
   /* Otherwise we have to do it this way. */
+  
+  c = changenew(s);
+  if (c == -1) {
+  	return false;
+  }
   
   e = piecefind(s, b, end, &ei);
   if (e == -1) {
@@ -212,7 +322,7 @@ sequencereplace(struct sequence *s,
   
   /* Need a new begining piece. */
   if (bi < s->pieces[b].len) {
-  	n = pieceadd(s, s->pieces[b].pos, 
+  	n = piecenew(s, s->pieces[b].pos, 
   	             s->pieces[b].off, bi);
   	             
   	if (n == -1) {
@@ -221,27 +331,35 @@ sequencereplace(struct sequence *s,
   	
   	s->pieces[n].prev = s->pieces[b].prev;
   	s->pieces[s->pieces[n].prev].next = n;
-  	b = n;
+  	
+  	s->changes[c].rpieces[s->changes[c].nrpieces++] = b;
+  	s->changes[c].apieces[s->changes[c].napieces++] = n;
+  	s->changes[c].prev = s->pieces[b].prev;
+  	p = n;
+  	
+  } else {
+  	s->changes[c].prev = b;
+  	p = b;
   }
   
   /* Need a middle piece */
   if (len > 0) {
-		n = pieceadd(s, begin, newoff, len);
+		n = piecenew(s, begin, newoff, len);
 		if (n == -1) {
 			return false;
 		}
 		
-		s->pieces[b].next = n;
-		s->pieces[n].prev = b;
+		s->pieces[p].next = n;
+		s->pieces[n].prev = p;
 		p = n;
 		
-	} else {
-		p = b;
-	}
+  	s->changes[c].apieces[s->changes[c].napieces++] = n;
 
+	} /* Else leave p as is. */
+	
 	/* Need a new end piece. */
   if (ei > 0) {
-  	n = pieceadd(s, s->pieces[e].pos + ei, 
+  	n = piecenew(s, s->pieces[e].pos + ei, 
   	             s->pieces[e].off + ei, 
   	             s->pieces[e].len - ei);
   	             
@@ -250,13 +368,45 @@ sequencereplace(struct sequence *s,
   	}
 
 		s->pieces[n].next = s->pieces[e].next;
+		s->pieces[s->pieces[n].next].prev = n;
+  	
+  	/* Do not add it as removed twice! */
+  	if (e != b) {
+  		s->changes[c].rpieces[s->changes[c].nrpieces++] = e;
+  	}
+  	
+  	s->changes[c].apieces[s->changes[c].napieces++] = n;
+  	s->changes[c].next = s->pieces[e].next;
   	e = n;
+  	
+  } else {
+  	s->changes[c].next = e;
   }
   
 	s->pieces[p].next = e;
 	s->pieces[e].prev = p;
 	
-	shiftpieces(s, b, s->pieces[b].pos);
+	shiftpieces(s, SEQ_start, 0);
+	
+	if (s->changes[c].napieces == 0) {
+		/* Umm? Don't add the change to the tree. */
+		printf("somehow the change added no pieces! begin = %zu, end = %zu, len = %zu\n",
+		       begin, end, len);
+		return false;
+	}
+	
+	s->changes[c].children = -1;
+	s->changes[c].parent = s->changehead;
+	
+	s->changes[c].sibling = s->changes[s->changehead].children;
+	s->changes[s->changehead].children = c;
+	
+	s->changehead = c;
+	
+	/*
+	printchangetree(s, "", CHANGE_root);
+	printsequence(s);
+	*/
 	
   return true;
 }
@@ -274,7 +424,7 @@ sequencecodepoint(struct sequence *s, size_t pos, int32_t *code)
 
 	while (s->pieces[p].len == i) {
 		p = s->pieces[p].next;
-		if (p == -1) {
+		if (p == SEQ_end) {
 			return 0;
 		}
 
@@ -300,7 +450,7 @@ sequenceprevcodepoint(struct sequence *s, size_t pos, int32_t *code)
 
 	while (i == 0) {
 		p = s->pieces[p].prev;
-		if (p == -1) {
+		if (p == SEQ_start) {
 			return 0;
 		}
 
@@ -324,7 +474,7 @@ sequenceget(struct sequence *s, size_t pos,
   }
 
   ii = 0;
-  while (p != -1 && ii < len) {
+  while (p != SEQ_end && ii < len) {
   	l = s->pieces[p].len - i;
     if (ii + l >= len) {
       l = len - ii;
@@ -395,3 +545,58 @@ sequencefindword(struct sequence *s, size_t pos,
 
   return *len > 0;
 }
+
+bool
+sequencechangeup(struct sequence *s)
+{
+	ssize_t c, p, pp, prev;
+	
+	c = s->changehead;
+	if (c == CHANGE_root) {
+		return false;
+	}
+	
+	/* Add removed pieces back in. */
+	
+	prev = s->changes[c].prev;
+	for (p = 0; p < s->changes[c].nrpieces; p++) {
+		pp = s->changes[c].rpieces[p];
+		s->pieces[pp].prev = prev;
+		s->pieces[prev].next = pp;
+		prev = pp;
+	}
+	
+	s->pieces[prev].next = s->changes[c].next;
+	s->pieces[s->changes[c].next].prev = prev;
+	
+	s->changehead = s->changes[c].parent;
+	
+	shiftpieces(s, SEQ_start, 0);
+	
+	/*
+	printchangetree(s, "", 0);
+	printsequence(s);
+	*/
+	
+	return true;
+}
+
+bool
+sequencechangedown(struct sequence *s)
+{
+	return false;
+}
+
+bool
+sequencechangeleft(struct sequence *s)
+{
+	return false;
+}
+
+bool
+sequencechangeright(struct sequence *s)
+{
+	return false;
+}
+
+

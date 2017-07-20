@@ -2,9 +2,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SEQ_start  0
-#define SEQ_end   1
-#define SEQ_first   2
+#define SEQ_start   0
+#define SEQ_end     1
+
+#define CHANGE_root 0
 
 struct piece {
 	/* Offset of data in data buffer.
@@ -25,9 +26,31 @@ struct piece {
 	ssize_t prev, next;
 };
 
+struct change {
+	/* Pieces that were added. */
+	ssize_t apieces[3];
+	size_t napieces;
+	
+	/* Pieces that were removed. */
+	ssize_t rpieces[2];
+	size_t nrpieces;
+	
+	/* Previous and next piece around pieces. */
+	ssize_t prev, next; 
+	
+	/* Positions in sequence's changes array. */
+	ssize_t parent;
+	ssize_t children; /* Head of my sibling list. */
+	ssize_t sibling; /* Next of my siblings. */
+};
+
 struct sequence {
   struct piece *pieces;
   size_t plen, pmax;
+  
+  struct change *changes;
+  size_t clen, cmax;
+  ssize_t changehead;
 
   uint8_t *data;
   size_t dlen, dmax;
@@ -85,3 +108,16 @@ sequencelen(struct sequence *s);
 bool
 sequencefindword(struct sequence *s, size_t pos,
                  size_t *start, size_t *len);
+
+bool
+sequencechangeup(struct sequence *s);
+
+bool
+sequencechangedown(struct sequence *s);
+
+bool
+sequencechangeleft(struct sequence *s);
+
+bool
+sequencechangeright(struct sequence *s);
+

@@ -102,7 +102,7 @@ test_sequencereplaceget(void)
 	TEST_ASSERT_EQUAL_INT(strlen((char *) endstr), len);
 	
 	TEST_ASSERT_EQUAL_UINT8_ARRAY(endstr, buf, len);
-
+	
 	/* Now try add a whole heap. */
 	for (i = 0; i < 1000; i++) {
 		r = sequencereplace(s, 0, 0, str, strlen((char *) str));
