@@ -373,6 +373,7 @@ textboxplaceglyphs(struct textbox *t)
 	struct piece *p;
   int32_t code;
   int x, y;
+  cairo_glyph_t *n;
 
 	s = t->sequence;
 	p = &s->pieces[SEQ_start];
@@ -444,12 +445,11 @@ textboxplaceglyphs(struct textbox *t)
 
 		if (++g == t->nglyphsmax) {
 			t->nglyphsmax += 100;
-			t->glyphs = realloc(t->glyphs, t->nglyphsmax * sizeof(cairo_glyph_t));
-			if (t->glyphs == NULL) {
-				t->nglyphs = 0;
-				t->nglyphsmax = 0;
+			n = realloc(t->glyphs, t->nglyphsmax * sizeof(cairo_glyph_t));
+			if (n == NULL) {
 				return;
 			}
+			t->glyphs = n;
     }
 	}
 

@@ -101,6 +101,7 @@ sequencenew(uint8_t *data, size_t len)
 void
 sequencefree(struct sequence *s)
 {
+  free(s->changes);
   free(s->pieces);
   free(s->data);
   free(s);
@@ -139,22 +140,18 @@ piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
 static ssize_t
 piecenew(struct sequence *s, size_t pos, size_t off, size_t len)
 {
-	if (s->changes == NULL) {
-		/* Realloc failed in the past and we lost all the data. */
-		return -1;
-		
-	} else if (s->plen + 1 >= s->pmax) {
-		s->pieces = realloc(s->pieces,
+  struct piece *n;
+  
+	if (s->plen + 1 >= s->pmax) {
+		n = realloc(s->pieces,
 		                    sizeof(struct piece) * 
 		                    (s->pmax + PIECE_inc));
 
-		if (s->pieces == NULL) {
-			/* What should happen here? */
-			s->pmax = 0;
-			s->plen = 0;
+		if (n == NULL) {
 			return -1;
 		}
 
+		s->pieces = n;
 		s->pmax += PIECE_inc;
 	}
 
@@ -168,22 +165,17 @@ piecenew(struct sequence *s, size_t pos, size_t off, size_t len)
 static ssize_t
 changenew(struct sequence *s)
 {
-	if (s->changes == NULL) {
-		/* Realloc failed in the past and we lost all the data. */
-		return -1;
-		
-	} if (s->clen + 1 >= s->cmax) {
-		s->changes = realloc(s->changes,
+	struct change *n;
+	if (s->clen + 1 >= s->cmax) {
+		n = realloc(s->changes,
 		                     sizeof(struct change) * 
 		                     (s->cmax + CHANGE_inc));
 
-		if (s->changes == NULL) {
-			/* What should happen here? */
-			s->cmax = 0;
-			s->clen = 0;
+		if (n == NULL) {
 			return -1;
 		}
 
+		s->changes = n;
 		s->cmax += CHANGE_inc;
 	}
 
@@ -194,25 +186,17 @@ changenew(struct sequence *s)
 static bool
 appenddata(struct sequence *s, const uint8_t *data, size_t len)
 {
-	if (s->data == NULL) {
-		/* Realloc failed in the past and we lost all the data. */
-		return false;
-	}
+	uint8_t *n;
 	
   if (s->dlen + len >= s->dmax) {
-  	s->data = realloc(s->data, s->dmax + len + DATA_inc);
+  	n = realloc(s->data, s->dmax + len + DATA_inc);
 		
-    if (s->data == NULL) {
-    	/* If this happens we're kinda fucked, we just 
-    	   lost all the data. Not sure how this should be
-    	   handled. */
-    	s->dmax = 0;
-    	s->dlen = 0;
+    if (n == NULL) {
       return false;
-      
-    } else {
-      s->dmax += len + DATA_inc;
     }
+    
+    s->data = n;
+    s->dmax += len + DATA_inc;
   }
 
   memmove(s->data + s->dlen, data, len);

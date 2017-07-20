@@ -108,15 +108,16 @@ fontset(struct font *font, const char *spattern)
   FcResult result;
   double size;
   char *path;
+  int r = 1;
 
   config = FcInitLoadConfigAndFonts();
   if (config == NULL) {
-    return 1;
+  	goto ERR;
   }
 
   pat = FcNameParse((const FcChar8 *) spattern);
   if (pat == NULL) {
-    return 1;
+  	goto ERRCONFIG;
   }
 
   FcConfigSubstitute(config, pat, FcMatchPattern);
@@ -124,33 +125,36 @@ fontset(struct font *font, const char *spattern)
 
   fontpat = FcFontMatch(config, pat, &result);
   if (fontpat == NULL) {
-    FcPatternDestroy(pat);
-    return 1;
+    goto ERRPAT;
   }
 
   if (FcPatternGetString(fontpat, FC_FILE, 0, (FcChar8 **) &path)
       != FcResultMatch) {
 
-    FcPatternDestroy(fontpat);
-    FcPatternDestroy(pat);
-    return 1;
+    goto ERRFONTPAT;
   }
 
   if (FcPatternGetDouble(fontpat, FC_SIZE, 0, &size)
       != FcResultMatch) {
 
-    FcPatternDestroy(fontpat);
-    FcPatternDestroy(pat);
-    return 1;
+    goto ERRFONTPAT;
   }
 
   if (fontloadfile(font, path, size) != 0) {
-    FcPatternDestroy(fontpat);
-    FcPatternDestroy(pat);
-    return 1;
+    goto ERRFONTPAT;
   }
+  
+  r = 0;
+  
+  ERRFONTPAT:
+  FcPatternDestroy(fontpat);
+  ERRPAT:
+  FcPatternDestroy(pat);
+  ERRCONFIG:
+  FcConfigDestroy(config);
+	ERR:
 
-  return 0;
+  return r;
 }
 
 int

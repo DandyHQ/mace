@@ -133,7 +133,7 @@ test_sequencereplaceget(void)
 	/* No way should it be able to allocate this much, at least 
 	   lets hope it cant. */
 
-	r = sequencereplace(s, 0, 0, NULL, SIZE_MAX / 2);
+	r = sequencereplace(s, 0, 0, NULL, SIZE_MAX / 4);
 	TEST_ASSERT_TRUE(!r);
 	
 	sequencefree(s);	
