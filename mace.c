@@ -45,6 +45,12 @@ static struct defkeybinding defaultkeybindings[] = {
 	{ (uint8_t *) "Right",       (uint8_t *) "right" },
 	{ (uint8_t *) "Up",          (uint8_t *) "up" },
 	{ (uint8_t *) "Down",        (uint8_t *) "down" },
+	{ (uint8_t *) "C-z",         (uint8_t *) "undo" },
+	{ (uint8_t *) "S-C-Z",       (uint8_t *) "redo" },
+	{ (uint8_t *) "C-c",         (uint8_t *) "copy" },
+	{ (uint8_t *) "C-x",         (uint8_t *) "cut" },
+	{ (uint8_t *) "C-v",         (uint8_t *) "paste" },
+	{ (uint8_t *) "C-s",         (uint8_t *) "save" },
 };
 
 struct mace *
