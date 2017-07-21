@@ -1,4 +1,5 @@
 #include "mace.h"
+#include FT_ADVANCES_H
 
 /* TODO: 
    I don't like how tabs or newlines are handled. It would possibly 
@@ -316,6 +317,7 @@ placesomeglyphs(struct textbox *t,
                 int *x, int *y)
 {
   size_t g, gg, linestart, lineend;
+  FT_Fixed advance;
 	int32_t index;
   int ww;
 
@@ -324,11 +326,14 @@ placesomeglyphs(struct textbox *t,
 
   for (g = 0; g < nglyphs; g++) {
 		index = FT_Get_Char_Index(t->mace->font->face, glyphs[g].index);
-		if (FT_Load_Glyph(t->mace->font->face, index, FT_LOAD_DEFAULT) != 0) {
+		
+		if (FT_Get_Advance(t->mace->font->face, 
+		                   index, FT_LOAD_DEFAULT, 
+		                   &advance) != 0) {
 			continue;
 		}
 
-    ww = t->mace->font->face->glyph->advance.x >> 6;
+    ww = advance / 65536;
 
     if (*x + ww >= t->linewidth) {
 			*x = 0;
@@ -341,13 +346,13 @@ placesomeglyphs(struct textbox *t,
 					glyphs[gg].x = *x;
 					glyphs[gg].y = *y;
 				
-					if (FT_Load_Glyph(t->mace->font->face, 
-					                  glyphs[gg].index, 
-					                  FT_LOAD_DEFAULT) != 0) {
+					if (FT_Get_Advance(t->mace->font->face, 
+					                   glyphs[gg].index, FT_LOAD_DEFAULT,
+					                   &advance) != 0) {
 						continue;
 					}
 
-					*x += t->mace->font->face->glyph->advance.x >> 6;
+					*x += advance / 65536;
 				}
 			}
 
