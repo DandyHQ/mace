@@ -445,12 +445,7 @@ cmdundocycle(struct mace *m)
 static bool
 fileexists(const uint8_t *filename)
 {
-	uint8_t *name;
-	
-	/* I am not sure if basename allocates name or if it is a slice of filename. */
-	name = (uint8_t *) basename((char *) filename);
-	
-	return access((const char *)name, R_OK) != -1;
+	return access((const char *)filename, R_OK) != -1;
 }
   
 static struct cmd cmds[] = {

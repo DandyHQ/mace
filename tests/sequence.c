@@ -169,12 +169,12 @@ test_sequencefindword(void)
 
 	/* Word starts and lengths. */
 	size_t starts[] = { 0, 6, 13, 18, 21, 23 };
-	size_t lens[]   = { 5, 5, 4, 2, 1, 4 };
+	size_t lens[]   = { 5, 6, 4, 2, 1, 4 };
 
 	/* Test points */
 	size_t p[]      = { 0, 2, 10, 12, 26, 27 };
 	/* Associated word (-1 for fail) */
-	ssize_t w[]     = { 0, 0,  1, -1, 5, -1 };
+	ssize_t w[]     = { 0, 0,  1, 1, 5, -1 };
 
 	struct sequence *s;
 	size_t i, start, len;
