@@ -24,6 +24,7 @@ executable('mace', install: true,
 		'font.c',
 		'utf8.c',
 		'cmd.c',
+		'main.c',
 
 		'xmain.c'
 	],

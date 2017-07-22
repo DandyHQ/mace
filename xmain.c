@@ -10,22 +10,8 @@
 #include <cairo-xlib.h>
 
 #include "mace.h"
-#include "config.h"
 
 #include "resources/xlib-keysyms.h"
-
-#define OPTPARSE_IMPLEMENTATION
-//#define OPTPARSE_API static
-#include "resources/optparse/optparse.h"
-
-static const char* help_message = "\
-Usage:\n\
-  mace [OPTIONS...] [FILES...]\n\
-\n\
-Options:\n\
-  -h, --help                        Show help options\n\
-  -v, --version                     Show the mace version\n\
-";
 
 static Display *display;
 static Window win;
@@ -36,17 +22,15 @@ static int width, height;
 static cairo_surface_t *sfc;
 static cairo_t *cr;
 
-static struct mace *mace;
-
 static void
-xresize(int w, int h)
+xresize(struct mace *m, int w, int h)
 {
   width = w;
   height = h;
 
   cairo_xlib_surface_set_size(sfc, w, h);
 
-  if (!paneresize(mace->pane, 0, 0, w, h)) {
+  if (!paneresize(m->pane, 0, 0, w, h)) {
     /* What should actually happen here? */
     errx(1, "Failed to resize!");
   }
@@ -128,7 +112,7 @@ encodekey(KeySym sym, uint8_t *s, size_t n)
 }
 
 static bool
-xhandlekeypress(XKeyEvent *e)
+xhandlekeypress(struct mace *m, XKeyEvent *e)
 {
   size_t n = 32, nn = 0;
   KeySym sym;
@@ -159,26 +143,26 @@ xhandlekeypress(XKeyEvent *e)
 
   n = encodekey(sym, s + nn, n - nn);
   if (n > 0) {
-    return handlekey(mace, s, n + nn);
+    return handlekey(m, s, n + nn);
   } else {
 		return false;
 	}
 }
 
 static bool
-xhandlebuttonpress(XButtonEvent *e)
+xhandlebuttonpress(struct mace *m, XButtonEvent *e)
 {
   switch (e->button) {
   case 1:
   case 2:
   case 3:
-    return handlebuttonpress(mace, e->x, e->y, e->button);
+    return handlebuttonpress(m, e->x, e->y, e->button);
 
   case 4:
-    return handlescroll(mace, e->x, e->y, 0, -mace->font->lineheight);
+    return handlescroll(m, e->x, e->y, 0, -m->font->lineheight);
     
   case 5:
-    return handlescroll(mace, e->x, e->y, 0, mace->font->lineheight);
+    return handlescroll(m, e->x, e->y, 0, m->font->lineheight);
 
   default:
     return false;
@@ -186,31 +170,31 @@ xhandlebuttonpress(XButtonEvent *e)
 }
 
 static bool
-xhandlebuttonrelease(XButtonEvent *e)
+xhandlebuttonrelease(struct mace *m, XButtonEvent *e)
 {
   switch (e->button) {
   case 1:
   case 2:
   case 3:
-    return handlebuttonrelease(mace, e->x, e->y, e->button);
+    return handlebuttonrelease(m, e->x, e->y, e->button);
   default:
     return false;
   }
 }
 
 static bool
-xhandlemotion(XMotionEvent *e)
+xhandlemotion(struct mace *m, XMotionEvent *e)
 {
-  return handlemotion(mace, e->x, e->y);
+  return handlemotion(m, e->x, e->y);
 } 
 
 static void
-eventLoop(void)
+eventLoop(struct mace *m)
 {
   bool redraw;
   XEvent e;
 
-  while (mace->running) {
+  while (m->running) {
     XNextEvent(display, &e);
 
     redraw = false;
@@ -221,7 +205,7 @@ eventLoop(void)
       if (e.xconfigure.width != width
 			    || e.xconfigure.height != height) {
 
-				xresize(e.xconfigure.width, e.xconfigure.height);
+				xresize(m, e.xconfigure.width, e.xconfigure.height);
 				redraw = true;
       }
       
@@ -232,26 +216,26 @@ eventLoop(void)
      break;
 
     case KeyPress:
-      redraw = xhandlekeypress(&e.xkey);
+      redraw = xhandlekeypress(m, &e.xkey);
       break;
 
     case ButtonPress:
-      redraw = xhandlebuttonpress(&e.xbutton);
+      redraw = xhandlebuttonpress(m, &e.xbutton);
       break;
 
     case ButtonRelease:
-      redraw = xhandlebuttonrelease(&e.xbutton);
+      redraw = xhandlebuttonrelease(m, &e.xbutton);
       break;
 
     case MotionNotify:
-      redraw = xhandlemotion(&e.xmotion);     
+      redraw = xhandlemotion(m, &e.xmotion);     
       break;
     }
 
     if (redraw) {
       cairo_push_group(cr);
 
-      panedraw(mace->pane, cr);
+      panedraw(m->pane, cr);
 
       cairo_pop_group_to_source(cr);
       cairo_paint(cr);
@@ -261,79 +245,17 @@ eventLoop(void)
 }
 
 int
-main(int argc, char **argv)
+dodisplay(struct mace *m)
 {
-  int width, height, i, option;
-  struct optparse options;
-	struct tab *t;
-
-	struct optparse_long longopts[] = {
-		{"help", 'h', OPTPARSE_NONE},
-		{"version", 'v', OPTPARSE_NONE},
-		{0}
-	};
-	
-	bool help = false;
-  bool version = false;
-
-	mace = macenew();
-  if (mace == NULL) {
-    errx(1, "Failed to initalize mace!");
-  }
+  int width, height;
   
-  /* Parse options so we know what we're doing. */
-  optparse_init(&options, argv);
-
-	while ((option = optparse_long(&options, longopts, NULL)) != -1) {
-		switch(option) {
-		case 'h':
-			help = true;
-			break;
-		case 'v':
-			version = true;
-			break;
-		case '?':
-			fprintf(stderr, "%s: %s\n", argv[0], options.errmsg);
-			exit(EXIT_FAILURE);
-		}
-	}
-
-	if (help) {
-		puts(help_message);
-		macefree(mace);
-		return 0;
-
-	} else if (version) {
-		printf("Mace %s\n", VERSION_STR);
-		macefree(mace);
-		return 0;
-	}
-
-	/* Now begin opening files */
-	for (i = 1; i < argc; i++) {
-		t = tabnewfromfile(mace, (uint8_t *) argv[i]);
-		if (t == NULL) {
-			continue;
-		}
-		
-		paneaddtab(mace->pane, t, -1);
-		mace->pane->focus = t;
-		mace->mousefocus = t->main;
-	}
-
-	/* This is ugly. Removes default tab is files were opened. */
-	if (mace->pane->focus != mace->pane->tabs) {
-		t = mace->pane->tabs;
-		paneremovetab(mace->pane, t);
-		tabfree(t);
-	}
-
   width = 800;
   height = 500;
 
   display = XOpenDisplay(NULL);
   if (display == NULL) {
-    err(1, "Failed to open X display!");
+  	fprintf(stderr, "Failed to open X display!");
+  	return EXIT_FAILURE;
   }
   
   screen = DefaultScreen(display);
@@ -355,20 +277,18 @@ main(int argc, char **argv)
 				  width, height);
 
   cr = cairo_create(sfc);
-
-  xresize(width, height);
+	
+  xresize(m, width, height);
 
   cairo_push_group(cr);
-
-  panedraw(mace->pane, cr);
+	
+  panedraw(m->pane, cr);
 
   cairo_pop_group_to_source(cr);
   cairo_paint(cr);
   cairo_surface_flush(sfc);
 
-  eventLoop();
-
-  macefree(mace);
+  eventLoop(m);
   
   cairo_destroy(cr);
   cairo_surface_destroy(sfc);
@@ -376,5 +296,5 @@ main(int argc, char **argv)
   XDestroyWindow(display, win);
   XCloseDisplay(display);
 
-  return 0;
+  return EXIT_SUCCESS;
 }

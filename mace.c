@@ -1,67 +1,10 @@
 #include <string.h>
 #include "mace.h"
-#include "config.h"
-
-static uint8_t message[] =
-  "Welcome to the Mace text editor. Below is a basic guide on how to use this editor."
-  "\n\n" 
-  "When you type, text is added at the cursor position. The cursor can be moved with the arrow keys, "
-  "or by clicking on the desired position with the mouse. Text can be selected by clicking and dragging "
-  "with the mouse."	
-  "\n\n"
-  "You can scroll the window with a mouse scroll wheel, or by clicking on different positions on the "
-  "scroll bar on the right side of the screen."
-  "\n\n"
-  "At the top of the screen is a bar that shows the different tabs that are open in Mace. You can "
-  "navigate between these by clicking on the corresponding box. The current tab is represented with a "
-  "white box, while the others are grey."
-  "\n\n"
-  "Just below this is another bar. On the left of this is the name of the current file, and then "
-  "several commands. Each of these commands can be executed by right-clicking on them. For example, "
-  "right-clicking on save will save this guide as a file in the Mace directory. To create a new file, "
-  "or open an existing file, type and select the pathname and right-click the open command. This will "
-  "open a new tab with that file."
-  "\n\n" 
-  "Each of the other commands work as you might expect. The close command closes the current tab. "
-  "The cut and copy commands cut/copy the currently selected text, and the paste commands pastes " 
-  "the most recently copied text at the cursor position. Each of these commands can be used from the "
-  "command bar, or directly from the text. For example, if you click the word save in this sentence, "
-  "save commands will be executed! "
-  "\n\n"
-  "We hope this guide was helpful. Have fun using Mace!"
-;
-
-struct defkeybinding {
-	uint8_t *key, *cmd;
-};
-
-static struct defkeybinding defaultkeybindings[] = {
-	{ (uint8_t *) "Tab",         (uint8_t *) "tab" },
-	{ (uint8_t *) "Return",      (uint8_t *) "return" },
-	{ (uint8_t *) "Delete",      (uint8_t *) "del" },
-	{ (uint8_t *) "BackSpace",   (uint8_t *) "back" },
-	{ (uint8_t *) "S-BackSpace", (uint8_t *) "back" },
-	{ (uint8_t *) "Left",        (uint8_t *) "left" },
-	{ (uint8_t *) "Right",       (uint8_t *) "right" },
-	{ (uint8_t *) "Up",          (uint8_t *) "up" },
-	{ (uint8_t *) "Down",        (uint8_t *) "down" },
-	{ (uint8_t *) "C-z",         (uint8_t *) "undo" },
-	{ (uint8_t *) "S-C-Z",       (uint8_t *) "redo" },
-	{ (uint8_t *) "C-c",         (uint8_t *) "copy" },
-	{ (uint8_t *) "C-x",         (uint8_t *) "cut" },
-	{ (uint8_t *) "C-v",         (uint8_t *) "paste" },
-	{ (uint8_t *) "C-s",         (uint8_t *) "save" },
-};
 
 struct mace *
 macenew(void)
 {
-  const uint8_t name[] = "Mace";
-  struct sequence *s;
   struct mace *m;
-  struct tab *t;
-  uint8_t *buf;
-  size_t l, i;
 
   m = calloc(1, sizeof(struct mace));
   if (m == NULL) {
@@ -74,39 +17,14 @@ macenew(void)
     return NULL;
   }
 
-  buf = malloc(sizeof(message));
-  if (buf == NULL) {
-    macefree(m);
-    return NULL;
-  }
-
-  l = snprintf((char *) buf, sizeof(message), "%s", message);
-  
-  s = sequencenew(buf, l);
-  if (s == NULL) {
-    free(buf);
-    macefree(m);
-    return NULL;
-  }
-
   m->pane = panenew(m);
   if (m->pane == NULL) {
     macefree(m);
     return NULL;
   }
-
-  t = tabnew(m, name, name, s);
-	           
-  if (t == NULL) {
-    macefree(m);
-    return NULL;
-  }
-  paneaddtab(m->pane, t, 0);
-  m->pane->focus = t;
-
-	for (i = 0; i < sizeof(defaultkeybindings) / sizeof(defaultkeybindings[0]); i++) {
-		maceaddkeybinding(m, defaultkeybindings[i].key, defaultkeybindings[i].cmd);
-	}
+  
+  m->clipboard = NULL;
+  m->clipboardlen = 0;
 
   m->running = true;
   

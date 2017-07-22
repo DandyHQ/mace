@@ -136,9 +136,14 @@ struct mace {
   struct textbox *mousefocus;
 
 	struct cursel *cursels;
+	
+	uint8_t *clipboard;
+	size_t clipboardlen;
 };
 
 
+int
+dodisplay(struct mace *m);
 
 struct mace *
 macenew(void);

@@ -13,9 +13,6 @@ struct cmd {
 	bool (*func)(struct mace *mace);
 };
 
-static uint8_t *clipboard = NULL;
-static size_t clipboardlen = 0;
-
 static size_t
 getfilename(struct tab *t, uint8_t *buf, size_t len)
 {
@@ -184,23 +181,23 @@ cmdcut(struct mace *m)
 		start = c->start;
 		len = c->end - c->start;
 		
-		if (clipboard != NULL) {
-			free(clipboard);
+		if (m->clipboard != NULL) {
+			free(m->clipboard);
 		}
 
-		clipboard = malloc(len);
-		if (clipboard == NULL) {
-			clipboardlen = 0;
+		m->clipboard = malloc(len);
+		if (m->clipboard == NULL) {
+			m->clipboardlen = 0;
 			return false;
 		}
 
-		clipboardlen = sequenceget(t->sequence, start, 
-		                           clipboard, len);
+		m->clipboardlen = sequenceget(t->sequence, start, 
+		                              m->clipboard, len);
 
 		sequencereplace(t->sequence, start, c->end, NULL, 0);
 		textboxplaceglyphs(t);
     
-		shiftcursels(m, t, start, -clipboardlen);
+		shiftcursels(m, t, start, -m->clipboardlen);
 		c->start = start;
 		c->end = start;
 		c->cur = 0;		
@@ -219,19 +216,19 @@ cmdcopy(struct mace *m)
     if ((c->type & CURSEL_cmd) != 0 || c->start == c->end) continue;
 		t = c->tb;
     
-    if (clipboard != NULL) {
-    	free(clipboard);
+    if (m->clipboard != NULL) {
+    	free(m->clipboard);
     }
     
-    clipboardlen = c->end - c->start;
-    clipboard = malloc(clipboardlen);
-    if (clipboard == NULL) {
-      clipboardlen = 0;
+    m->clipboardlen = c->end - c->start;
+    m->clipboard = malloc(m->clipboardlen);
+    if (m->clipboard == NULL) {
+      m->clipboardlen = 0;
       return false;
     }
 
-    clipboardlen = sequenceget(t->sequence, c->start,
-			                         clipboard, clipboardlen);
+    m->clipboardlen = sequenceget(t->sequence, c->start,
+			                            m->clipboard, m->clipboardlen);
   }
   
   return true;
@@ -260,8 +257,8 @@ insertstring(struct mace *m, uint8_t *s, size_t n)
 static bool
 cmdpaste(struct mace *m)
 {
-  if (clipboard != NULL) {
-    insertstring(m, clipboard, clipboardlen);
+  if (m->clipboard != NULL) {
+    insertstring(m, m->clipboard, m->clipboardlen);
     return true;
   } else {
   	return false;
