@@ -42,7 +42,7 @@ drawglyphs(cairo_t *cr,
 
 	if (len == 0) return;
 
-	if (bg != NULL) {
+	if (bg != NULL) {		
 		cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
 
 		for (start = 0, g = 1; g < len; g++) {
@@ -50,7 +50,7 @@ drawglyphs(cairo_t *cr,
 
 			cairo_rectangle(cr,
 			                glyphs[start].x,
-	                    glyphs[start].y - ay,
+	                    glyphs[start].y - ay + 1,
 			                lw - glyphs[start].x,
 	                    ay + by);
 
@@ -61,7 +61,7 @@ drawglyphs(cairo_t *cr,
 		if (start < g) {
 			cairo_rectangle(cr,
 			                glyphs[start].x,
-	                    glyphs[start].y - ay,
+	                    glyphs[start].y - ay + 1,
 			                glyphs[g].x - glyphs[start].x,
 	                    ay + by);
 
@@ -143,7 +143,8 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 				if (startg < g) {
 					drawglyphs(cr, &t->glyphs[startg], g - startg,
 					           &nfg, bg,
-					           t->linewidth - PAD * 2, ay, by);
+					           t->linewidth - PAD * 2,
+					           ay, by);
 				}
 				
 				startg = g;
@@ -160,7 +161,8 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 			if (startg < g) {
 				drawglyphs(cr, &t->glyphs[startg], g - startg,
 				           &nfg, bg,
-				           t->linewidth - PAD * 2, ay, by);
+				           t->linewidth - PAD * 2,
+				           ay, by);
 			}
 			
 			startg = g;
@@ -179,7 +181,8 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 			if (startg < g) {
 				drawglyphs(cr, &t->glyphs[startg], g - startg,
 				           &nfg, bg,
-				           t->linewidth - PAD * 2, ay, by);
+				           t->linewidth - PAD * 2,
+				           ay, by);
 			}
 			
 			startg = g + 1;
@@ -188,9 +191,9 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 				cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
 				cairo_rectangle(cr,
 			  	              t->glyphs[g].x,
- 	   	                t->glyphs[g].y - ay,
+ 	   	                t->glyphs[g].y - ay + 1,
 				                t->linewidth - PAD * 2 - t->glyphs[g].x,
-  	  	                ay + by);
+				                ay + by);
 
 				cairo_fill(cr);
 			}
@@ -198,7 +201,8 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 			if (startg < g) {
 				drawglyphs(cr, &t->glyphs[startg], g - startg,
 				           &nfg, bg,
-				           t->linewidth - PAD * 2, ay, by);
+				           t->linewidth - PAD * 2,
+				           ay, by);
 			}
 			
 			startg = g + 1;
@@ -207,9 +211,9 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 				cairo_set_source_rgb(cr, bg->r, bg->g, bg->b);
 				cairo_rectangle(cr,
 			  	              t->glyphs[g].x,
-	    	                t->glyphs[g].y - ay,
+	    	                t->glyphs[g].y - ay + 1,
 				                t->mace->font->tabwidthpixels,
-	    	                ay + by);
+				                ay + by);
 
 				cairo_fill(cr);
 			}
@@ -219,12 +223,13 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 			if (startg < g + 1) {
 				drawglyphs(cr, &t->glyphs[startg], g - startg + 1,
 				           &nfg, bg,
-				           t->linewidth - PAD * 2, ay, by);
+				           t->linewidth - PAD * 2,
+				           ay, by);
 			}
 
 			startg = g + 1;
 
-			drawcursor(cr, t->glyphs[g].x, t->glyphs[g].y - ay, 
+			drawcursor(cr, t->glyphs[g].x, t->glyphs[g].y - ay + 1,
 			           ay + by);
 
 			drawcursornow = false;
@@ -235,14 +240,15 @@ end:
 
 	drawglyphs(cr, &t->glyphs[startg], g - startg,
 	           &nfg, bg,
-	           t->linewidth - PAD * 2, ay, by);
+	           t->linewidth - PAD * 2,
+	           ay, by);
 
 	if (cs != NULL && (cs->type & CURSEL_nrm) != 0 &&
 	    cs->start + cs->cur == sequencelen(t->sequence)) {
 
 			drawcursor(cr, 
 			           t->glyphs[t->nglyphs].x, 
-			           t->glyphs[t->nglyphs].y - ay, 
+			           t->glyphs[t->nglyphs].y - ay + 1, 
 			           ay + by);
 	}
 
@@ -314,7 +320,8 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 static void
 placesomeglyphs(struct textbox *t,
                 cairo_glyph_t *glyphs, size_t nglyphs,
-                int *x, int *y)
+                int *x, int *y,
+                int ay, int by)
 {
   size_t g, gg, linestart, lineend;
   FT_Fixed advance;
@@ -337,7 +344,7 @@ placesomeglyphs(struct textbox *t,
 
     if (*x + ww >= t->linewidth) {
 			*x = 0;
-			*y += t->mace->font->lineheight;
+			*y += ay + by;
 
 			if (linestart < lineend) {
 				/* Only attempt word breaks if there are words to break. */
@@ -375,14 +382,17 @@ textboxplaceglyphs(struct textbox *t)
 {
   size_t i, g, a, startg;
 	struct sequence *s;
+  cairo_glyph_t *n;
+  int x, y, ay, by;
 	struct piece *p;
   int32_t code;
-  int x, y;
-  cairo_glyph_t *n;
 
 	s = t->sequence;
 	p = &s->pieces[SEQ_start];
-
+	
+  ay = (t->mace->font->face->size->metrics.ascender >> 6);
+  by = -(t->mace->font->face->size->metrics.descender >> 6);
+  
   x = 0;
   y = t->mace->font->baseline;
 	g = 0;
@@ -411,7 +421,8 @@ textboxplaceglyphs(struct textbox *t)
 				placesomeglyphs(t, 
 			                  &t->glyphs[startg],
 			                  g - startg,
-			                  &x, &y);
+			                  &x, &y,
+			                  ay, by);
       }
 
 			t->glyphs[g].index = 0;
@@ -419,7 +430,7 @@ textboxplaceglyphs(struct textbox *t)
 			t->glyphs[g].y = y;
 
 			x = 0;
-			y += t->mace->font->lineheight;
+			y += ay + by;
 
       startg = g + 1;
 
@@ -428,12 +439,13 @@ textboxplaceglyphs(struct textbox *t)
 				placesomeglyphs(t, 
 			                  &t->glyphs[startg],
 			                  g - startg,
-			                  &x, &y);
+			                  &x, &y,
+			                  ay, by);
 			}
 
 			if (x + t->mace->font->tabwidthpixels >= t->linewidth) {
 				x = 0;
-				y += t->mace->font->lineheight;
+				y += ay + by;
 			}
 
 			t->glyphs[g].index = 0;
@@ -464,7 +476,8 @@ end:
     placesomeglyphs(t,
 		                &t->glyphs[startg],
 		                g - startg,
-                    &x, &y);
+                    &x, &y,
+                    ay, by);
   }
 
 	/* Last glyph stores the end. */
@@ -474,7 +487,7 @@ end:
 	t->glyphs[t->nglyphs].x = x;
 	t->glyphs[t->nglyphs].y = y;
 
-	t->height = y - (t->mace->font->face->size->metrics.descender >> 6);
+	t->height = y + by;
 }
 
 size_t
