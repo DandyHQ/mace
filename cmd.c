@@ -10,7 +10,7 @@
 
 struct cmd {
 	const char *name;
-	void (*func)(struct mace *mace);
+	bool (*func)(struct mace *mace);
 };
 
 static uint8_t *clipboard = NULL;
@@ -35,21 +35,22 @@ getfilename(struct tab *t, uint8_t *buf, size_t len)
   return l;
 }
 
-static void
+static bool
 cmdsave(struct mace *m)
 {
   uint8_t filename[1024], *buf;
   struct sequence *s;
   size_t len;
+  bool r;
   int fd;
 
   if (m->mousefocus == NULL) {
-    return;
+    return false;
   }
 
   if (getfilename(m->mousefocus->tab, filename, sizeof(filename)) == 0) {
     printf("filename not found\n");
-    return;
+    return false;
   }
 
   s = m->mousefocus->tab->main->sequence;
@@ -58,7 +59,7 @@ cmdsave(struct mace *m)
   buf = malloc(len);
   if (buf == NULL) {
     printf("Failed to allocate buffer for file!\n");
-    return;
+    return false;
   }
 
   len = sequenceget(s, 0, buf, len);
@@ -67,18 +68,22 @@ cmdsave(struct mace *m)
   if (fd < 0) {
     printf("Failed to open %s\n", filename);
     free(buf);
-    return;
+    return false;
   }
 
+	r = true;
   if (write(fd, buf, len) != len) {
     printf("Failed to write to %s\n", filename);
+    r = false;
   }
 
   close(fd);
   free(buf);
+  
+  return r;
 }
 
-static void
+static bool
 openselection(struct mace *m, struct cursel *s)
 {
   uint8_t name[1024];
@@ -88,7 +93,7 @@ openselection(struct mace *m, struct cursel *s)
   len = s->end - s->start;
 	if (len + 1 >= sizeof(name)) {
 		fprintf(stderr, "Selection is too long to be a name!\n");
-		return;
+		return false;
 	}
 
   len = sequenceget(s->tb->sequence, s->start, name, len);
@@ -96,24 +101,33 @@ openselection(struct mace *m, struct cursel *s)
 
   t = tabnewfromfile(m, name);
   if (t == NULL) {
-    return;
+    return false;
   }
 
   paneaddtab(s->tb->tab->pane, t, -1);
 
   s->tb->tab->pane->focus = t;
+  
+  return true;
 }
 
-static void
+static bool
 cmdopen(struct mace *m)
 {
   struct cursel *s;
+	int o = 0, f = 0;
 
   for (s = m->cursels; s != NULL; s = s->next) {
 		if ((s->type & CURSEL_nrm) != 0 && s->start != s->end) {
-	    openselection(m, s);
+	    if (openselection(m, s)) {
+	    	o++;
+	    } else {
+	    	f++;
+	    }
 		}
   }
+  
+  return o > 0 && f == 0;
 }
 
 static void
@@ -132,14 +146,14 @@ openfile(struct mace *m, const uint8_t *filename)
 	s->tb->tab->pane->focus = t;
 }
 
-static void
+static bool
 cmdclose(struct mace *m)
 {
   struct pane *p;
   struct tab *t;
 
   if (m->mousefocus == NULL) {
-    return;
+    return false;
   }
 
   t = m->mousefocus->tab;
@@ -151,9 +165,11 @@ cmdclose(struct mace *m)
   if (p->tabs == NULL) {
     m->running = false;
   }
+  
+  return true;
 }
 
-static void
+static bool
 cmdcut(struct mace *m)
 {
   struct cursel *c, *n;
@@ -167,11 +183,15 @@ cmdcut(struct mace *m)
 
 		start = c->start;
 		len = c->end - c->start;
+		
+		if (clipboard != NULL) {
+			free(clipboard);
+		}
 
-		clipboard = realloc(clipboard, len);
+		clipboard = malloc(len);
 		if (clipboard == NULL) {
 			clipboardlen = 0;
-			return;
+			return false;
 		}
 
 		clipboardlen = sequenceget(t->sequence, start, 
@@ -185,9 +205,11 @@ cmdcut(struct mace *m)
 		c->end = start;
 		c->cur = 0;		
   }
+  
+  return true;
 }
 
-static void
+static bool
 cmdcopy(struct mace *m)
 {
   struct textbox *t;
@@ -197,16 +219,22 @@ cmdcopy(struct mace *m)
     if ((c->type & CURSEL_cmd) != 0 || c->start == c->end) continue;
 		t = c->tb;
     
+    if (clipboard != NULL) {
+    	free(clipboard);
+    }
+    
     clipboardlen = c->end - c->start;
-    clipboard = realloc(clipboard, clipboardlen);
+    clipboard = malloc(clipboardlen);
     if (clipboard == NULL) {
       clipboardlen = 0;
-      return;
+      return false;
     }
 
     clipboardlen = sequenceget(t->sequence, c->start,
 			                         clipboard, clipboardlen);
   }
+  
+  return true;
 }
 
 static void
@@ -229,15 +257,18 @@ insertstring(struct mace *m, uint8_t *s, size_t n)
 	}
 }
 
-static void
+static bool
 cmdpaste(struct mace *m)
 {
   if (clipboard != NULL) {
     insertstring(m, clipboard, clipboardlen);
+    return true;
+  } else {
+  	return false;
   }
 }
 
-static void
+static bool
 cmddel(struct mace *m)
 {
 	struct cursel *c;
@@ -262,9 +293,11 @@ cmddel(struct mace *m)
 		c->end = start;
 		c->cur = 0;
 	}
+	
+	return true;
 }
 
-static void
+static bool
 cmdback(struct mace *m)
 {
 	struct cursel *c;
@@ -290,15 +323,18 @@ cmdback(struct mace *m)
 		c->end = start;
 		c->cur = 0;
 	}
+	
+	return true;
 }
 
-static void
+static bool
 cmdtab(struct mace *m)
 {
 	insertstring(m, (uint8_t *) "\t", 1);
+	return true;
 }
 
-static void
+static bool
 cmdreturn(struct mace *m)
 {
 	uint8_t buf[64];
@@ -320,9 +356,11 @@ cmdreturn(struct mace *m)
 		c->end = start + 1 + n;
 		c->cur = 0;
 	}
+	
+	return true;
 }
 
-static void
+static bool
 cmdleft(struct mace *m)
 {
 	struct cursel *c;
@@ -340,9 +378,11 @@ cmdleft(struct mace *m)
 			c->cur = 0;
 		}
 	}
+	
+	return true;
 }
 
-static void
+static bool
 cmdright(struct mace *m)
 {
 	struct cursel *c;
@@ -360,9 +400,11 @@ cmdright(struct mace *m)
 			c->cur = 0;
 		}
 	}
+	
+	return true;
 }
 
-static void
+static bool
 cmdup(struct mace *m)
 {
 	struct cursel *c;
@@ -377,9 +419,11 @@ cmdup(struct mace *m)
 			c->cur = 0;
 		}
 	}
+	
+	return true;
 }
 
-static void
+static bool
 cmddown(struct mace *m)
 {
 	struct cursel *c;
@@ -394,12 +438,15 @@ cmddown(struct mace *m)
 			c->cur = 0;
 		}
 	}
+	
+	return true;
 }
 
-static void
+static bool
 cmdjump(struct mace *m)
 {
 	printf("Not yet implimented\n");
+	return false;
 }
 
 /* These should all do one action per text box if a text 
@@ -407,7 +454,7 @@ cmdjump(struct mace *m)
    They also need to update the cursels in ways I do not know.
 */
    
-static void
+static bool
 cmdundo(struct mace *m)
 {
 	struct cursel *c;
@@ -416,9 +463,11 @@ cmdundo(struct mace *m)
 		sequencechangeup(c->tb->sequence);
 		textboxplaceglyphs(c->tb);
 	}
+	
+	return true;
 }
 
-static void
+static bool
 cmdredo(struct mace *m)
 {
 	struct cursel *c;
@@ -427,9 +476,11 @@ cmdredo(struct mace *m)
 		sequencechangedown(c->tb->sequence);
 		textboxplaceglyphs(c->tb);
 	}
+	
+	return true;
 }
 
-static void
+static bool
 cmdundocycle(struct mace *m)
 {
 	struct cursel *c;
@@ -438,16 +489,34 @@ cmdundocycle(struct mace *m)
 		sequencechangecycle(c->tb->sequence);
 		textboxplaceglyphs(c->tb);
 	}
+	
+	return true;
 }
-
-
 
 static bool
-fileexists(const uint8_t *filename)
+cmdscratch(struct mace *m)
 {
-	return access((const char *)filename, R_OK) != -1;
-}
+	struct pane *p;
+	struct tab *t;
+	
+	if (m->mousefocus == NULL) {
+		return false;
+	}
+	
+	p = m->mousefocus->tab->pane;
+	
+	t = tabnewempty(m, "*scratch*");
+  if (t == NULL) {
+    return false;
+  }
+
+  paneaddtab(p, t, -1);
+
+  p->focus = t;
   
+  return true;
+}
+
 static struct cmd cmds[] = {
 	{ "save",       cmdsave },
 	{ "open",       cmdopen },
@@ -467,7 +536,14 @@ static struct cmd cmds[] = {
 	{ "undo",       cmdundo },
 	{ "redo",       cmdredo },
 	{ "undocycle",  cmdundocycle },
+	{ "scratch",    cmdscratch },
 };
+
+static bool
+fileexists(const uint8_t *filename)
+{
+	return access((const char *)filename, R_OK) != -1;
+}
 
 bool
 command(struct mace *mace, const uint8_t *s)
@@ -476,17 +552,16 @@ command(struct mace *mace, const uint8_t *s)
 
 	for (i = 0; i < sizeof(cmds) / sizeof(struct cmd); i++) {
 		if (strcmp((const char *) s, cmds[i].name) == 0) {
- 		  cmds[i].func(mace);
-			return true;
+			return cmds[i].func(mace);
 		}
 	}
 	
-	// If it's a file. Load that instead.
 	if (fileexists(s)) {
 		openfile(mace, s);
 		return true;
 	}
 
 	fprintf(stderr, "no command '%s' found\n", s);
+	
 	return false;
 }

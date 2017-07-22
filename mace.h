@@ -236,13 +236,13 @@ paneremovetab(struct pane *p, struct tab *t);
 
 struct tab *
 tabnew(struct mace *mace,
-       const uint8_t *name, size_t nlen,
-       const uint8_t *filename, size_t flen,
+       const uint8_t *name,
+       const uint8_t *filename,
        struct sequence *mainseq);
 
 struct tab *
 tabnewempty(struct mace *mace,
-            const uint8_t *name, size_t nlen);
+            const uint8_t *name);
 
 struct tab *
 tabnewfromfile(struct mace *mace,

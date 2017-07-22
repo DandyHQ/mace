@@ -14,17 +14,21 @@ static const uint8_t actionstart[] =
 
 struct tab *
 tabnew(struct mace *mace,
-       const uint8_t *name, size_t nlen,
-       const uint8_t *filename, size_t flen,
+       const uint8_t *name,
+       const uint8_t *filename,
        struct sequence *mainseq)
 {
   struct sequence *actionseq;
+  size_t nlen, flen;
   struct tab *t;
   
   t = calloc(1, sizeof(struct tab));
   if (t == NULL) {
     return NULL;
   }
+  
+  nlen = strlen(name);
+  flen = strlen(filename);
 
   t->mace = mace;
   t->next = NULL;
@@ -70,8 +74,8 @@ tabnew(struct mace *mace,
 
 struct tab *
 tabnewemptyfile(struct mace *mace, 
-                          const uint8_t *name, size_t nlen,
-                          const uint8_t *filename, size_t flen)
+                const uint8_t *name,
+                const uint8_t *filename)
 {
   struct sequence *seq;
   struct tab *t;
@@ -81,7 +85,7 @@ tabnewemptyfile(struct mace *mace,
     return NULL;
   }
 
-  t = tabnew(mace, name, nlen, filename, flen, seq);
+  t = tabnew(mace, name, filename, seq);
   if (t == NULL) {
     sequencefree(seq);
     return NULL;
@@ -91,9 +95,9 @@ tabnewemptyfile(struct mace *mace,
 }
 
 struct tab *
-tabnewempty(struct mace *mace, const uint8_t *name, size_t nlen)
+tabnewempty(struct mace *mace, const uint8_t *name)
 {
-	return tabnewemptyfile(mace, name, nlen, name, nlen);
+	return tabnewemptyfile(mace, name, name);
 }
 
 struct tab *
@@ -115,9 +119,7 @@ tabnewfromfile(struct mace *mace,
 	
   fd = open((const char *) filename, O_RDONLY);
   if (fd < 0) {
-    return tabnewemptyfile(mace, 
-		                       name, strlen((char *) name), 
-		                       filename, flen);
+    return tabnewemptyfile(mace, name, filename);
   }
 
   if (fstat(fd, &st) != 0) {
@@ -129,9 +131,7 @@ tabnewfromfile(struct mace *mace,
   if (dlen == 0) {
     close(fd);
 
-    return tabnewemptyfile(mace, 
-		                       name, strlen((char *) name), 
-		                       filename, flen);
+    return tabnewemptyfile(mace,name, filename);
   }
 
   data = malloc(dlen);
@@ -154,7 +154,7 @@ tabnewfromfile(struct mace *mace,
     return NULL;
   }
 
-  t = tabnew(mace, name, strlen((char *) name), filename, flen, seq);
+  t = tabnew(mace, name, filename, seq);
   if (t == NULL) {
     sequencefree(seq);
     return NULL;
