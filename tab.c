@@ -220,19 +220,9 @@ tabsetname(struct tab *t, const uint8_t *name, size_t len)
 }
 
 bool
-tabscroll(struct tab *t, int x, int y, int dx, int dy)
-{
-  if (y < t->action->height) {
-    return false;
-  } else {
-    return textboxscroll(t->main, dx, t->main->yoff + dy);
-  }
-}
-
-bool
 tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 {
-  int yoff, ah, mh;
+  int ah, mh;
   
 	ah = t->action->height;
 
@@ -247,30 +237,33 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 		t->mace->mousefocus = t->main;
     return textboxbuttonpress(t->main, x, y - ah - 1, button);
   } else {
+  	/*
     yoff = (int) (mh * (float) (y - ah - 1) / (float) (t->height - ah));
 
     return textboxscroll(t->main, 0, yoff);
+    */
+    return false;
   }
 }
 
 static int
 tabdrawaction(struct tab *t, cairo_t *cr, int y)
 {
-  int h, ah;
+	int h, ah;
   
 	ah = t->action->height;
 	h = ah > t->height - y ? t->height - y : ah;
 
 	textboxdraw(t->action, cr, t->x, t->y + y,
-	            t->width, h);
+	            t->width, h + 1);
   
-   return y + h;
+	return y + h + 1;
 }
 
 static int
 tabdrawmain(struct tab *t, cairo_t *cr, int y)
 {
-  int h, mh, pos, size;
+  int h;
   
   h = t->height - y;
 
@@ -279,6 +272,7 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
   
   /* Draw scroll bar */
 
+/*
 	mh = t->main->height;
 
   pos = t->main->yoff * (t->height - y) / mh;
@@ -320,6 +314,7 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
 		  t->height - y - pos - size);
   cairo_fill(cr);
 
+*/
 
   return y + h;
 }

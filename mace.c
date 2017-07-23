@@ -155,6 +155,7 @@ bool
 handlescroll(struct mace *m, int x, int y, int dx, int dy)
 {
   struct pane *p = findpane(m, x, y);
+  int lines;
 
   x -= p->x;
   y -= p->y;
@@ -162,7 +163,13 @@ handlescroll(struct mace *m, int x, int y, int dx, int dy)
   if (y < m->font->lineheight) {
     return tablistscroll(p, x, y, dx, dy);
   } else {
-    return tabscroll(p->focus, x, y - m->font->lineheight, dx, dy);
+  	lines = dy > 0 ? 1 : -1;
+  	
+  	if (y < p->focus->action->height) {
+  	  return false;
+	  } else {
+ 	   return textboxscroll(p->focus->main, lines);
+ 	 }
   }
 }
 

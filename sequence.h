@@ -69,6 +69,15 @@ sequencenew(uint8_t *data, size_t len);
 void
 sequencefree(struct sequence *s);
 
+/* Finds the piece after piece p that contains index pos.
+   Sets i to be the offset of pos in the piece and returns 
+   the piece. */
+ssize_t
+sequencepiecefind(struct sequence *s, 
+                  ssize_t p, 
+                  size_t pos,
+                  size_t *i);
+                  
 /* 
    Replaces the text from and including begin up to but not
    including end with the len bytes in data. 
@@ -120,3 +129,10 @@ sequencechangedown(struct sequence *s);
 /* Cycle through sibling branches. */
 bool
 sequencechangecycle(struct sequence *s);
+
+
+size_t
+sequenceindexnextline(struct sequence *s, size_t i);
+
+size_t
+sequenceindexprevline(struct sequence *s, size_t i);

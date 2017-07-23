@@ -78,15 +78,17 @@ textboxdraw(struct textbox *t, cairo_t *cr,
             int x, int y, int width, int height)
 {
 	size_t g, startg, ii, a;
-	struct colour *bg;
+	bool drawcursornow;
 	struct sequence *s;
+	struct colour *bg;
 	struct cursel *cs;
 	struct piece *p;
 	int32_t code;
 	int ay, by;
-	bool drawcursornow;
+	ssize_t pp;
 	
 	bg = NULL;
+	drawcursornow = false;
 
   ay = (t->mace->font->face->size->metrics.ascender >> 6);
   by = -(t->mace->font->face->size->metrics.descender >> 6);
@@ -95,7 +97,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 	cairo_rectangle(cr, x, y, width, height);
 	cairo_clip(cr);
 
-	cairo_translate(cr, x + PAD, y - t->yoff);
+	cairo_translate(cr, x + PAD, y);
 
   cairo_set_source_rgb(cr, t->bg.r, t->bg.g, t->bg.b);
   cairo_paint(cr);
@@ -113,16 +115,20 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 	}
 
 	s = t->sequence;
-	p = &s->pieces[SEQ_start];
-	ii = 0;
-	drawcursornow = false;
+	pp = sequencepiecefind(s, SEQ_start, t->start, &ii);
+	if (pp == -1) {
+		return;
+	}
+	
+	p = &s->pieces[pp];
 
 	for (startg = 0, g = 0; g < t->nglyphs; g++, ii += a) {
 		while (ii >= p->len) {
-			if (p->next == SEQ_end) {
+			pp = p->next;
+			if (pp == SEQ_end) {
 				goto end;
 			} else {
-				p = &s->pieces[p->next];
+				p = &s->pieces[pp];
 				ii = 0;
 			}
 		}
@@ -220,6 +226,8 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 		}
 
 		if (drawcursornow) {
+			/* This is g + 1 because it needs to draw the current glyph
+			   as well. Tab and linebreak don't. */
 			if (startg < g + 1) {
 				drawglyphs(cr, &t->glyphs[startg], g - startg + 1,
 				           &nfg, bg,
@@ -238,11 +246,13 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 
 end:
 
-	drawglyphs(cr, &t->glyphs[startg], g - startg,
-	           &nfg, bg,
-	           t->linewidth - PAD * 2,
-	           ay, by);
-
+	if (startg < g) {
+		drawglyphs(cr, &t->glyphs[startg], g - startg,
+		           &nfg, bg,
+		           t->linewidth - PAD * 2,
+		           ay, by);
+	}
+	
 	if (cs != NULL && (cs->type & CURSEL_nrm) != 0 &&
 	    cs->start + cs->cur == sequencelen(t->sequence)) {
 
@@ -263,7 +273,6 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   size_t i, g, a;
 
 	lx -= PAD;
-  ly += t->yoff;
 
 	if (ly <= 0) {
 		ly = 0;
@@ -272,7 +281,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
   ay = (t->mace->font->face->size->metrics.ascender >> 6);
   by = -(t->mace->font->face->size->metrics.descender >> 6);
 	 
-	i = 0;
+	i = t->start;
 
 	for (g = 0; g < t->nglyphs; g++, i += a) {
 		a = sequencecodepoint(t->sequence, i, &code);
@@ -382,13 +391,11 @@ textboxplaceglyphs(struct textbox *t)
 {
   size_t i, g, a, startg;
 	struct sequence *s;
-  cairo_glyph_t *n;
   int x, y, ay, by;
+  cairo_glyph_t *n;
 	struct piece *p;
   int32_t code;
-
-	s = t->sequence;
-	p = &s->pieces[SEQ_start];
+	ssize_t pp;
 	
   ay = (t->mace->font->face->size->metrics.ascender >> 6);
   by = -(t->mace->font->face->size->metrics.descender >> 6);
@@ -397,14 +404,22 @@ textboxplaceglyphs(struct textbox *t)
   y = t->mace->font->baseline;
 	g = 0;
 	startg = 0;
-  i = 0;
 
-	while (true) {
+	s = t->sequence;
+	pp = sequencepiecefind(s, SEQ_start, t->start, &i);
+	if (pp == -1) {
+		return;
+	}
+	
+	p = &s->pieces[pp];
+
+	while (y - ay < t->maxheight) {
 		while (i >= p->len) {
-			if (p->next == SEQ_end) {
+			pp = p->next;
+			if (pp == SEQ_end) {
 				goto end;
 			} else {
-				p = &s->pieces[p->next];
+				p = &s->pieces[pp];
 				i = 0;
 			}
 		}
@@ -480,13 +495,14 @@ end:
                     ay, by);
   }
 
+	/* Do we still need to do this? */
 	/* Last glyph stores the end. */
 
 	t->nglyphs = g;
 	t->glyphs[t->nglyphs].index = 0;
 	t->glyphs[t->nglyphs].x = x;
 	t->glyphs[t->nglyphs].y = y;
-
+	
 	t->height = y + by;
 }
 
@@ -496,7 +512,11 @@ textboxindexabove(struct textbox *t, size_t pos)
   int32_t code;
   size_t i, g, a;
 	int x, y;
-	 
+
+	/* TODO: Need to redo, glyphs may not have the appropriate 
+	   information. */
+	return pos;
+	
 	i = 0;
 
 	for (g = 0; g < t->nglyphs && i < pos; g++, i += a) {
@@ -535,6 +555,10 @@ textboxindexbelow(struct textbox *t, size_t pos)
   int32_t code;
   size_t i, g, a;
 	int x, y;
+
+	/* TODO: Need to redo, glyphs may not have the appropriate 
+	   information. */
+	return pos;
 	 
 	i = 0;
 

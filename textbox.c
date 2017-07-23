@@ -19,7 +19,7 @@ textboxnew(struct mace *m, struct tab *tab,
 
   t->curcs = NULL;
 
-  t->yoff = 0;
+  t->start = 0;
 	t->linewidth = 0;
 
 	t->nglyphs = 0;
@@ -68,7 +68,6 @@ textboxresize(struct textbox *t, int lw, int h)
 		return NULL;
 	}
 
-	/* Calculate new height */
   textboxplaceglyphs(t);
 
   return true;
@@ -193,19 +192,36 @@ textboxmotion(struct textbox *t, int x, int y)
 	}
 }
 
-bool
-textboxscroll(struct textbox *t, int xoff, int yoff)
+static size_t
+scrollnewindex(struct sequence *s, size_t i, int lines)
 {
-  if (yoff < 0) {
-    yoff = 0;
-  } else if (yoff > t->height - t->mace->font->lineheight) {
-    yoff = t->height - t->mace->font->lineheight;
-  }
+	if (lines > 0) {
+		while (lines-- > 0) {
+			i = sequenceindexnextline(s, i);
+		}
+	} else if (lines < 0) {
+		while (lines++ < 0) {
+			i = sequenceindexprevline(s, i);
+		}
+	}
+	
+	return i;
+}
 
-  if (yoff != t->yoff) {
-		t->yoff = yoff;
-    return true;
-  } else {
-    return false;
-  }
+bool
+textboxscroll(struct textbox *t, int lines)
+{
+	size_t newstart;
+	
+	printf("scroll %i\n", lines);
+	
+	newstart = scrollnewindex(t->sequence, t->start, lines);
+	printf("scroll from %zu to %zu\n", t->start, newstart);
+	if (newstart != t->start) {
+		t->start = newstart;
+		textboxplaceglyphs(t);
+		return true;
+	} else {
+		return false;
+	}
 }

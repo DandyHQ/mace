@@ -37,6 +37,10 @@ struct cursel {
 struct textbox {
 	struct mace *mace;
 	struct tab *tab;
+	
+  struct colour bg;
+
+  struct sequence *sequence;
 
   /* Maximum width a line can be. */
   int linewidth;
@@ -44,24 +48,26 @@ struct textbox {
 	/* Maximum height that will be displayed. */
 	int maxheight;
 
-	/* Total height of text. */
-	int height;
-
-	/* How far from the top have we scrolled */
-  int yoff;
+	/* Index in sequence that drawing starts from. */
+  size_t start;
+  /* Number of bytes that are part of glyphs. ie: drawable. */
+  size_t drawablelen;
+  
+  /* Height needed to display glyphs. Should be <= to maxheight. */
+  int height;
 
 	/* This is not done quite how I want, currently it is the placing
 	   all the glyphs in the sequence. */
 	/* Number of glyphs to display. */
 	size_t nglyphs;
+	
 	/* Number of glyphs glphys can currently fit. */
 	size_t nglyphsmax;
+	
 	cairo_glyph_t *glyphs;
 
-  struct colour bg;
-
-  struct sequence *sequence;
-
+	/* Last added cursel in this textbox. 
+	   Used for making selections. */
   struct cursel *curcs;
 };
 
@@ -266,27 +272,22 @@ void
 tabdraw(struct tab *t, cairo_t *cr);
 
 bool
-tabscroll(struct tab *t, int x, int y, int dx, int dy);
-
-bool
 tabbuttonpress(struct tab *t, int x, int y,
-	       unsigned int button);
+	             unsigned int button);
 
 
 
 struct textbox *
-textboxnew(struct mace *mace, struct tab *t,
-                   struct colour *bg,
-                   struct sequence *seq);
+textboxnew(struct mace *mace, 
+           struct tab *t,
+           struct colour *bg,
+           struct sequence *seq);
 
 void
 textboxfree(struct textbox *t);
 
 bool
 textboxresize(struct textbox *t, int width, int maxheight);
-
-bool
-textboxscroll(struct textbox *t, int xoff, int yoff);
 
 bool
 textboxbuttonpress(struct textbox *t, int x, int y,
@@ -299,26 +300,43 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
 bool
 textboxmotion(struct textbox *t, int x, int y);
 
+bool
+textboxscroll(struct textbox *t, int lines);
+
+
+/* Returns the index of the nearest glyph above the glyph at 
+   position i. */
 size_t
 textboxindexabove(struct textbox *t, size_t i);
 
+/* Returns the index of the nearest glyph below the glyph at 
+   position i. */
 size_t
 textboxindexbelow(struct textbox *t, size_t i);
 
+/* Fulls out buf with up to len bytes of 'indentation'
+   characters in the line that contains position i. */
 size_t
 textboxindentation(struct textbox *t, size_t i,
                    uint8_t *buf, size_t len);
 
+
+
 size_t
 textboxfindpos(struct textbox *t, int x, int y);
+
+
 
 void
 textboxplaceglyphs(struct textbox *t);
 
 /* Width should be t->linewidth otherwise it will not be drawn properly. */
 void
-textboxdraw(struct textbox *t, cairo_t *cr, int x, int y, 
+textboxdraw(struct textbox *t, cairo_t *cr, 
+            int x, int y, 
             int width, int height);
+
+
 
 /* Handle UI events. Return true if mace needs to be redrawn */
 

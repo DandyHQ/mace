@@ -130,17 +130,23 @@ cmdopen(struct mace *m)
 static void
 openfile(struct mace *m, const uint8_t *filename)
 {
+	struct pane *p;
 	struct tab *t;
-	struct cursel *s = m->cursels;
+	
+	if (m->mousefocus != NULL) {
+		p = m->mousefocus->tab->pane;
+	} else {
+		p = m->pane;
+	}
 	
 	t = tabnewfromfile(m, filename);
 	if (t == NULL) {
 		return;
 	}
 	
-	paneaddtab(s->tb->tab->pane, t, -1);
+	paneaddtab(p, t, -1);
 	
-	s->tb->tab->pane->focus = t;
+	p->focus = t;
 }
 
 static bool

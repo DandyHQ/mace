@@ -230,8 +230,12 @@ eventLoop(struct mace *m)
     case MotionNotify:
       redraw = xhandlemotion(m, &e.xmotion);     
       break;
-    }
-
+      
+		/* Handle window close event? */
+		case ClientMessage:
+			return;
+		}
+		
     if (redraw) {
       cairo_push_group(cr);
 

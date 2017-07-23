@@ -122,8 +122,11 @@ shiftpieces(struct sequence *s, ssize_t p, size_t pos)
   s->pieces[SEQ_end].pos = pos;
 }
 
-static ssize_t
-piecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i)
+ssize_t
+sequencepiecefind(struct sequence *s, 
+                  ssize_t p, 
+                  size_t pos,
+                  size_t *i)
 {
   while (p != SEQ_end) {
     if (pos <= s->pieces[p].pos + s->pieces[p].len) {
@@ -144,8 +147,8 @@ piecenew(struct sequence *s, size_t pos, size_t off, size_t len)
   
 	if (s->plen + 1 >= s->pmax) {
 		n = realloc(s->pieces,
-		                    sizeof(struct piece) * 
-		                    (s->pmax + PIECE_inc));
+		            sizeof(struct piece) * 
+		            (s->pmax + PIECE_inc));
 
 		if (n == NULL) {
 			return -1;
@@ -168,8 +171,8 @@ changenew(struct sequence *s)
 	struct change *n;
 	if (s->clen + 1 >= s->cmax) {
 		n = realloc(s->changes,
-		                     sizeof(struct change) * 
-		                     (s->cmax + CHANGE_inc));
+		            sizeof(struct change) * 
+		            (s->cmax + CHANGE_inc));
 
 		if (n == NULL) {
 			return -1;
@@ -271,7 +274,7 @@ sequencereplace(struct sequence *s,
   	return false;
   }
   
-  b = piecefind(s, SEQ_start, begin, &bi);
+  b = sequencepiecefind(s, SEQ_start, begin, &bi);
   if (b == -1) {
   	return false;
   }
@@ -298,7 +301,7 @@ sequencereplace(struct sequence *s,
   	return false;
   }
   
-  e = piecefind(s, b, end, &ei);
+  e = sequencepiecefind(s, b, end, &ei);
   if (e == -1) {
   	return false;
   }
@@ -398,7 +401,7 @@ sequencecodepoint(struct sequence *s, size_t pos, int32_t *code)
 	ssize_t p;
 	size_t i, l;
 
-	p = piecefind(s, SEQ_start, pos, &i);
+	p = sequencepiecefind(s, SEQ_start, pos, &i);
 	if (p == -1) {
 		return 0;
 	}
@@ -424,7 +427,7 @@ sequenceprevcodepoint(struct sequence *s, size_t pos, int32_t *code)
 	ssize_t p;
 	size_t i;
 
-	p = piecefind(s, SEQ_start, pos, &i);
+	p = sequencepiecefind(s, SEQ_start, pos, &i);
 	if (p == -1) {
 		return 0;
 	}
@@ -449,7 +452,7 @@ sequenceget(struct sequence *s, size_t pos,
   size_t i, ii, l;
   ssize_t p;
 
-  p = piecefind(s, SEQ_start, pos, &i);
+  p = sequencepiecefind(s, SEQ_start, pos, &i);
   if (p == -1) {
     return 0;
   }
@@ -636,3 +639,44 @@ sequencechangecycle(struct sequence *s)
 	return true;
 }
 
+size_t
+sequenceindexprevline(struct sequence *s, size_t i)
+{
+	int32_t code;
+	size_t a;
+	
+	printf("find start of previous line from %zu\n", i);
+	
+	a = sequenceprevcodepoint(s, i, &code);
+	if (a == 0) {
+		return i;
+	} else {
+		i -= a;
+	}
+	
+	while ((a = sequenceprevcodepoint(s, i, &code)) > 0) {
+		if (islinebreak(code)) {
+			break;
+		} else {
+			i -= a;
+		}
+	}
+	
+	return i;
+}
+
+size_t
+sequenceindexnextline(struct sequence *s, size_t i)
+{
+	int32_t code;
+	size_t a;
+	
+	while ((a = sequencecodepoint(s, i, &code)) > 0) {
+		i += a;
+		if (islinebreak(code)) {
+			break;
+		}
+	}
+	
+	return i;
+}
