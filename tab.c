@@ -260,10 +260,12 @@ tabdrawaction(struct tab *t, cairo_t *cr, int y)
 	return y + h + 1;
 }
 
+#define SCROLL_MIN_HEIGHT 5
+
 static int
 tabdrawmain(struct tab *t, cairo_t *cr, int y)
 {
-  int h;
+  int h, pos, size;
   
   h = t->height - y;
 
@@ -272,12 +274,13 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
   
   /* Draw scroll bar */
 
-/*
-	mh = t->main->height;
-
-  pos = t->main->yoff * (t->height - y) / mh;
-  size = h * (t->height - y) / mh;
-
+	pos = t->main->start * h / sequencelen(t->main->sequence);
+	size = t->main->drawablelen * h / sequencelen(t->main->sequence);
+		
+	if (size < SCROLL_MIN_HEIGHT) {
+		size = SCROLL_MIN_HEIGHT;
+	}
+	
   cairo_set_source_rgb(cr, 0, 0, 0);
   cairo_move_to(cr, t->x + t->main->linewidth, t->y + y);
 
@@ -313,8 +316,6 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
 		  SCROLL_WIDTH - 1,
 		  t->height - y - pos - size);
   cairo_fill(cr);
-
-*/
 
   return y + h;
 }

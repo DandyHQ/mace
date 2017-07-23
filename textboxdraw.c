@@ -479,8 +479,10 @@ textboxplaceglyphs(struct textbox *t)
 			t->nglyphsmax += 100;
 			n = realloc(t->glyphs, t->nglyphsmax * sizeof(cairo_glyph_t));
 			if (n == NULL) {
+				t->drawablelen = p->pos + i - t->start;
 				return;
 			}
+			
 			t->glyphs = n;
     }
 	}
@@ -504,6 +506,7 @@ end:
 	t->glyphs[t->nglyphs].y = y;
 	
 	t->height = y + by;
+	t->drawablelen = p->pos + i - t->start;
 }
 
 size_t

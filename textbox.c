@@ -213,11 +213,9 @@ textboxscroll(struct textbox *t, int lines)
 {
 	size_t newstart;
 	
-	printf("scroll %i\n", lines);
-	
 	newstart = scrollnewindex(t->sequence, t->start, lines);
-	printf("scroll from %zu to %zu\n", t->start, newstart);
 	if (newstart != t->start) {
+		printf("scroll from %zu to %zu\n", t->start, newstart);
 		t->start = newstart;
 		textboxplaceglyphs(t);
 		return true;
