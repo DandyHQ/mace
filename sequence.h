@@ -31,9 +31,10 @@ struct change {
 	ssize_t apieces[3];
 	size_t napieces;
 	
-	/* Pieces that were removed. */
-	ssize_t rpieces[2];
-	size_t nrpieces;
+	/* Start and end of slice of pieces that were removed.
+	   Should only be -1 if this change is the root change
+	   which should never be undone. */
+	ssize_t rstart, rend;
 	
 	/* Previous and next piece around pieces. */
 	ssize_t prev, next; 
@@ -68,6 +69,12 @@ sequencenew(uint8_t *data, size_t len);
 
 void
 sequencefree(struct sequence *s);
+
+/* Finds the piece in s after piece p that encompases pos. 
+   sets *i to the offset from the start of the piece. */
+   
+ssize_t
+sequencepiecefind(struct sequence *s, ssize_t p, size_t pos, size_t *i);
 
 /* 
    Replaces the text from and including begin up to but not
@@ -109,6 +116,7 @@ bool
 sequencefindword(struct sequence *s, size_t pos,
                  size_t *start, size_t *len);
 
+
 /* Go up change tree. */
 bool
 sequencechangeup(struct sequence *s);
@@ -120,3 +128,22 @@ sequencechangedown(struct sequence *s);
 /* Cycle through sibling branches. */
 bool
 sequencechangecycle(struct sequence *s);
+
+size_t
+sequenceindexnextline(struct sequence *s, size_t i);
+
+size_t
+sequenceindexprevline(struct sequence *s, size_t i);
+
+
+
+/* For debugging. */
+
+/* Prints tree from change c with string prefix h. */
+void
+sequenceprintchangetree(struct sequence *s, char *h, ssize_t c);
+
+/* Prints the sequence in a format that shows pieces. */
+void
+sequenceprint(struct sequence *s);
+
