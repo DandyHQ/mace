@@ -265,7 +265,7 @@ tabdrawaction(struct tab *t, cairo_t *cr, int y)
 static int
 tabdrawmain(struct tab *t, cairo_t *cr, int y)
 {
-  int h, pos, size;
+  int h, pos, size, len;
   
   h = t->height - y;
 
@@ -273,9 +273,16 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
 	            t->width - SCROLL_WIDTH, h);
   
   /* Draw scroll bar */
+  
+  len = sequencelen(t->main->sequence);
 
-	pos = t->main->start * h / sequencelen(t->main->sequence);
-	size = t->main->drawablelen * h / sequencelen(t->main->sequence);
+	if (len > 0) {
+		pos = t->main->start * h / sequencelen(t->main->sequence);
+		size = t->main->drawablelen * h / sequencelen(t->main->sequence);
+	} else {
+		pos = 0;
+		size = h;
+	}
 		
 	if (size < SCROLL_MIN_HEIGHT) {
 		size = SCROLL_MIN_HEIGHT;

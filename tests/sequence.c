@@ -328,8 +328,6 @@ test_sequenceapplyactions(struct sequence *s,
 	bool r;
 	
 	for (a = start; a <= end; a++) {
-		printf("apply action '%s' to get to '%s'\n", actions[a].addstr, actions[a].afterstr);
-		
 		r = sequencereplace(s, actions[a].start, actions[a].end,
 		                    actions[a].addstr, strlen(actions[a].addstr));
 		TEST_ASSERT_TRUE(r);
@@ -350,7 +348,6 @@ test_sequencechangedown(struct sequence *s,
 	bool r;
 	
 	for (a = start; a < end + 1; a++) {
-		printf("change down to '%s'\n", actions[a].afterstr);
 		r = sequencechangedown(s);
 		TEST_ASSERT_TRUE(r);
 		
@@ -372,13 +369,10 @@ test_sequencechangeup(struct sequence *s,
   
 	a = end - 1;
 	do {
-		printf("change up to '%s'\n", actions[a].afterstr);
 		r = sequencechangeup(s);
 		TEST_ASSERT_TRUE(r);
 		
 		l = sequenceget(s, 0, buf, sizeof(buf));
-		buf[l] = 0;
-		printf("got '%s'\n", buf);
 		
 		TEST_ASSERT_EQUAL_INT(strlen(actions[a].afterstr), l);
 		TEST_ASSERT_EQUAL_UINT8_ARRAY(actions[a].afterstr, buf, l);
@@ -423,6 +417,7 @@ test_sequenceundo(void)
 	test_sequenceapplyactions(s, branch1, 0, 2);
 	
 	test_sequencechangeup(s, branch1, 2, 0);
+	
 	test_sequencechangedown(s, branch1, 1, 1);
 	
 	test_sequenceapplyactions(s, branch2, 0, 1);

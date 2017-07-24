@@ -31,9 +31,10 @@ struct change {
 	ssize_t apieces[3];
 	size_t napieces;
 	
-	/* Pieces that were removed. */
-	ssize_t rpieces[2];
-	size_t nrpieces;
+	/* Start and end of slice of pieces that were removed.
+	   Should only be -1 if this change is the root change
+	   which should never be undone. */
+	ssize_t rstart, rend;
 	
 	/* Previous and next piece around pieces. */
 	ssize_t prev, next; 
@@ -136,3 +137,15 @@ sequenceindexnextline(struct sequence *s, size_t i);
 
 size_t
 sequenceindexprevline(struct sequence *s, size_t i);
+
+
+
+/* For debugging. */
+
+/* Prints tree from change c with string prefix h. */
+void
+sequenceprintchangetree(struct sequence *s, char *h, ssize_t c);
+
+/* Prints the sequence in a format that shows pieces. */
+void
+sequenceprint(struct sequence *s);
