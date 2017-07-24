@@ -222,7 +222,7 @@ tabsetname(struct tab *t, const uint8_t *name, size_t len)
 bool
 tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 {
-  int ah, mh;
+  int ah, mh, lines, ay, by;
   
 	ah = t->action->height;
 
@@ -236,13 +236,24 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 	if (x < t->width - SCROLL_WIDTH) {
 		t->mace->mousefocus = t->main;
     return textboxbuttonpress(t->main, x, y - ah - 1, button);
+    
   } else {
-  	/*
-    yoff = (int) (mh * (float) (y - ah - 1) / (float) (t->height - ah));
+  	ay = (t->mace->font->face->size->metrics.ascender >> 6);
+  	by = -(t->mace->font->face->size->metrics.descender >> 6);
+  
+    lines = (y - ah - 1) / (ay + by) / 2;
+    if (lines == 0) {
+    	lines = 1;
+    }
 
-    return textboxscroll(t->main, 0, yoff);
-    */
-    return false;
+		switch (button) {
+		case 1:
+			return textboxscroll(t->main, lines);
+		case 3:
+			return textboxscroll(t->main, -lines);
+		default:
+			return false;
+		}
   }
 }
 

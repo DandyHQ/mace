@@ -631,8 +631,6 @@ sequenceindexprevline(struct sequence *s, size_t i)
 	int32_t code;
 	size_t a;
 	
-	printf("find start of previous line from %zu\n", i);
-	
 	a = sequenceprevcodepoint(s, i, &code);
 	if (a == 0) {
 		return i;
