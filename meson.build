@@ -1,8 +1,9 @@
-project('mace', 'c')
+project('mace', 'c', 'objc')
 
 ft         = dependency('freetype2')
 fc         = dependency('fontconfig')
 cairo      = dependency('cairo')
+appkit     = dependency('appleframeworks', modules: ['AppKit'])
 
 conf_data = configuration_data()
 conf_data.set('version', '0.2')
@@ -25,13 +26,14 @@ executable('mace', install: true,
 		'cmd.c',
 		'main.c',
 
-		'quartzmain.c'
+		'quartzmain.m'
 	],
 
 	dependencies: [
 		ft,
 		fc,
 		cairo,
+        appkit,
 	])
 
 
