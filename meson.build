@@ -1,6 +1,5 @@
 project('mace', 'c')
 
-x11        = dependency('x11')
 ft         = dependency('freetype2')
 fc         = dependency('fontconfig')
 cairo      = dependency('cairo')
@@ -26,11 +25,10 @@ executable('mace', install: true,
 		'cmd.c',
 		'main.c',
 
-		'xmain.c'
+		'quartzmain.c'
 	],
 
 	dependencies: [
-		x11,
 		ft,
 		fc,
 		cairo,

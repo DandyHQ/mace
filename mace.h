@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <freetype2/ft2build.h>
+#include <ft2build.h>
 #include FT_FREETYPE_H
 #include <cairo.h>
 #include <cairo-ft.h>
@@ -27,7 +27,7 @@ struct cursel {
 	struct textbox *tb;
 	size_t start, end;     /* Start and end of selection in tb. */
 	size_t cur;              /* Offset of cursor from start. */
-	
+
 	struct cursel *next;
 };
 
@@ -71,12 +71,12 @@ struct tab {
 
   /* Parent pane. */
   struct pane *pane;
-  
+
   uint8_t *name;
   size_t nlen;
 
   int x, y, width, height;
-  
+
   struct textbox *action, *main;
 
   /* Next in linked list. */
@@ -110,7 +110,7 @@ struct keybinding {
 struct font {
   char path[1024];
   double size;
-  
+
   FT_Library library;
 
   FT_Face face;
@@ -130,13 +130,13 @@ struct mace {
   struct font *font;
 
 	struct keybinding *keybindings;
-  
+
   struct pane *pane;
 
   struct textbox *mousefocus;
 
 	struct cursel *cursels;
-	
+
 	uint8_t *clipboard;
 	size_t clipboardlen;
 };
@@ -179,7 +179,7 @@ fontsettabwidth(struct font *font, size_t spaces);
 bool
 loadglyph(FT_Face face, int32_t code);
 
-void 
+void
 drawglyph(struct font *f, cairo_t *cr, int x, int y,
 	  struct colour *fg, struct colour *bg);
 
@@ -317,7 +317,7 @@ textboxplaceglyphs(struct textbox *t);
 
 /* Width should be t->linewidth otherwise it will not be drawn properly. */
 void
-textboxdraw(struct textbox *t, cairo_t *cr, int x, int y, 
+textboxdraw(struct textbox *t, cairo_t *cr, int x, int y,
             int width, int height);
 
 /* Handle UI events. Return true if mace needs to be redrawn */
