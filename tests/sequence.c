@@ -309,6 +309,129 @@ test_sequenceprevcodepoint(void)
 	sequencefree(s);
 }
 
+struct action {
+	/* Do replace with these. */
+	size_t start, end;
+	uint8_t *addstr;
+	
+	/* Should get this. */
+	uint8_t *afterstr;
+};
+
+static void
+test_sequenceapplyactions(struct sequence *s,
+                          struct action *actions,
+                          size_t start, size_t end)
+{
+	uint8_t buf[1024];
+	size_t a, l;
+	bool r;
+	
+	for (a = start; a <= end; a++) {
+		printf("apply action '%s' to get to '%s'\n", actions[a].addstr, actions[a].afterstr);
+		
+		r = sequencereplace(s, actions[a].start, actions[a].end,
+		                    actions[a].addstr, strlen(actions[a].addstr));
+		TEST_ASSERT_TRUE(r);
+		
+		l = sequenceget(s, 0, buf, sizeof(buf));
+		TEST_ASSERT_EQUAL_INT(strlen(actions[a].afterstr), l);
+		TEST_ASSERT_EQUAL_UINT8_ARRAY(actions[a].afterstr, buf, l);
+	}
+}
+
+static void
+test_sequencechangedown(struct sequence *s, 
+                        struct action *actions,
+                        size_t start, size_t end)
+{
+	uint8_t buf[1024];
+	size_t a, l;
+	bool r;
+	
+	for (a = start; a < end + 1; a++) {
+		printf("change down to '%s'\n", actions[a].afterstr);
+		r = sequencechangedown(s);
+		TEST_ASSERT_TRUE(r);
+		
+		l = sequenceget(s, 0, buf, sizeof(buf));
+		
+		TEST_ASSERT_EQUAL_INT(strlen(actions[a].afterstr), l);
+		TEST_ASSERT_EQUAL_UINT8_ARRAY(actions[a].afterstr, buf, l);
+	}
+}
+
+static void
+test_sequencechangeup(struct sequence *s,
+                      struct action *actions,
+                      size_t end, size_t start)
+{
+	uint8_t buf[1024];
+  size_t a, l;
+  bool r;
+  
+	a = end - 1;
+	do {
+		printf("change up to '%s'\n", actions[a].afterstr);
+		r = sequencechangeup(s);
+		TEST_ASSERT_TRUE(r);
+		
+		l = sequenceget(s, 0, buf, sizeof(buf));
+		buf[l] = 0;
+		printf("got '%s'\n", buf);
+		
+		TEST_ASSERT_EQUAL_INT(strlen(actions[a].afterstr), l);
+		TEST_ASSERT_EQUAL_UINT8_ARRAY(actions[a].afterstr, buf, l);
+	} while (a-- != start);
+}
+
+static void
+test_sequenceundo(void)
+{
+	struct action branch1[] = {
+		{ 0, 0,
+		  "Hello there.",
+		  "Hello there.",
+		},
+		{ 5, 11,
+		  ", this is a test",
+		  "Hello, this is a test.",
+		},
+		{ 17, 17,
+		  "bad ",
+		  "Hello, this is a bad test.",
+		},
+	};
+	
+	/* Branches from branch1[1]. */
+	struct action branch2[] = {
+		{ 17, 17,
+		  "stupid ",
+		  "Hello, this is a stupid test.",
+		},
+		{ 7, 28,
+		  "world",
+		  "Hello, world.",
+		},
+	};
+
+	struct sequence *s;
+
+	s = sequencenew(NULL, 0);
+	TEST_ASSERT_NOT_NULL(s);
+	
+	test_sequenceapplyactions(s, branch1, 0, 2);
+	
+	test_sequencechangeup(s, branch1, 2, 0);
+	test_sequencechangedown(s, branch1, 1, 1);
+	
+	test_sequenceapplyactions(s, branch2, 0, 1);
+	
+	test_sequencechangeup(s, branch2, 1, 0);
+	
+	sequencefree(s);
+}
+
 int
 main(void)
 {
@@ -320,6 +443,7 @@ main(void)
 	RUN_TEST(test_sequencefindword);
 	RUN_TEST(test_sequencecodepoint);
 	RUN_TEST(test_sequenceprevcodepoint);
+	RUN_TEST(test_sequenceundo);
 
 	return UNITY_END();
 }

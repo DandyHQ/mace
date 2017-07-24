@@ -579,6 +579,10 @@ textboxindentation(struct textbox *t, size_t i,
 	size_t a, ii;
 	int32_t code;
 
+	/* TODO: This is broken. It should only find whitespace from
+	   the start of the line to i. Otherwise if you have whitespace
+	   after your cursor it moves your cursor across. */
+	   
 	while ((a = sequenceprevcodepoint(t->sequence, i, &code)) != 0) {
 		if (islinebreak(code)) {
 			break;
