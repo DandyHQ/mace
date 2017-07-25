@@ -341,15 +341,21 @@ placesomeglyphs(struct textbox *t,
 	lineend = 0;
 
   for (g = 0; g < nglyphs; g++) {
-		index = FT_Get_Char_Index(t->mace->font->face, glyphs[g].index);
+  	if (glyphs[g].index == '\t') {
+  		index = 0;
+  		ww = t->mace->font->tabwidthpixels;
+  		
+  	} else {
+			index = FT_Get_Char_Index(t->mace->font->face, glyphs[g].index);
 		
-		if (FT_Get_Advance(t->mace->font->face, 
-		                   index, FT_LOAD_DEFAULT, 
-		                   &advance) != 0) {
-			continue;
-		}
+			if (FT_Get_Advance(t->mace->font->face, 
+			                   index, FT_LOAD_DEFAULT, 
+			                   &advance) != 0) {
+				continue;
+			}
 
-    ww = advance / 65536;
+  	  ww = advance / 65536;
+  	}
 
     if (*x + ww >= t->linewidth) {
 			*x = 0;
@@ -449,28 +455,6 @@ textboxplaceglyphs(struct textbox *t)
 
       startg = g + 1;
 
-    } else if (code == '\t') {
-      if (startg < g) {
-				placesomeglyphs(t, 
-			                  &t->glyphs[startg],
-			                  g - startg,
-			                  &x, &y,
-			                  ay, by);
-			}
-
-			if (x + t->mace->font->tabwidthpixels >= t->linewidth) {
-				x = 0;
-				y += ay + by;
-			}
-
-			t->glyphs[g].index = 0;
-			t->glyphs[g].x = x; 
-			t->glyphs[g].y = y;
-
-			x += t->mace->font->tabwidthpixels;
-
-      startg = g + 1;
-
     } else {
 			t->glyphs[g].index = code;
 		}
@@ -509,94 +493,48 @@ end:
 	t->drawablelen = p->pos + i - t->start;
 }
 
-size_t
-textboxindexabove(struct textbox *t, size_t pos)
+/* Glyphs must be large enough to store end - start + 1
+   glyphs. Returns the number of glyphs loaded. */
+
+static size_t
+loadandplaceglyphs(struct textbox *t,
+                   cairo_glyph_t *glyphs,
+                   size_t start, size_t end,
+                   int *x, int *y)
 {
-  int32_t code;
-  size_t i, g, a;
-	int x, y;
-
-	/* TODO: Need to redo, glyphs may not have the appropriate 
-	   information. */
-	return pos;
+	size_t i, g, a;
+	int32_t code;
+	int ay, by;
 	
-	i = 0;
-
-	for (g = 0; g < t->nglyphs && i < pos; g++, i += a) {
+	ay = (t->mace->font->face->size->metrics.ascender >> 6);
+  by = -(t->mace->font->face->size->metrics.descender >> 6);
+  
+  for (i = start, g = 0; i < end; g++, i += a) {
 		a = sequencecodepoint(t->sequence, i, &code);
 		if (a == 0) {
 			break;
+		} else {
+			glyphs[g].index = code;
 		}
   }
+  
+  placesomeglyphs(t, glyphs, g,
+                  x, y,
+                  ay, by);
+  
+  return g;
+}
 
-	if (i != pos) {
-		return 0;
-	} else {
-		x = t->glyphs[g].x;
-		y = t->glyphs[g].y;
-	}
-
-	while (--g > 0) {
-		a = sequenceprevcodepoint(t->sequence, i, &code);
-		if (a == 0) {
-			break;
-		} else {
-			i -= a;
-		}
-
-	 if (t->glyphs[g].y < y && t->glyphs[g].x <= x) {
-			return i;
-		}
-	}
-
-  return 0;
+size_t
+textboxindexabove(struct textbox *t, size_t pos)
+{
+	return sequenceindexprevline(t->sequence, pos);
 }
 
 size_t
 textboxindexbelow(struct textbox *t, size_t pos)
 {
-  int32_t code;
-  size_t i, g, a;
-	int x, y;
-
-	/* TODO: Need to redo, glyphs may not have the appropriate 
-	   information. */
-	return pos;
-	 
-	i = 0;
-
-	for (g = 0; g < t->nglyphs && i < pos; g++, i += a) {
-		a = sequencecodepoint(t->sequence, i, &code);
-		if (a == 0) {
-			break;
-		}
-  }
-
-	if (i != pos) {
-		return 0;
-	} else {
-		x = t->glyphs[g].x;
-		y = t->glyphs[g].y;
-	}
-
-	while (++g < t->nglyphs) {
-		a = sequencecodepoint(t->sequence, i, &code);
-		if (a == 0) {
-			break;
-		} else {
-			i += a;
-		}
-
-		if (t->glyphs[g].y > y) {
-			if (g+1 < t->nglyphs && t->glyphs[g+1].y > t->glyphs[g].y) {
-				return i;
-			} else if (t->glyphs[g].x >= x) {
-				return i;
-			}
-		}
-	}
-
-  return sequencelen(t->sequence);
+  return sequenceindexnextline(t->sequence, pos);
 }
 
 size_t

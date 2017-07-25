@@ -626,24 +626,37 @@ sequencechangecycle(struct sequence *s)
 }
 
 size_t
-sequenceindexprevline(struct sequence *s, size_t i)
+sequenceindexline(struct sequence *s, size_t i)
 {
 	int32_t code;
 	size_t a;
 	
-	a = sequenceprevcodepoint(s, i, &code);
-	if (a == 0) {
-		return i;
-	} else {
-		i -= a;
-	}
-	
 	while ((a = sequenceprevcodepoint(s, i, &code)) > 0) {
 		if (islinebreak(code)) {
 			break;
-		} else {
-			i -= a;
 		}
+		
+		i -= a;
+	}
+	
+	return i;
+}
+
+size_t
+sequenceindexprevline(struct sequence *s, size_t i)
+{
+	int32_t code;
+	size_t a, nl;
+		
+	nl = 0;	
+	while ((a = sequenceprevcodepoint(s, i, &code)) > 0) {
+		if (islinebreak(code)) {
+			if (++nl == 2) {
+				break;
+			}
+		}
+		
+		i -= a;
 	}
 	
 	return i;

@@ -193,15 +193,15 @@ textboxmotion(struct textbox *t, int x, int y)
 }
 
 static size_t
-scrollnewindex(struct sequence *s, size_t i, int lines)
+scrollnewindex(struct textbox *t, size_t i, int lines)
 {
 	if (lines > 0) {
 		while (lines-- > 0) {
-			i = sequenceindexnextline(s, i);
+			i = textboxindexbelow(t, i);
 		}
 	} else if (lines < 0) {
 		while (lines++ < 0) {
-			i = sequenceindexprevline(s, i);
+			i = textboxindexabove(t, i);
 		}
 	}
 	
@@ -213,7 +213,7 @@ textboxscroll(struct textbox *t, int lines)
 {
 	size_t newstart;
 	
-	newstart = scrollnewindex(t->sequence, t->start, lines);
+	newstart = scrollnewindex(t, t->start, lines);
 	if (newstart != t->start) {
 		t->start = newstart;
 		textboxplaceglyphs(t);

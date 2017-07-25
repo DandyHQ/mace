@@ -133,6 +133,9 @@ sequencechangecycle(struct sequence *s);
 
 
 size_t
+sequenceindexline(struct sequence *s, size_t i);
+
+size_t
 sequenceindexnextline(struct sequence *s, size_t i);
 
 size_t
