@@ -131,16 +131,15 @@ static void
 openfile(struct mace *m, const uint8_t *filename)
 {
 	struct tab *t;
-	struct cursel *s = m->cursels;
 	
 	t = tabnewfromfile(m, filename);
 	if (t == NULL) {
 		return;
 	}
 	
-	paneaddtab(s->tb->tab->pane, t, -1);
+	paneaddtab(m->mousefocus->tab->pane, t, -1);
 	
-	s->tb->tab->pane->focus = t;
+	m->mousefocus->tab->pane->focus = t;
 }
 
 static bool
