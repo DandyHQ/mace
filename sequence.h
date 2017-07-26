@@ -79,6 +79,7 @@ sequencepiecefind(struct sequence *s,
                   size_t pos,
                   size_t *i);
                   
+
 /* 
    Replaces the text from and including begin up to but not
    including end with the len bytes in data. 
@@ -119,6 +120,7 @@ bool
 sequencefindword(struct sequence *s, size_t pos,
                  size_t *start, size_t *len);
 
+
 /* Go up change tree. */
 bool
 sequencechangeup(struct sequence *s);
@@ -130,7 +132,6 @@ sequencechangedown(struct sequence *s);
 /* Cycle through sibling branches. */
 bool
 sequencechangecycle(struct sequence *s);
-
 
 size_t
 sequenceindexline(struct sequence *s, size_t i);
