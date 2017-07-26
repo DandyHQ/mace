@@ -7,6 +7,10 @@
    information about the glyphs containing width, maybe height, 
    maybe colour. This way all glyphs could be handled in a uniform
    way.
+   
+   This file is pretty hacky. Rendering is hard and so is line 
+   wrapping and everything that comes with that. I don't like
+   any of it.
 */
 
 static struct colour nfg = { 0, 0, 0 };
@@ -500,7 +504,8 @@ static size_t
 loadandplaceglyphs(struct textbox *t,
                    cairo_glyph_t *glyphs,
                    size_t start, size_t end,
-                   int *x, int *y)
+                   int *x, int *y,
+                   size_t findpos, size_t *glyphpos)
 {
 	size_t i, g, a;
 	int32_t code;
@@ -516,6 +521,10 @@ loadandplaceglyphs(struct textbox *t,
 		} else {
 			glyphs[g].index = code;
 		}
+		
+		if (i == findpos) {
+			*glyphpos = g;
+		}
   }
   
   placesomeglyphs(t, glyphs, g,
@@ -525,16 +534,211 @@ loadandplaceglyphs(struct textbox *t,
   return g;
 }
 
+static size_t 
+findglyphabove(struct sequence *s,
+               size_t start, size_t end,
+               cairo_glyph_t *glyphs, size_t nglyphs,
+               size_t startg,
+               float wantx, float wanty)
+{
+	size_t g, i, a;
+	int32_t code;
+	
+	for (g = startg, i = end; i > start; g--) {
+		a = sequenceprevcodepoint(s, i, &code);
+		if (a == 0) {
+			break;
+		} else {
+				i -= a;
+		}
+		
+		if (glyphs[g].y < wanty) {
+			if (glyphs[g].x <= wantx) {
+				break;
+			}
+		}
+	}
+	
+	return i;
+}
+
 size_t
 textboxindexabove(struct textbox *t, size_t pos)
 {
-	return sequenceindexprevline(t->sequence, pos);
+	size_t start, end, nglyphs, wantg, g, i;
+	cairo_glyph_t *glyphs;
+	float wantx, wanty;
+	int x, y;
+	
+	start = sequenceindexline(t->sequence, pos);
+	end = sequenceindexnextline(t->sequence, pos);
+	
+	nglyphs = end - start;
+	if (nglyphs != 0) {
+		glyphs = malloc(sizeof(cairo_glyph_t) * nglyphs);
+		if (glyphs == NULL) {
+			return pos;
+		}
+	
+		x = y = 0;
+		wantg = 0;
+		g = loadandplaceglyphs(t, glyphs,
+                           start, end,
+                           &x, &y,
+                           pos, &wantg);
+    
+  	wantx = glyphs[wantg].x;
+		wanty = glyphs[wantg].y;
+		
+		i = findglyphabove(t->sequence, start, pos,
+		                   glyphs, g, wantg,
+		                   wantx, wanty);
+		
+		free(glyphs);
+		
+		/* Did we find a glyph below? */
+		if (i > start || (wantx == 0.0 && wanty > 0.0)) {
+			return i;
+		}
+	} else {
+		wantx = 0.0;
+	}
+	
+	/* Any y value will do. */
+	wanty = 1000000; /* TODO: this should be infinite. */
+	
+	end = start;
+	start = sequenceindexprevline(t->sequence, end);
+		
+	if (start == end) {
+		return start;
+	}
+	
+	nglyphs = end - start;
+	glyphs = malloc(sizeof(cairo_glyph_t) * nglyphs);
+	if (glyphs == NULL) {
+		return start;
+	}
+	
+	x = y = 0;
+	g = loadandplaceglyphs(t, glyphs,
+                         start, end,
+                         &x, &y,
+                         pos, &wantg);
+  
+  if (g == 0) {
+  	free(glyphs);
+  	return start;
+  }
+			
+	i = findglyphabove(t->sequence, start, end,
+	                   glyphs, g, g-1,
+	                   wantx, wanty);
+		
+	free(glyphs);
+	
+  return i;
+}
+
+static size_t 
+findglyphbelow(struct sequence *s,
+               size_t start, size_t end,
+               cairo_glyph_t *glyphs, size_t nglyphs,
+               size_t startg,
+               float wantx, float wanty)
+{
+	size_t g, i, a;
+	int32_t code;
+	
+	for (g = startg, i = start; i < end; g++, i += a) {
+		a = sequencecodepoint(s, i, &code);
+		if (a == 0) {
+			break;
+		} else if (glyphs[g].y > wanty) {
+			if (g + 1 >= nglyphs || glyphs[g+1].y > glyphs[g].y) {
+				break;
+			} else if (glyphs[g].x <= wantx) {
+				if (g + 1 >= nglyphs || glyphs[g+1].x > wantx) {
+					break;
+				}
+			}
+		}
+	}
+	
+	return i;
 }
 
 size_t
 textboxindexbelow(struct textbox *t, size_t pos)
 {
-  return sequenceindexnextline(t->sequence, pos);
+	size_t start, end, nglyphs, wantg, g, i;
+	cairo_glyph_t *glyphs;
+	float wantx, wanty;
+	int x, y;
+	
+	start = sequenceindexline(t->sequence, pos);
+	end = sequenceindexnextline(t->sequence, pos);
+	
+	nglyphs = end - start;
+	if (nglyphs != 0) {
+		glyphs = malloc(sizeof(cairo_glyph_t) * nglyphs);
+		if (glyphs == NULL) {
+			return pos;
+		}
+	
+		x = y = 0;
+		wantg = 0;
+		g = loadandplaceglyphs(t, glyphs,
+                           start, end,
+                           &x, &y,
+                           pos, &wantg);
+    
+  	wantx = glyphs[wantg].x;
+		wanty = glyphs[wantg].y;
+		
+		i = findglyphbelow(t->sequence, pos, end,
+		                   glyphs, g, wantg,
+		                   wantx, wanty);
+		
+		free(glyphs);
+		
+		/* Did we find a glyph below? */
+		if (i < end) {
+			return i;
+		}
+	} else {
+		wantx = 0.0;
+	}
+	
+	/* Any y value will do. */
+	wanty = -1.0;
+	
+	start = end;
+	end = sequenceindexnextline(t->sequence, start);
+	
+	if (start == end) {
+		return start;
+	}
+	
+	nglyphs = end - start;
+	glyphs = malloc(sizeof(cairo_glyph_t) * nglyphs);
+	if (glyphs == NULL) {
+		return start;
+	}
+	
+	x = y = 0;
+	g = loadandplaceglyphs(t, glyphs,
+                         start, end,
+                         &x, &y,
+                         pos, &wantg);
+			
+	i = findglyphbelow(t->sequence, start, end,
+	                   glyphs, g, 0,
+	                   wantx, wanty);
+		
+	free(glyphs);
+	
+  return i;
 }
 
 size_t
