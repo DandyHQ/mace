@@ -622,3 +622,78 @@ sequencechangecycle(struct sequence *s)
 	return true;
 }
 
+size_t
+sequenceindexline(struct sequence *s, size_t i)
+{
+	int32_t code;
+	size_t a;
+	
+	while ((a = sequenceprevcodepoint(s, i, &code)) > 0) {
+		if (islinebreak(code)) {
+			break;
+		}
+		
+		i -= a;
+	}
+	
+	return i;
+}
+
+size_t
+sequenceindexprevline(struct sequence *s, size_t i)
+{
+	int32_t code;
+	size_t a, nl;
+		
+	nl = 0;	
+	while ((a = sequenceprevcodepoint(s, i, &code)) > 0) {
+		if (islinebreak(code)) {
+			if (++nl == 2) {
+				break;
+			}
+		}
+		
+		i -= a;
+	}
+	
+	return i;
+}
+
+size_t
+sequenceindexnextline(struct sequence *s, size_t i)
+{
+	int32_t code;
+	size_t a;
+	
+	while ((a = sequencecodepoint(s, i, &code)) > 0) {
+		i += a;
+		if (islinebreak(code)) {
+			break;
+		}
+	}
+	
+	return i;
+}
+
+
+size_t
+sequenceindexpos(struct sequence *s, size_t line, size_t col)
+{
+	size_t i = 0;
+	int32_t code;
+	size_t a;
+	
+	while (line-- > 1) {
+		i = sequenceindexnextline(s, i);
+	}
+	
+	while (col-- > 1) {
+		a = sequencecodepoint(s, i, &code);
+		if (islinebreak(code)) {
+			break;
+		}
+		i += a;
+	}
+	
+	return i;
+}
