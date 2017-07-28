@@ -507,7 +507,7 @@ cmdscratch(struct mace *m)
 	
 	p = m->mousefocus->tab->pane;
 	
-	t = tabnewempty(m, "*scratch*");
+	t = tabnewempty(m, (uint8_t *)"*scratch*");
   if (t == NULL) {
     return false;
   }
