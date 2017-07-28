@@ -127,19 +127,25 @@ cmdopen(struct mace *m)
   return o > 0 && f == 0;
 }
 
-static void
+static bool
 openfile(struct mace *m, const uint8_t *filename)
 {
 	struct tab *t;
 	
 	t = tabnewfromfile(m, filename);
 	if (t == NULL) {
-		return;
+		return false;
+	}
+	
+	if (m->mousefocus == NULL) {
+		return false;
 	}
 	
 	paneaddtab(m->mousefocus->tab->pane, t, -1);
 	
 	m->mousefocus->tab->pane->focus = t;
+	
+	return true;
 }
 
 static bool
@@ -553,8 +559,11 @@ command(struct mace *mace, const uint8_t *s)
 	}
 	
 	if (fileexists(s)) {
-		openfile(mace, s);
-		return true;
+		if (openfile(mace, s)) {
+			return true;
+		} else {
+			fprintf(stderr, "failed to open file '%s'\n", s);
+		}
 	}
 
 	fprintf(stderr, "no command '%s' found\n", s);
