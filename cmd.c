@@ -127,7 +127,7 @@ cmdopen(struct mace *m)
   return o > 0 && f == 0;
 }
 
-static void
+static bool
 openfile(struct mace *m, const uint8_t *filename)
 {
 	struct pane *p;
@@ -141,12 +141,14 @@ openfile(struct mace *m, const uint8_t *filename)
 	
 	t = tabnewfromfile(m, filename);
 	if (t == NULL) {
-		return;
+		return false;
 	}
 	
 	paneaddtab(p, t, -1);
 	
 	p->focus = t;
+
+	return true;
 }
 
 static bool
@@ -446,10 +448,54 @@ cmddown(struct mace *m)
 }
 
 static bool
-cmdjump(struct mace *m)
+cmdgoto(struct mace *m)
 {
-	printf("Not yet implimented\n");
-	return false;
+	struct textbox *t;
+  struct cursel *s;
+  uint8_t name[1024];
+  size_t len;
+  size_t lineno, colno;
+  int scanned;
+  size_t index;
+  
+  if (m->mousefocus == NULL) {
+  	return false;
+  }
+
+  for (s = m->cursels; s != NULL; s = s->next) {
+		if ((s->type & CURSEL_nrm) != 0 && s->start != s->end) {
+	    break;
+		}
+  }
+
+	if (s == NULL) {
+		return false;
+	}
+
+  len = s->end - s->start;
+	if (len + 1 >= sizeof(name)) {
+		fprintf(stderr, "Selection is too long to be a number!\n");
+		return false;
+	}
+  
+  len = sequenceget(s->tb->sequence, s->start, name, len);
+	name[len] = 0;
+	
+	scanned = sscanf((const char *) name, "%zd:%zd", &lineno, &colno);
+	if (scanned < 1) {
+	  return false;
+	} else if (scanned == 1) {
+	  colno = 0;
+	}
+	
+	t = m->mousefocus->tab->main;
+	
+	index = sequenceindexpos(t->sequence, lineno, colno);
+	
+	curselremoveall(m);
+	curseladd(m, t, CURSEL_nrm, index);
+  
+  return true;
 }
 
 /* These should all do one action per text box if a text 
@@ -508,7 +554,7 @@ cmdscratch(struct mace *m)
 	
 	p = m->mousefocus->tab->pane;
 	
-	t = tabnewempty(m, "*scratch*");
+	t = tabnewempty(m, (uint8_t *)"*scratch*");
   if (t == NULL) {
     return false;
   }
@@ -535,7 +581,7 @@ static struct cmd cmds[] = {
   { "right",      cmdright },
 	{ "up",         cmdup },
 	{ "down",       cmddown },
-	{ "jump",       cmdjump },
+	{ "goto",       cmdgoto },
 	{ "undo",       cmdundo },
 	{ "redo",       cmdredo },
 	{ "undocycle",  cmdundocycle },
@@ -560,8 +606,11 @@ command(struct mace *mace, const uint8_t *s)
 	}
 	
 	if (fileexists(s)) {
-		openfile(mace, s);
-		return true;
+		if (openfile(mace, s)) {
+			return true;
+		} else {
+			fprintf(stderr, "failed to open file '%s'\n", s);
+		}
 	}
 
 	fprintf(stderr, "no command '%s' found\n", s);

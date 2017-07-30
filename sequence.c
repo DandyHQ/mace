@@ -677,3 +677,25 @@ sequenceindexnextline(struct sequence *s, size_t i)
 	
 	return i;
 }
+
+size_t
+sequenceindexpos(struct sequence *s, size_t line, size_t col)
+{
+	size_t i = 0;
+	int32_t code;
+	size_t a;
+	
+	while (line-- > 1) {
+		i = sequenceindexnextline(s, i);
+	}
+	
+	while (col-- > 1) {
+		a = sequencecodepoint(s, i, &code);
+		if (islinebreak(code)) {
+			break;
+		}
+		i += a;
+	}
+	
+	return i;
+}

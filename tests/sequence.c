@@ -329,11 +329,11 @@ test_sequenceapplyactions(struct sequence *s,
 	
 	for (a = start; a <= end; a++) {
 		r = sequencereplace(s, actions[a].start, actions[a].end,
-		                    actions[a].addstr, strlen(actions[a].addstr));
+		                    actions[a].addstr, strlen((char *)actions[a].addstr));
 		TEST_ASSERT_TRUE(r);
 		
 		l = sequenceget(s, 0, buf, sizeof(buf));
-		TEST_ASSERT_EQUAL_INT(strlen(actions[a].afterstr), l);
+		TEST_ASSERT_EQUAL_INT(strlen((char *)actions[a].afterstr), l);
 		TEST_ASSERT_EQUAL_UINT8_ARRAY(actions[a].afterstr, buf, l);
 	}
 }
@@ -353,7 +353,7 @@ test_sequencechangedown(struct sequence *s,
 		
 		l = sequenceget(s, 0, buf, sizeof(buf));
 		
-		TEST_ASSERT_EQUAL_INT(strlen(actions[a].afterstr), l);
+		TEST_ASSERT_EQUAL_INT(strlen((char *)actions[a].afterstr), l);
 		TEST_ASSERT_EQUAL_UINT8_ARRAY(actions[a].afterstr, buf, l);
 	}
 }
@@ -374,7 +374,7 @@ test_sequencechangeup(struct sequence *s,
 		
 		l = sequenceget(s, 0, buf, sizeof(buf));
 		
-		TEST_ASSERT_EQUAL_INT(strlen(actions[a].afterstr), l);
+		TEST_ASSERT_EQUAL_INT(strlen((char *)actions[a].afterstr), l);
 		TEST_ASSERT_EQUAL_UINT8_ARRAY(actions[a].afterstr, buf, l);
 	} while (a-- != start);
 }
@@ -384,28 +384,28 @@ test_sequenceundo(void)
 {
 	struct action branch1[] = {
 		{ 0, 0,
-		  "Hello there.",
-		  "Hello there.",
+		  (uint8_t *)"Hello there.",
+		  (uint8_t *)"Hello there.",
 		},
 		{ 5, 11,
-		  ", this is a test",
-		  "Hello, this is a test.",
+		  (uint8_t *)", this is a test",
+		  (uint8_t *)"Hello, this is a test.",
 		},
 		{ 17, 17,
-		  "bad ",
-		  "Hello, this is a bad test.",
+		  (uint8_t *)"bad ",
+		  (uint8_t *)"Hello, this is a bad test.",
 		},
 	};
 	
 	/* Branches from branch1[1]. */
 	struct action branch2[] = {
 		{ 17, 17,
-		  "stupid ",
-		  "Hello, this is a stupid test.",
+		  (uint8_t *)"stupid ",
+		  (uint8_t *)"Hello, this is a stupid test.",
 		},
 		{ 7, 28,
-		  "world",
-		  "Hello, world.",
+		  (uint8_t *)"world",
+		  (uint8_t *)"Hello, world.",
 		},
 	};
 

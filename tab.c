@@ -27,8 +27,8 @@ tabnew(struct mace *mace,
     return NULL;
   }
   
-  nlen = strlen(name);
-  flen = strlen(filename);
+  nlen = strlen((char *)name);
+  flen = strlen((char *)filename);
 
   t->mace = mace;
   t->next = NULL;
@@ -105,14 +105,12 @@ tabnewfromfile(struct mace *mace,
                const uint8_t *filename)
 {
   struct sequence *seq;
-  size_t dlen, flen;
+  size_t dlen;
 	uint8_t *name;
   uint8_t *data;
   struct stat st;
   struct tab *t;
   int fd;
-
-	flen = strlen((char *) filename);
 	
 	/* I am not sure if basename allocates name or if it is a slice of filename. */
 	name = (uint8_t *) basename((char *) filename);
