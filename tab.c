@@ -3,6 +3,7 @@
 #include <libgen.h>
 
 #include "mace.h"
+#include "config.h"
 
 #define SCROLL_WIDTH   10
 
@@ -244,11 +245,20 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
     	lines = 1;
     }
 
+
 		switch (button) {
 		case 1:
+#ifdef SCROLL_INVERT
 			return textboxscroll(t->main, lines);
-		case 3:
+#else
 			return textboxscroll(t->main, -lines);
+#endif
+		case 3:
+#ifdef SCROLL_INVERT
+			return textboxscroll(t->main, -lines);
+#else
+			return textboxscroll(t->main, lines);
+#endif
 		default:
 			return false;
 		}
