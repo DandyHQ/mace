@@ -250,17 +250,13 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 
 		switch (button) {
 		case 1:
-#ifdef SCROLL_INVERT
-			return textboxscroll(t->main, lines);
-#else
-			return textboxscroll(t->main, -lines);
-#endif
+			return textboxscroll(t->main, 
+			    t->mace->scrollinvert ? lines : -lines);
+
 		case 3:
-#ifdef SCROLL_INVERT
-			return textboxscroll(t->main, -lines);
-#else
-			return textboxscroll(t->main, lines);
-#endif
+			return textboxscroll(t->main, 
+			    t->mace->scrollinvert ? -lines : lines);
+			    
 		default:
 			return false;
 		}

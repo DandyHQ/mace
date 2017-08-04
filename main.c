@@ -147,6 +147,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 	const char *raw;
 	struct tab *t;
 	char *str;
+	bool b;
 	
 	raw = toml_raw_in(conf, "actionbar");
 	if (raw != NULL) {
@@ -158,6 +159,17 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 		
 		free(m->defaultaction);
 		m->defaultaction = str;
+	}
+	
+	raw = toml_raw_in(conf, "scrollinvert");
+	if (raw != NULL) {
+		if (toml_rtob(raw, (int *) &b) != 0)  {
+			fprintf(stderr, "Error in config, bad value '%s' for scrollinvert!\n",
+			        raw);
+			return false;
+		}
+		
+		m->scrollinvert = b;
 	}
 	
 	raw = toml_raw_in(conf, "defaulttab");

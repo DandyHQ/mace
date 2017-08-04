@@ -145,6 +145,8 @@ struct mace {
 	
 	uint8_t *defaultaction;
 	
+	bool scrollinvert;
+	
 	uint8_t *clipboard;
 	size_t clipboardlen;
 };
