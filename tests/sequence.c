@@ -1,8 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "resources/unity/src/unity.h"
-#include "sequence.h"
+#include "../resources/unity/src/unity.h"
+#include "../sequence.h"
 
 void
 test_sequencenewfree(void)

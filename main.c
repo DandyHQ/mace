@@ -73,7 +73,7 @@ static const char* help_message =
 static struct tab *
 maketutorialtab(struct mace *m)
 {
-  const uint8_t name[] = "Mace";
+  const uint8_t name[] = "*tutorial*";
   struct sequence *s;
   struct tab *t;
   uint8_t *buf;
@@ -162,7 +162,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 	if (raw != NULL) {			
 		if (m->pane->tabs == NULL) {
 			if (strcmp(raw, "\"empty\"") == 0) {
-				t = tabnewempty(m, "scratch");
+				t = tabnewempty(m, "*scratch*");
 				
 			} else if (strcmp(raw, "\"tutorial\"") == 0) {
 				t = maketutorialtab(m);

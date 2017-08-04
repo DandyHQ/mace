@@ -223,16 +223,14 @@ tabsetname(struct tab *t, const uint8_t *name, size_t len)
 bool
 tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 {
-  int ah, mh, lines, ay, by;
+  int ah, lines, ay, by;
   
 	ah = t->action->height;
 
   if (y < ah) {
 		t->mace->mousefocus = t->action;
     return textboxbuttonpress(t->action, x, y, button);
-  } 
-
-	mh = t->main->height;
+  }
 
 	if (x < t->width - SCROLL_WIDTH) {
 		t->mace->mousefocus = t->main;
@@ -246,7 +244,6 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
     if (lines == 0) {
     	lines = 1;
     }
-
 
 		switch (button) {
 		case 1:

@@ -1,5 +1,5 @@
-#include "resources/unity/src/unity.h"
-#include "utf8.h"
+#include "../resources/unity/src/unity.h"
+#include "../utf8.h"
 
 /* Should add more tests for these cases but that is 
    too much work.

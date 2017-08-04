@@ -38,24 +38,4 @@ executable('mace', install: true,
 		cairo,
 	])
 
-
-seqtest = executable('tests/sequence',
-	sources: [
-		'resources/unity/src/unity.c',
-		'tests/sequence.c',
-		'sequence.c',
-		'utf8.c',
-	],
-)
-
-test('Sequence Test', seqtest)
-
-utf8test = executable('tests/utf8',
-	sources: [
-		'resources/unity/src/unity.c',
-		'tests/utf8.c',
-		'utf8.c',
-	],
-)
-
-test('utf8 Test', utf8test)
+subdir('tests')
