@@ -25,6 +25,8 @@ executable('mace', install: true,
 		'utf8.c',
 		'cmd.c',
 		'main.c',
+		
+		'resources/tomlc99/toml.c',
 
 		'xmain.c'
 	],

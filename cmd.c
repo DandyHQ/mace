@@ -588,12 +588,6 @@ static struct cmd cmds[] = {
 	{ "scratch",    cmdscratch },
 };
 
-static bool
-fileexists(const uint8_t *filename)
-{
-	return access((const char *)filename, R_OK) != -1;
-}
-
 bool
 command(struct mace *mace, const uint8_t *s)
 {
@@ -605,15 +599,10 @@ command(struct mace *mace, const uint8_t *s)
 		}
 	}
 	
-	if (fileexists(s)) {
-		if (openfile(mace, s)) {
-			return true;
-		} else {
-			fprintf(stderr, "failed to open file '%s'\n", s);
-		}
+	if (openfile(mace, s)) {
+		return true;
+	} else {
+		fprintf(stderr, "Failed to run '%s' as a command or open as a file!\n", s);
+		return false;
 	}
-
-	fprintf(stderr, "no command '%s' found\n", s);
-	
-	return false;
 }

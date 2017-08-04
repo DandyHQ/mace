@@ -1,0 +1,33 @@
+[mace]
+actionbar = "save close undo redo"
+
+# If no files are given open either an empty tab
+# or a tab containing a tutorial.
+defaulttab = "empty" # tutorial, empty
+
+[keybindings]
+
+# Bind special keys to do what one expects.
+
+"Tab" = "tab"
+"Return" = "return"
+"S-Return" = "return"
+"Delete" = "del"
+"S-Delete" = "del"
+"BackSpace" = "back"
+"S-BackSpace" = "back"
+"Left" = "left"
+"Right" = "right"
+"Up" = "up"
+"Down" = "down"
+
+"C-z" = "undo"
+"C-y" = "redo"
+
+"C-x" = "cut"
+"C-c" = "copy"
+"C-v" = "paste"
+
+"C-s" = "save"
+"C-w" = "close"
+

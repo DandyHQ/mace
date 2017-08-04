@@ -1,6 +1,9 @@
 #include <string.h>
+
 #include "mace.h"
 #include "config.h"
+
+#include "resources/tomlc99/toml.h"
 
 static uint8_t message[] =
   "Welcome to the Mace text editor. Below is a basic guide on how to use this editor."
@@ -56,16 +59,18 @@ static struct defkeybinding defaultkeybindings[] = {
 #define OPTPARSE_IMPLEMENTATION
 #include "resources/optparse/optparse.h"
 
-static const char* help_message = "\
-Usage:\n\
-  mace [OPTIONS...] [FILES...]\n\
-\n\
-Options:\n\
-  -h, --help                        Show help options\n\
-  -v, --version                     Show the mace version\n\
-";
+static const char* help_message =
+"Usage: %s [-hv] [-c config] [file ...]\n"
+"\n"
+"Options:\n"
+"  -h, --help\n"
+"        Show help options.\n"
+"  -v, --version\n"
+"        Show the mace version.\n"
+"  -c config, --config config\n"
+"        Override the default config.\n";
 
-struct tab *
+static struct tab *
 maketutorialtab(struct mace *m)
 {
   const uint8_t name[] = "Mace";
@@ -96,59 +101,184 @@ maketutorialtab(struct mace *m)
   return t;
 }
 
+static char *
+findconfig(void)
+{
+	char *s;
+	
+	s = malloc(sizeof(char) * 512);
+	if (s == NULL) {
+		return NULL;
+	}
+	
+	snprintf(s, 512, "mace.toml");
+	return s;
+}
+
+static bool
+applydefaultconfig(struct mace *m)
+{
+	struct tab *t;
+	size_t i;
+	
+	t = maketutorialtab(m);
+	if (t == NULL) {
+		fprintf(stderr, "Error: failed to create tutorial tab!\n");
+		return false;
+	}
+	
+	paneaddtab(m->pane, t, -1);
+	
+	for (i = 0; 
+	     i < sizeof(defaultkeybindings) / sizeof(defaultkeybindings[0]); 
+	     i++) {
+	     
+		maceaddkeybinding(m, 
+		                  defaultkeybindings[i].key, 
+		                  defaultkeybindings[i].cmd);
+	}
+	
+	return true;
+}
+
+static bool
+applyconfigmace(struct mace *m, toml_table_t *conf) 
+{
+	const char *raw;
+	struct tab *t;
+	
+	raw = toml_raw_in(conf, "defaulttab");
+	if (raw != NULL) {			
+		if (m->pane->tabs == NULL) {
+			if (strcmp(raw, "\"empty\"") == 0) {
+				t = tabnewempty(m, "scratch");
+				
+			} else if (strcmp(raw, "\"tutorial\"") == 0) {
+				t = maketutorialtab(m);
+				
+			} else {
+				/* Default to tutorial. */
+				t = maketutorialtab(m);
+			}
+				
+			if (t == NULL) {
+				fprintf(stderr, "defaulttab has invalid value '%s'\n", raw);
+				fprintf(stderr, "should be one of: tutorial, empty\n");
+				return false;
+		  }
+			  
+		  paneaddtab(m->pane, t, -1);
+	  }
+	}
+	
+	return true;
+}
+
+static bool
+applyconfigkeybindings(struct mace *m, toml_table_t *conf)
+{
+	const char *key, *raw;
+	char *cmd;
+	int i;
+	
+	i = 0;
+	while ((key = toml_key_in(conf, i++)) != NULL) {
+		raw = toml_raw_in(conf, key);
+		if (raw == NULL) continue;
+		if (toml_rtos(raw, &cmd) != 0) continue;
+		
+		maceaddkeybinding(m, (uint8_t *) key, (uint8_t *) cmd);
+		
+		free(cmd);
+	}
+	
+	return true;
+}
+
+static bool
+applyconfig(struct mace *m, toml_table_t *conf) 
+{
+	toml_table_t *mace, *keybindings;
+	size_t i;
+	
+	mace = toml_table_in(conf, "mace");
+	if (mace != NULL && !applyconfigmace(m, mace)) {
+		return false;
+  }
+  
+	keybindings = toml_table_in(conf, "keybindings");
+	if (keybindings != NULL) {
+		if (!applyconfigkeybindings(m, keybindings)) {
+			return false;
+		}
+  } else {
+		for (i = 0; 
+		     i < sizeof(defaultkeybindings) / sizeof(defaultkeybindings[0]); 
+		     i++) {
+			maceaddkeybinding(m, 
+			                  defaultkeybindings[i].key, 
+			                  defaultkeybindings[i].cmd);
+		}
+	}
+	
+  return true;
+}
+
 int
 main(int argc, char **argv)
 {
-	bool help = false, version = false;
+	char *configfile = NULL;
   struct optparse options;
-  int option, r, i;
+	toml_table_t *conf;
+	char errbuf[200];
 	struct mace *m;
 	struct tab *t;
-
+  int option, r;
+	char *arg;
+	FILE *f;
+	
 	struct optparse_long longopts[] = {
-		{"help", 'h', OPTPARSE_NONE},
-		{"version", 'v', OPTPARSE_NONE},
+		{"help",      'h',   OPTPARSE_NONE},
+		{"version",   'v',   OPTPARSE_NONE},
+		{"config",    'c',   OPTPARSE_REQUIRED},
 		{0}
 	};
-  
-  optparse_init(&options, argv);
-
-	while ((option = optparse_long(&options, longopts, NULL)) != -1) {
-		switch(option) {
-		case 'h':
-			help = true;
-			break;
-		case 'v':
-			version = true;
-			break;
-		case '?':
-			fprintf(stderr, "%s: %s\n", argv[0], options.errmsg);
-			return EXIT_FAILURE;
-		}
-	}
-
-	if (help) {
-		puts(help_message);
-		return EXIT_SUCCESS;
-
-	} else if (version) {
-		printf("Mace %s\n", VERSION_STR);
-		return EXIT_SUCCESS;
-	}
 	
 	m = macenew();
   if (m == NULL) {
     fprintf(stderr, "Failed to initalize mace!");
     return EXIT_FAILURE;
   }
+  
+  optparse_init(&options, argv);
 
-	for (i = 0; i < sizeof(defaultkeybindings) / sizeof(defaultkeybindings[0]); i++) {
-		maceaddkeybinding(m, defaultkeybindings[i].key, defaultkeybindings[i].cmd);
+	while ((option = optparse_long(&options, longopts, NULL)) != -1) {
+		switch(option) {
+		case 'h':
+			printf(help_message, argv[0]);
+			macefree(m);
+			return EXIT_SUCCESS;
+			
+		case 'v':
+			printf("Mace %s\n", VERSION_STR);
+			macefree(m);
+			return EXIT_SUCCESS;
+		
+		case 'c':
+			configfile = options.optarg;
+			break;
+			
+		case '?':
+			fprintf(stderr, "%s: %s\n", argv[0], options.errmsg);
+			macefree(m);
+			return EXIT_FAILURE;
+		}
 	}
 
-	t = NULL;
-	for (i = 1; i < argc; i++) {
-		t = tabnewfromfile(m, (uint8_t *) argv[i]);
+	/* Load remaining arguments as tabs. */
+	
+	while ((arg = optparse_arg(&options))) {
+		t = tabnewfromfile(m, (uint8_t *) arg);
 		if (t == NULL) {
 			continue;
 		}
@@ -156,18 +286,40 @@ main(int argc, char **argv)
 		paneaddtab(m->pane, t, -1);
 	}
 
-	if (t == NULL) {
-		t = maketutorialtab(m);
-		if (t == NULL) {
-			fprintf(stderr, "%s: Failed to open tutorial tab!\n", argv[0]);
+	if (configfile == NULL) {
+		configfile = findconfig();
+	}
+	
+	if (configfile != NULL) {
+		f = fopen(configfile, "r");
+		if (f <= 0) {
+			fprintf(stderr, "Failed to load config file!\n");
 			macefree(m);
 			return EXIT_FAILURE;
 		}
+	
+		conf = toml_parse_file(f, errbuf, sizeof(errbuf));
+		fclose(f);
+		if (conf == NULL) {
+			fprintf(stderr, "Error reading '%s': %s\n", configfile, errbuf);
+			macefree(m);
+			return EXIT_FAILURE;
+		}
+	
+		if (!applyconfig(m, conf)) {
+			macefree(m);
+			toml_free(conf);
+			return EXIT_FAILURE;
+		}
 		
-		paneaddtab(m->pane, t, -1);
+	} else {
+		if (!applydefaultconfig(m)) {
+			macefree(m);
+			return EXIT_FAILURE;
+		}
 	}
 	
-	m->pane->focus = t;
+	m->pane->focus = m->pane->tabs;
 	
 	r = dodisplay(m);
 	
