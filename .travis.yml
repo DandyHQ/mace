@@ -13,7 +13,7 @@ script:
   - meson build
   - ninja -C build test
   - cppcheck --error-exitcode=42 .
-  - echo '#!/usr/bin/env' > scanbuild.sh
+  - echo '#!/usr/bin/env bash' > scanbuild.sh
   - echo 'scan-build --status-bugs "$@"' >> scanbuild.sh
   - chmod +x scanbuild.sh
   - sudo cp scanbuild.sh /usr/bin/
