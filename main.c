@@ -146,6 +146,19 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 {
 	const char *raw;
 	struct tab *t;
+	char *str;
+	
+	raw = toml_raw_in(conf, "actionbar");
+	if (raw != NULL) {
+		if (toml_rtos(raw, &str) != 0)  {
+			fprintf(stderr, "Error in config, bad value '%s' for actionbar!\n",
+			        raw);
+			return false;
+		}
+		
+		free(m->defaultaction);
+		m->defaultaction = str;
+	}
 	
 	raw = toml_raw_in(conf, "defaulttab");
 	if (raw != NULL) {			
@@ -185,7 +198,11 @@ applyconfigkeybindings(struct mace *m, toml_table_t *conf)
 	while ((key = toml_key_in(conf, i++)) != NULL) {
 		raw = toml_raw_in(conf, key);
 		if (raw == NULL) continue;
-		if (toml_rtos(raw, &cmd) != 0) continue;
+		if (toml_rtos(raw, &cmd) != 0) {
+			fprintf(stderr, "Error in config, bad value '%s' for keybinding %s!\n",
+			        raw, key);
+			return false;
+		}
 		
 		maceaddkeybinding(m, (uint8_t *) key, (uint8_t *) cmd);
 		

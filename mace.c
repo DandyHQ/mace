@@ -1,10 +1,14 @@
 #include <string.h>
 #include "mace.h"
 
+static const uint8_t defaultaction[] = 
+    "save open close cut copy paste undo redo";
+
 struct mace *
 macenew(void)
 {
   struct mace *m;
+  size_t l;
 
   m = calloc(1, sizeof(struct mace));
   if (m == NULL) {
@@ -22,6 +26,15 @@ macenew(void)
     macefree(m);
     return NULL;
   }
+  
+  l = strlen((char *) defaultaction);
+  m->defaultaction = malloc(sizeof(uint8_t) * (l + 1));
+  if (m->defaultaction == NULL) {
+  	macefree(m);
+  	return NULL;
+  }
+  
+  memmove(m->defaultaction, defaultaction, l + 1);
   
   m->clipboard = NULL;
   m->clipboardlen = 0;
@@ -48,6 +61,10 @@ macefree(struct mace *m)
 
   if (m->font != NULL) {
     fontfree(m->font);
+  }
+  
+  if (m->defaultaction != NULL) {
+  	free(m->defaultaction);
   }
 
   free(m);

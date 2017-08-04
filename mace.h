@@ -143,6 +143,8 @@ struct mace {
 
 	struct cursel *cursels;
 	
+	uint8_t *defaultaction;
+	
 	uint8_t *clipboard;
 	size_t clipboardlen;
 };

@@ -9,9 +9,6 @@
 static struct colour bg   = { 1, 1, 1 };
 static struct colour abg  = { 0.86, 0.94, 1 };
 
-static const uint8_t actionstart[] =
-  ": save open close cut copy paste undo redo";
-
 struct tab *
 tabnew(struct mace *mace,
        const uint8_t *name,
@@ -49,9 +46,14 @@ tabnew(struct mace *mace,
     return NULL;
   }
   
-  if (!sequencereplace(actionseq, flen, flen,
-		                   actionstart,
-		                   strlen((const char *) actionstart))) {
+  if (!sequencereplace(actionseq, flen, flen, ": ", 2)) {
+  	tabfree(t);
+  	return NULL;
+  }
+ 
+  if (!sequencereplace(actionseq, flen + 2, flen + 2,
+		                   mace->defaultaction,
+		                   strlen((const char *) mace->defaultaction))) {
     tabfree(t);
     return NULL;
   }
