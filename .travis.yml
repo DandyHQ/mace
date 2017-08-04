@@ -12,6 +12,12 @@ install:
 script:
   - meson build
   - ninja -C build test
+  - cppcheck --error-exitcode=42 .
+  - echo '#!/usr/bin/env' > scanbuild.sh
+  - echo 'scan-build --status-bugs "$@"' >> scanbuild.sh
+  - chmod +x scanbuild.sh
+  - sudo cp scanbuild.sh /usr/bin/
+  - SCANBUILD='scanbuild.sh' ninja scan-build -C build
 
 after_success:
   - if [ "$CODECOV_RUN" == 1 ]; then coveralls --build-root build --gcov-options '\-lp'; fi
@@ -37,4 +43,5 @@ addons:
       - libreadline-dev
       - python3
       - python3-pip
+      - cppcheck
 
