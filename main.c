@@ -101,20 +101,6 @@ maketutorialtab(struct mace *m)
   return t;
 }
 
-static char *
-findconfig(void)
-{
-	char *s;
-	
-	s = malloc(sizeof(char) * 512);
-	if (s == NULL) {
-		return NULL;
-	}
-	
-	snprintf(s, 512, "mace.toml");
-	return s;
-}
-
 static bool
 applydefaultconfig(struct mace *m)
 {
@@ -253,10 +239,61 @@ applyconfig(struct mace *m, toml_table_t *conf)
   return true;
 }
 
+static bool
+findconfig(FILE **f, char *path, size_t l)
+{
+	char *home, *xdg;
+	
+	if (*path != 0) {
+		*f = fopen(path, "r");
+		if (*f == NULL) {
+			fprintf(stderr, "Failed to load config file %s!\n", path);
+			return false;
+		}
+		
+		return true;
+	}
+	
+	home = getenv("HOME");
+	xdg = getenv("XDG_CONFIG_HOME");
+	
+	if (xdg != NULL) {
+		snprintf(path, l, "%s/mace/mace.toml", xdg);
+		*f = fopen(path, "r");
+		if (*f != NULL) {
+				return true;
+		}
+		
+	}
+	
+	if (home != NULL) {
+		snprintf(path, l, "%s/.config/mace/mace.toml", home);
+		*f = fopen(path, "r");
+		if (*f != NULL) {
+				return true;
+		}
+		
+		snprintf(path, l, "%s/.mace.toml", home);
+		*f = fopen(path, "r");
+		if (*f != NULL) {
+				return true;
+		}
+	}
+	
+	
+	snprintf(path, l, "/etc/mace.toml");
+	*f = fopen(path, "r");
+	if (*f != NULL) {
+			return true;
+	}
+	
+	return false;
+}
+
 int
 main(int argc, char **argv)
 {
-	char *configfile = NULL;
+	char configpath[1024] = { '\0' };
   struct optparse options;
 	toml_table_t *conf;
 	char errbuf[200];
@@ -294,7 +331,7 @@ main(int argc, char **argv)
 			return EXIT_SUCCESS;
 		
 		case 'c':
-			configfile = options.optarg;
+			snprintf(configpath, sizeof(configpath), "%s", options.optarg);
 			break;
 			
 		case '?':
@@ -314,23 +351,13 @@ main(int argc, char **argv)
 		
 		paneaddtab(m->pane, t, -1);
 	}
-
-	if (configfile == NULL) {
-		configfile = findconfig();
-	}
 	
-	if (configfile != NULL) {
-		f = fopen(configfile, "r");
-		if (f <= 0) {
-			fprintf(stderr, "Failed to load config file!\n");
-			macefree(m);
-			return EXIT_FAILURE;
-		}
-	
+	if (findconfig(&f, configpath, sizeof(configpath))) {
 		conf = toml_parse_file(f, errbuf, sizeof(errbuf));
 		fclose(f);
+		
 		if (conf == NULL) {
-			fprintf(stderr, "Error reading '%s': %s\n", configfile, errbuf);
+			fprintf(stderr, "Error parsing '%s': %s\n", configpath, errbuf);
 			macefree(m);
 			return EXIT_FAILURE;
 		}

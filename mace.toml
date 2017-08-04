@@ -1,3 +1,11 @@
+# You should copy this to one of:
+#
+#   $XDG_CONFIG_HOME/mace/mace.toml
+#   $HOME/.config/mace/mace.toml
+#   $HOME/.mace.toml
+#   /etc/mace.toml
+#
+
 [mace]
 actionbar = "save close undo redo"
 
