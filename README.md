@@ -47,10 +47,10 @@ Mace requires the following dependencies:
 # dnf install meson libX11-devel cairo-devel
 ```
 
-#### OpenBSD 6.1
+#### OpenBSD 6.1 or snapshots
 
 ```
-# pkg_add cairo
+# pkg_add meson cairo
 ```
 
 ### Compiling
