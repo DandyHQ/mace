@@ -144,7 +144,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 		}
 		
 		free(m->defaultaction);
-		m->defaultaction = str;
+		m->defaultaction = (uint8_t *) str;
 	}
 	
 	raw = toml_raw_in(conf, "scrollinvert");
@@ -162,7 +162,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 	if (raw != NULL) {			
 		if (m->pane->tabs == NULL) {
 			if (strcmp(raw, "\"empty\"") == 0) {
-				t = tabnewempty(m, "*scratch*");
+				t = tabnewempty(m, (uint8_t *) "*scratch*");
 				
 			} else if (strcmp(raw, "\"tutorial\"") == 0) {
 				t = maketutorialtab(m);

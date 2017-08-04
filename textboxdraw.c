@@ -650,7 +650,7 @@ findglyphbelow(struct sequence *s,
 	size_t g, i, a;
 	int32_t code;
 	
-	for (g = startg, i = start; i < end; g++, i += a) {
+	for (g = startg, i = start; i < end && g < nglyphs; g++, i += a) {
 		a = sequencecodepoint(s, i, &code);
 		if (a == 0) {
 			break;

@@ -399,12 +399,14 @@ sequencecodepoint(struct sequence *s, size_t pos, int32_t *code)
 
 	p = sequencepiecefind(s, SEQ_start, pos, &i);
 	if (p == -1) {
+	  *code = 0;
 		return 0;
 	}
 
 	while (s->pieces[p].len == i) {
 		p = s->pieces[p].next;
 		if (p == SEQ_end) {
+		  *code = 0;
 			return 0;
 		}
 
@@ -425,12 +427,14 @@ sequenceprevcodepoint(struct sequence *s, size_t pos, int32_t *code)
 
 	p = sequencepiecefind(s, SEQ_start, pos, &i);
 	if (p == -1) {
+	  *code = 0;
 		return 0;
 	}
 
 	while (i == 0) {
 		p = s->pieces[p].prev;
 		if (p == SEQ_start) {
+		  *code = 0;
 			return 0;
 		}
 

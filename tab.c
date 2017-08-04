@@ -47,7 +47,7 @@ tabnew(struct mace *mace,
     return NULL;
   }
   
-  if (!sequencereplace(actionseq, flen, flen, ": ", 2)) {
+  if (!sequencereplace(actionseq, flen, flen, (uint8_t *) ": ", 2)) {
   	tabfree(t);
   	return NULL;
   }

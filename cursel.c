@@ -40,6 +40,10 @@ curselremove(struct mace *m, struct cursel *c)
 {
 	struct cursel **p;
 
+	if (c == NULL) {
+		return;
+	}
+
 	for (p = &m->cursels; *p != NULL && *p != c; p = &(*p)->next)
 		;
 

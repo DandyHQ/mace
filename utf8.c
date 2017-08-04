@@ -198,6 +198,10 @@ utf8encode(uint8_t *s, size_t len, int32_t code)
 	for (l = 1; l < 5 && utfmax[l] < code; l++)
 		;
 
+  if (l == 5) {
+    return 0;
+  }
+
 	for (i = l - 1; i != 0; i--) {
 		s[i] = utf8encodebyte(code, 0);
 		code >>= 6;
