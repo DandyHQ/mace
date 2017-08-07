@@ -137,6 +137,13 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 			}
 		}
 
+		/* This is horrible. textboxplaceglyphs may place too many. */
+		if (t->glyphs[g].y > t->maxheight) {
+			t->drawablelen = p->off + ii - t->start;
+			t->nglyphs = g;
+			break;
+		}
+
 		a = utf8iterate(s->data + p->off + ii, p->len - ii, &code);
 		if (a == 0) {
 			break;
@@ -423,7 +430,7 @@ textboxplaceglyphs(struct textbox *t)
 	
 	p = &s->pieces[pp];
 
-	while (y - ay < t->maxheight) {
+	while (y + by < t->maxheight) {
 		while (i >= p->len) {
 			pp = p->next;
 			if (pp == SEQ_end) {

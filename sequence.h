@@ -133,10 +133,6 @@ sequencechangedown(struct sequence *s);
 bool
 sequencechangecycle(struct sequence *s);
 
-/* Finds the index of the start of the line that i is in. */
-size_t
-sequenceindexline(struct sequence *s, size_t i);
-
 /* Finds the index of the start of the line after the line i is 
    in. */
 size_t
@@ -149,6 +145,8 @@ sequenceindexnextline(struct sequence *s, size_t i);
    is. */
 size_t
 sequenceindexprevline(struct sequence *s, size_t i);
+
+
 
 size_t
 sequenceindexpos(struct sequence *s, size_t line, size_t col);
