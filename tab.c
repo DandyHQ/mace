@@ -255,7 +255,12 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 				return textboxscroll(t->main, -lines);
 			case SCROLL_down:
 				return textboxscroll(t->main, lines);
+			
 			case SCROLL_immediate:
+				t->main->start =  sequencelen(t->main->sequence) * (y - ah - 1) / (t->height - ah - 1);
+				textboxplaceglyphs(t->main);
+				return true;
+				
 			case SCROLL_none:
 				return false;
 			}
@@ -267,6 +272,10 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 			case SCROLL_down:
 				return textboxscroll(t->main, lines);
 			case SCROLL_immediate:
+				t->main->start =  sequencelen(t->main->sequence) * (y - ah - 1) / (t->height - ah - 1);
+				textboxplaceglyphs(t->main);
+				return true;
+				
 			case SCROLL_none:
 				return false;
 			}
@@ -278,6 +287,10 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 			case SCROLL_down:
 				return textboxscroll(t->main, lines);
 			case SCROLL_immediate:
+				t->main->start =  sequencelen(t->main->sequence) * (y - ah - 1) / (t->height - ah - 1);
+				textboxplaceglyphs(t->main);
+				return true;
+				
 			case SCROLL_none:
 				return false;
 			}
