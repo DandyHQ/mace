@@ -478,7 +478,10 @@ static char* normalize_key(context_t* ctx, token_t strtok)
 
 	if (ch == '\'') {
 	    /* for single quote, take it verbatim. */
-	    if (! (ret = strndup(sp, sq - sp))) outofmemory(ctx, FLINE);
+	    if (! (ret = strndup(sp, sq - sp))) {
+                outofmemory(ctx, FLINE);
+                return NULL; /* Shut up scan-build. */
+            }
 	} else {
 	    /* for double quote, we need to normalize */
 	    ret = normalize_string(sp, sq - sp, 0, ebuf, sizeof(ebuf));
