@@ -485,6 +485,7 @@ static char* normalize_key(context_t* ctx, token_t strtok)
 	    if (!ret) {
 		snprintf(ctx->errbuf, ctx->errbufsz, "line %d: %s", lineno, ebuf);
 		longjmp(ctx->jmp, 1);
+                return NULL; /* Shut up scan-build. */
 	    }
 	}
 

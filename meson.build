@@ -1,4 +1,4 @@
-project('mace', 'c', default_options : ['c_std=c11'])
+project('mace', 'c', default_options : ['c_std=c99'])
 
 x11        = dependency('x11')
 ft         = dependency('freetype2')
