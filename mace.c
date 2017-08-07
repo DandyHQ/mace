@@ -38,6 +38,13 @@ macenew(void)
   
   m->clipboard = NULL;
   m->clipboardlen = 0;
+  
+  
+	
+	m->scrollbarleftside = true;
+	m->scrollleft = SCROLL_up;
+	m->scrollmiddle = SCROLL_immediate;
+	m->scrollright = SCROLL_down;
 
   m->running = true;
   
@@ -160,6 +167,10 @@ handlemotion(struct mace *m, int x, int y)
 
 		if (m->mousefocus->tab->main == m->mousefocus) {
 			y -= m->mousefocus->tab->action->height;
+		}
+		
+		if (m->scrollbarleftside) {
+			x -= SCROLL_WIDTH;
 		}
 
 		return textboxmotion(m->mousefocus, x, y);

@@ -71,6 +71,9 @@ struct textbox {
   struct cursel *curcs;
 };
 
+
+#define SCROLL_WIDTH   10
+
 struct tab {
   /* Mace structure that created this. */
   struct mace *mace;
@@ -130,6 +133,13 @@ struct font {
 /* A mace structure. Each structure represents a window and lua
    runtime. */
 
+typedef enum {
+	SCROLL_down,
+	SCROLL_up,
+	SCROLL_immediate,
+	SCROLL_none
+} scroll_action_t;
+
 struct mace {
   bool running;
 
@@ -145,7 +155,8 @@ struct mace {
 	
 	uint8_t *defaultaction;
 	
-	bool scrollinvert;
+	bool scrollbarleftside;
+	scroll_action_t scrollleft, scrollmiddle, scrollright;
 	
 	uint8_t *clipboard;
 	size_t clipboardlen;

@@ -133,7 +133,6 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 	const char *raw;
 	struct tab *t;
 	char *str;
-	bool b;
 	
 	raw = toml_raw_in(conf, "actionbar");
 	if (raw != NULL) {
@@ -147,15 +146,95 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 		m->defaultaction = (uint8_t *) str;
 	}
 	
-	raw = toml_raw_in(conf, "scrollinvert");
+	raw = toml_raw_in(conf, "scrollbarside");
 	if (raw != NULL) {
-		if (toml_rtob(raw, (int *) &b) != 0)  {
-			fprintf(stderr, "Error in config, bad value '%s' for scrollinvert!\n",
+		if (toml_rtos(raw, &str) != 0)  {
+			fprintf(stderr, "Error in config, bad value '%s' for scrollbarside!\n",
 			        raw);
 			return false;
 		}
 		
-		m->scrollinvert = b;
+		if (strcmp(str, "left") == 0) {
+			m->scrollbarleftside = true;
+		} else if (strcmp(str, "right") == 0) {
+			m->scrollbarleftside = false;
+		} else {
+			fprintf(stderr, "Bad value %s for scrollbarside!\n", str);
+			free(str);
+			return false;
+		}
+		
+		free(str);
+	}
+	
+	
+	raw = toml_raw_in(conf, "scrollleftclick");
+	if (raw != NULL) {
+		if (toml_rtos(raw, &str) != 0)  {
+			fprintf(stderr, "Error in config, bad value '%s' for scrollleftclick!\n",
+			        raw);
+			return false;
+		}
+		
+		if (strcmp(str, "up") == 0) {
+			m->scrollleft = SCROLL_up;
+		} else if (strcmp(str, "down") == 0) {
+			m->scrollleft = SCROLL_down;
+		} else if (strcmp(str, "immediate") == 0) {
+			m->scrollleft = SCROLL_immediate;
+		} else {
+			fprintf(stderr, "Bad value %s for scrollleft!\n", str);
+			free(str);
+			return false;
+		}
+		
+		free(str);
+	}
+	
+	raw = toml_raw_in(conf, "scrollrightclick");
+	if (raw != NULL) {
+		if (toml_rtos(raw, &str) != 0)  {
+			fprintf(stderr, "Error in config, bad value '%s' for scrollrightclick!\n",
+			        raw);
+			return false;
+		}
+		
+		if (strcmp(str, "up") == 0) {
+			m->scrollright = SCROLL_up;
+		} else if (strcmp(str, "down") == 0) {
+			m->scrollright = SCROLL_down;
+		} else if (strcmp(str, "immediate") == 0) {
+			m->scrollright = SCROLL_immediate;
+		} else {
+			fprintf(stderr, "Bad value %s for scrollright!\n", str);
+			free(str);
+			return false;
+		}
+		
+		free(str);
+	}
+	
+	raw = toml_raw_in(conf, "scrollmiddleclick");
+	if (raw != NULL) {
+		if (toml_rtos(raw, &str) != 0)  {
+			fprintf(stderr, "Error in config, bad value '%s' for scrollmiddleclick!\n",
+			        raw);
+			return false;
+		}
+		
+		if (strcmp(str, "up") == 0) {
+			m->scrollmiddle = SCROLL_up;
+		} else if (strcmp(str, "down") == 0) {
+			m->scrollmiddle = SCROLL_down;
+		} else if (strcmp(str, "immediate") == 0) {
+			m->scrollmiddle = SCROLL_immediate;
+		} else {
+			fprintf(stderr, "Bad value %s for scrollmiddle!\n", str);
+			free(str);
+			return false;
+		}
+		
+		free(str);
 	}
 	
 	raw = toml_raw_in(conf, "defaulttab");

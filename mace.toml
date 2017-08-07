@@ -13,7 +13,10 @@ actionbar = "save close undo redo"
 # or a tab containing a tutorial.
 defaulttab = "empty" # tutorial, empty
 
-scrollinvert = false
+scrollbarside = "right" # left or right
+scrollleftclick = "up"
+scrollmiddleclick = "immediate"
+scrollrightclick = "down"
 
 [keybindings]
 

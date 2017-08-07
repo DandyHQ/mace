@@ -5,8 +5,6 @@
 #include "mace.h"
 #include "config.h"
 
-#define SCROLL_WIDTH   10
-
 static struct colour bg   = { 1, 1, 1 };
 static struct colour abg  = { 0.86, 0.94, 1 };
 
@@ -230,9 +228,14 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
   if (y < ah) {
 		t->mace->mousefocus = t->action;
     return textboxbuttonpress(t->action, x, y, button);
-  }
-
-	if (x < t->width - SCROLL_WIDTH) {
+    
+  } else if (t->mace->scrollbarleftside && x >= SCROLL_WIDTH) {
+	    
+		t->mace->mousefocus = t->main;
+    return textboxbuttonpress(t->main, x - SCROLL_WIDTH, y - ah - 1, button);
+  
+  } else if (!t->mace->scrollbarleftside && x < t->width - SCROLL_WIDTH) {
+	    
 		t->mace->mousefocus = t->main;
     return textboxbuttonpress(t->main, x, y - ah - 1, button);
     
@@ -247,12 +250,37 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 
 		switch (button) {
 		case 1:
-			return textboxscroll(t->main, 
-			    t->mace->scrollinvert ? lines : -lines);
+			switch (t->mace->scrollleft) {
+			case SCROLL_up:
+				return textboxscroll(t->main, -lines);
+			case SCROLL_down:
+				return textboxscroll(t->main, lines);
+			case SCROLL_immediate:
+			case SCROLL_none:
+				return false;
+			}
 
+		case 2:
+			switch (t->mace->scrollmiddle) {
+			case SCROLL_up:
+				return textboxscroll(t->main, -lines);
+			case SCROLL_down:
+				return textboxscroll(t->main, lines);
+			case SCROLL_immediate:
+			case SCROLL_none:
+				return false;
+			}
+			
 		case 3:
-			return textboxscroll(t->main, 
-			    t->mace->scrollinvert ? -lines : lines);
+			switch (t->mace->scrollright) {
+			case SCROLL_up:
+				return textboxscroll(t->main, -lines);
+			case SCROLL_down:
+				return textboxscroll(t->main, lines);
+			case SCROLL_immediate:
+			case SCROLL_none:
+				return false;
+			}
 			    
 		default:
 			return false;
@@ -279,12 +307,19 @@ tabdrawaction(struct tab *t, cairo_t *cr, int y)
 static int
 tabdrawmain(struct tab *t, cairo_t *cr, int y)
 {
-  int h, pos, size, len;
+  int h, pos, size, len, x;
   
   h = t->height - y;
+  
+  if (t->mace->scrollbarleftside) {
+		textboxdraw(t->main, cr, t->x + SCROLL_WIDTH, t->y + y, 
+		            t->width - SCROLL_WIDTH, h);
+	            
+  } else {
+		textboxdraw(t->main, cr, t->x, t->y + y, 
+		            t->width - SCROLL_WIDTH, h);
+  }
 
-	textboxdraw(t->main, cr, t->x, t->y + y, 
-	            t->width - SCROLL_WIDTH, h);
   
   /* Draw scroll bar */
   
@@ -302,19 +337,32 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
 		size = SCROLL_MIN_HEIGHT;
 	}
 	
+		
   cairo_set_source_rgb(cr, 0, 0, 0);
-  cairo_move_to(cr, t->x + t->main->linewidth, t->y + y);
-
-  cairo_line_to(cr,
-		t->x + t->main->linewidth,
-		t->y + t->height);
-
+  
+  if (t->mace->scrollbarleftside) {
+  	x = 0;
+  	
+	  cairo_move_to(cr, t->x + SCROLL_WIDTH - 1, t->y + y);
+	  cairo_line_to(cr,
+			t->x + SCROLL_WIDTH - 1,
+			t->y + t->height);  
+			
+  } else {
+  	x = t->main->linewidth + 1;
+  	
+	  cairo_move_to(cr, t->x + t->main->linewidth, t->y + y);
+	  cairo_line_to(cr,
+			t->x + t->main->linewidth,
+			t->y + t->height);
+	}
+	
   cairo_set_line_width(cr, 1.0);
   cairo_stroke(cr);
   
   cairo_set_source_rgb(cr, 1, 1, 1);
   cairo_rectangle(cr,
-		  t->x + t->main->linewidth + 1,
+		  t->x + x,
 		  t->y + y,
 		  SCROLL_WIDTH - 1,
 		  pos);
@@ -323,7 +371,7 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
 
   cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
   cairo_rectangle(cr,
-		  t->x + t->main->linewidth + 1,
+		  t->x + x,
 		  t->y + y + pos,
 		  SCROLL_WIDTH - 1,
 		  size);
@@ -332,10 +380,11 @@ tabdrawmain(struct tab *t, cairo_t *cr, int y)
 
   cairo_set_source_rgb(cr, 1, 1, 1);
   cairo_rectangle(cr,
-		  t->x + t->main->linewidth + 1,
+		  t->x + x,
 		  t->y + y + pos + size,
 		  SCROLL_WIDTH - 1,
 		  t->height - y - pos - size);
+		  
   cairo_fill(cr);
 
   return y + h;
