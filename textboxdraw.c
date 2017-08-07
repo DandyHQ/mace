@@ -662,10 +662,10 @@ findglyphbelow(struct sequence *s,
 		if (a == 0) {
 			break;
 		} else if (glyphs[g].y > wanty) {
-			if (g + 1 >= nglyphs || glyphs[g+1].y > glyphs[g].y) {
+			if (g + 1 == nglyphs || glyphs[g+1].y > glyphs[g].y) {
 				break;
 			} else if (glyphs[g].x <= wantx) {
-				if (g + 1 >= nglyphs || glyphs[g+1].x > wantx) {
+				if (g + 1 == nglyphs || glyphs[g+1].x > wantx) {
 					break;
 				}
 			}
@@ -688,7 +688,7 @@ textboxindexbelow(struct textbox *t, size_t pos)
 	
 	nglyphs = end - start;
 	if (nglyphs != 0) {
-		glyphs = malloc(sizeof(cairo_glyph_t) * nglyphs);
+		glyphs = calloc(nglyphs, sizeof(cairo_glyph_t));
 		if (glyphs == NULL) {
 			return pos;
 		}
@@ -728,7 +728,7 @@ textboxindexbelow(struct textbox *t, size_t pos)
 	}
 	
 	nglyphs = end - start;
-	glyphs = malloc(sizeof(cairo_glyph_t) * nglyphs);
+	glyphs = calloc(nglyphs, sizeof(cairo_glyph_t));
 	if (glyphs == NULL) {
 		return start;
 	}
