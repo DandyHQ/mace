@@ -1,4 +1,4 @@
-project('mace', 'c', default_options : ['c_std=c99'])
+project('mace', 'c', default_options : ['c_std=c11'])
 
 x11        = dependency('x11')
 ft         = dependency('freetype2')
@@ -6,7 +6,7 @@ fc         = dependency('fontconfig')
 cairo      = dependency('cairo')
 
 conf_data = configuration_data()
-conf_data.set('version', '0.2')
+conf_data.set('version', '0.3')
 
 configure_file(input : 'config.h.in',
 	       output : 'config.h',
