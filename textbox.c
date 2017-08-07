@@ -99,7 +99,7 @@ textboxbuttonpress(struct textbox *t, int x, int y,
 
   case 3:
     c = curselat(t->mace, t, pos);
-    if (c != NULL) {
+    if (c != NULL && c->start != c->end) {
       c->type |= CURSEL_cmd;
       return true;
 
