@@ -148,13 +148,13 @@ struct mace {
 	struct keybinding *keybindings;
   
   struct pane *pane;
-
-  struct textbox *mousefocus;
-
 	struct cursel *cursels;
 	
 	uint8_t *defaultaction;
 	
+  struct textbox *mousefocus;
+  bool immediatescrolling;
+  
 	bool scrollbarleftside;
 	scroll_action_t scrollleft, scrollmiddle, scrollright;
 	

@@ -144,38 +144,60 @@ handlebuttonpress(struct mace *m, int x, int y, int button)
 bool
 handlebuttonrelease(struct mace *m, int x, int y, int button)
 {
-	if (m->mousefocus != NULL) {
-		x -= m->mousefocus->tab->x;
-		y -= m->mousefocus->tab->y;
-
-		if (m->mousefocus->tab->main == m->mousefocus) {
-			y -= m->mousefocus->tab->action->height;
-		}
-		
-  	return textboxbuttonrelease(m->mousefocus, x, y, button);
-	} else {
+	if (m->mousefocus == NULL) {
 		return false;
+	}
+	
+	
+	x -= m->mousefocus->tab->x;
+	y -= m->mousefocus->tab->y;
+
+	if (m->mousefocus->tab->main == m->mousefocus) {
+		y -= m->mousefocus->tab->action->height;
+	}
+		
+	if (m->immediatescrolling) {
+		m->immediatescrolling = false;
+		return false;
+	} else {
+		return textboxbuttonrelease(m->mousefocus, x, y, button);
 	}
 }
 
 bool
 handlemotion(struct mace *m, int x, int y)
 {
-	if (m->mousefocus != NULL) {
-  	x -= m->mousefocus->tab->x;
-		y -= m->mousefocus->tab->y;
+	size_t pos;
+	
+	if (m->mousefocus == NULL) {
+		return false;
+	}
+		
+  x -= m->mousefocus->tab->x;
+	y -= m->mousefocus->tab->y;
 
-		if (m->mousefocus->tab->main == m->mousefocus) {
-			y -= m->mousefocus->tab->action->height;
+	if (m->mousefocus->tab->main == m->mousefocus) {
+		y -= m->mousefocus->tab->action->height;
+	}
+		
+	if (m->scrollbarleftside) {
+		x -= SCROLL_WIDTH;
+	}
+
+	if (m->immediatescrolling) {
+		pos = sequencelen(m->mousefocus->sequence) * y 
+		    / m->mousefocus->maxheight;
+		
+		if (m->mousefocus->start != pos) {
+			m->mousefocus->start = pos;
+			textboxplaceglyphs(m->mousefocus);
+			return true;
+		} else {
+			return false;
 		}
 		
-		if (m->scrollbarleftside) {
-			x -= SCROLL_WIDTH;
-		}
-
-		return textboxmotion(m->mousefocus, x, y);
 	} else {
-		return false;
+		return textboxmotion(m->mousefocus, x, y);
 	}
 }
 

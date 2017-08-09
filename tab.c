@@ -221,7 +221,7 @@ tabsetname(struct tab *t, const uint8_t *name, size_t len)
 bool
 tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 {
-  int ah, lines, ay, by;
+  int ah, lines, pos, ay, by;
   
 	ah = t->action->height;
 
@@ -243,21 +243,28 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
   	ay = (t->mace->font->face->size->metrics.ascender >> 6);
   	by = -(t->mace->font->face->size->metrics.descender >> 6);
   
+  	/* Relative line movement. */
     lines = (y - ah - 1) / (ay + by) / 2;
     if (lines == 0) {
     	lines = 1;
     }
+    
+    /* Immediate position. */
+    pos = sequencelen(t->main->sequence) * (y - ah - 1) / (t->height - ah - 1);
 
 		switch (button) {
 		case 1:
 			switch (t->mace->scrollleft) {
 			case SCROLL_up:
 				return textboxscroll(t->main, -lines);
+				
 			case SCROLL_down:
 				return textboxscroll(t->main, lines);
 			
 			case SCROLL_immediate:
-				t->main->start =  sequencelen(t->main->sequence) * (y - ah - 1) / (t->height - ah - 1);
+				t->mace->mousefocus = t->main;
+				t->mace->immediatescrolling = true;
+				t->main->start = pos;
 				textboxplaceglyphs(t->main);
 				return true;
 				
@@ -271,8 +278,11 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 				return textboxscroll(t->main, -lines);
 			case SCROLL_down:
 				return textboxscroll(t->main, lines);
+			
 			case SCROLL_immediate:
-				t->main->start =  sequencelen(t->main->sequence) * (y - ah - 1) / (t->height - ah - 1);
+				t->mace->mousefocus = t->main;
+				t->mace->immediatescrolling = true;
+				t->main->start = pos;
 				textboxplaceglyphs(t->main);
 				return true;
 				
@@ -286,8 +296,11 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 				return textboxscroll(t->main, -lines);
 			case SCROLL_down:
 				return textboxscroll(t->main, lines);
+			
 			case SCROLL_immediate:
-				t->main->start =  sequencelen(t->main->sequence) * (y - ah - 1) / (t->height - ah - 1);
+				t->mace->mousefocus = t->main;
+				t->mace->immediatescrolling = true;
+				t->main->start = pos;
 				textboxplaceglyphs(t->main);
 				return true;
 				
