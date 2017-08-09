@@ -130,15 +130,15 @@ applydefaultconfig(struct mace *m)
 static bool
 applyconfigmace(struct mace *m, toml_table_t *conf) 
 {
+	struct tab *t = NULL;
 	const char *raw;
-	struct tab *t;
 	char *str;
+	int64_t i;
 	
 	raw = toml_raw_in(conf, "actionbar");
 	if (raw != NULL) {
 		if (toml_rtos(raw, &str) != 0)  {
-			fprintf(stderr, "Error in config, bad value '%s' for actionbar!\n",
-			        raw);
+			fprintf(stderr, "Bad value '%s' for actionbar!\n", raw);
 			return false;
 		}
 		
@@ -147,29 +147,66 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 	}
 	
 	raw = toml_raw_in(conf, "defaulttab");
-	if (raw != NULL) {			
+	if (raw != NULL) {
+		if (toml_rtos(raw, &str) != 0)  {
+			fprintf(stderr, "Bad value '%s' for defaulttab!\n", raw);
+			return false;
+		}
+	
 		if (m->pane->tabs == NULL) {
-			if (strcmp(raw, "\"empty\"") == 0) {
+			if (strcmp(str, "empty") == 0) {
 				t = tabnewempty(m, (uint8_t *) "*scratch*");
 				
-			} else if (strcmp(raw, "\"tutorial\"") == 0) {
+			} else if (strcmp(str, "tutorial") == 0) {
 				t = maketutorialtab(m);
 				
 			} else {
-				/* Default to tutorial. */
-				t = maketutorialtab(m);
-			}
-				
-			if (t == NULL) {
 				fprintf(stderr, "defaulttab has invalid value '%s'\n", raw);
 				fprintf(stderr, "should be one of: tutorial, empty\n");
+			  free(str);
 				return false;
+		  }
+		  
+		  if (t == NULL) {
+		  	fprintf(stderr, "Failed to make default tab!\n");
+	  		free(str);
+		  	return false;
 		  }
 			  
 		  paneaddtab(m->pane, t, -1);
 	  }
+	  
+	  free(str);
 	}
 	
+	raw = toml_raw_in(conf, "font");
+	if (raw != NULL) {
+		if (toml_rtos(raw, &str) != 0)  {
+			fprintf(stderr, "Bad value '%s' for font!\n", raw);
+			return false;
+		}
+	
+		if (!fontset(m->font, str)) {
+			fprintf(stderr, "Failed to find font '%s'\n", str);
+			free(str);
+			return false;
+		}
+		
+		free(str);
+	}
+	
+	raw = toml_raw_in(conf, "tabwidth");
+	if (raw != NULL) {
+		if (toml_rtoi(raw, &i) != 0)  {
+			fprintf(stderr, "Bad value '%s' for tabwidth!\n", raw);
+			return false;
+		}
+	
+		if (!fontsettabwidth(m->font, (size_t) i)) {
+			fprintf(stderr, "Failed to set tab width to %lli\n", i);
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -187,7 +224,7 @@ applyconfigscroll(struct mace *m, toml_table_t *conf)
 		
 		if (strcmp(key, "side") == 0) {
 			if (toml_rtos(raw, &str) != 0)  {
-				fprintf(stderr, "Error in config, bad value '%s' for scroll side!\n",
+				fprintf(stderr, "Bad value '%s' for scroll side!\n",
 				        raw);
 				return false;
 			}
@@ -221,7 +258,7 @@ applyconfigscroll(struct mace *m, toml_table_t *conf)
 			}
 		
 			if (toml_rtos(raw, &str) != 0)  {
-				fprintf(stderr, "Error in config, bad value '%s' for scroll %s!\n",
+				fprintf(stderr, "Bad value '%s' for scroll %s!\n",
 				        raw, key);
 				return false;
 			}
@@ -241,7 +278,7 @@ applyconfigscroll(struct mace *m, toml_table_t *conf)
 			free(str);
 			
 		} else {
-			fprintf(stderr, "Unknown key in scroll table '%s'\n", key);
+			fprintf(stderr, "Unknown configuration in scroll table '%s'\n", key);
 			return false;
 		}
 	}
@@ -261,7 +298,7 @@ applyconfigkeybindings(struct mace *m, toml_table_t *conf)
 		raw = toml_raw_in(conf, key);
 		if (raw == NULL) continue;
 		if (toml_rtos(raw, &cmd) != 0) {
-			fprintf(stderr, "Error in config, bad value '%s' for keybinding %s!\n",
+			fprintf(stderr, "Bad value '%s' for keybinding %s!\n",
 			        raw, key);
 			return false;
 		}
@@ -286,10 +323,8 @@ applyconfig(struct mace *m, toml_table_t *conf)
   }
   
   scroll = toml_table_in(conf, "scroll");
-  if (scroll != NULL) {
-  	if (!applyconfigscroll(m, scroll)) {
-  		return false;
-  	}
+  if (scroll != NULL && !applyconfigscroll(m, scroll)) {
+ 		return false;
   }
   
 	keybindings = toml_table_in(conf, "keybindings");
@@ -317,12 +352,13 @@ findconfig(FILE **f, char *path, size_t l)
 	
 	if (*path != 0) {
 		*f = fopen(path, "r");
-		if (*f == NULL) {
+		if (*f != NULL) {
+			return true;
+			
+		} else {
 			fprintf(stderr, "Failed to load config file %s!\n", path);
 			return false;
 		}
-		
-		return true;
 	}
 	
 	home = getenv("HOME");
@@ -432,8 +468,9 @@ main(int argc, char **argv)
 		}
 	
 		if (!applyconfig(m, conf)) {
-			macefree(m);
+			fprintf(stderr, "Error(s) in config '%s'.\n", configpath);
 			toml_free(conf);
+			macefree(m);
 			return EXIT_FAILURE;
 		}
 		

@@ -191,10 +191,10 @@ fontnew(void);
 void
 fontfree(struct font *font);
 
-int
+bool
 fontset(struct font *font, const char *pattern);
 
-int
+bool
 fontsettabwidth(struct font *font, size_t spaces);
 
 bool

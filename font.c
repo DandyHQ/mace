@@ -8,7 +8,7 @@
 
 #include <fontconfig/fontconfig.h>
 
-static int
+static bool
 fontloadfile(struct font *font, const char *path, double size);
 
 struct font *
@@ -30,8 +30,7 @@ fontnew(void)
 
   f->tabwidth = DEFAULT_TAB_WIDTH;
 
-  e = fontset(f, DEFAULT_FONT_PATTERN);
-  if (e != 0) {
+  if (!fontset(f, DEFAULT_FONT_PATTERN)) {
     fontfree(f);
     return NULL;
   }
@@ -57,18 +56,18 @@ fontfree(struct font *font)
   free(font);
 }
 
-int
+bool
 fontloadfile(struct font *font, const char *path, double size)
 {
   FT_Face new;
 
   if (FT_New_Face(font->library, path, 0, &new) != 0) {
-    return 1;
+    return false;
   }
 
   if (FT_Set_Pixel_Sizes(new, size, size) != 0) {
     FT_Done_Face(new);
-    return 1;
+    return false;
   }
 
   if (font->cface != NULL) {
@@ -97,18 +96,18 @@ fontloadfile(struct font *font, const char *path, double size)
 
   fontsettabwidth(font, font->tabwidth);
 
-  return 0;
+  return true;
 }
 
-int
+bool
 fontset(struct font *font, const char *spattern)
 {
   FcPattern *pat, *fontpat;
   FcConfig *config;
   FcResult result;
+  bool r = false;
   double size;
   char *path;
-  int r = 1;
 
   config = FcInitLoadConfigAndFonts();
   if (config == NULL) {
@@ -140,11 +139,11 @@ fontset(struct font *font, const char *spattern)
     goto ERRFONTPAT;
   }
 
-  if (fontloadfile(font, path, size) != 0) {
+  if (!fontloadfile(font, path, size)) {
     goto ERRFONTPAT;
   }
   
-  r = 0;
+  r = true;
   
   ERRFONTPAT:
   FcPatternDestroy(fontpat);
@@ -157,24 +156,24 @@ fontset(struct font *font, const char *spattern)
   return r;
 }
 
-int
+bool
 fontsettabwidth(struct font *font, size_t spaces)
 {
   FT_UInt i;
 
   i = FT_Get_Char_Index(font->face, ' ');
   if (i == 0) {
-    return -1;
+    return false;
   }
 
   if (FT_Load_Glyph(font->face, i, FT_LOAD_DEFAULT) != 0) {
-    return -1;
+    return false;
   }
 
   font->tabwidth = spaces;
   font->tabwidthpixels = (font->face->glyph->advance.x >> 6) * spaces;
    
-  return 0;
+  return true;
 }
 
 bool
