@@ -146,97 +146,6 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 		m->defaultaction = (uint8_t *) str;
 	}
 	
-	raw = toml_raw_in(conf, "scrollbarside");
-	if (raw != NULL) {
-		if (toml_rtos(raw, &str) != 0)  {
-			fprintf(stderr, "Error in config, bad value '%s' for scrollbarside!\n",
-			        raw);
-			return false;
-		}
-		
-		if (strcmp(str, "left") == 0) {
-			m->scrollbarleftside = true;
-		} else if (strcmp(str, "right") == 0) {
-			m->scrollbarleftside = false;
-		} else {
-			fprintf(stderr, "Bad value %s for scrollbarside!\n", str);
-			free(str);
-			return false;
-		}
-		
-		free(str);
-	}
-	
-	
-	raw = toml_raw_in(conf, "scrollleftclick");
-	if (raw != NULL) {
-		if (toml_rtos(raw, &str) != 0)  {
-			fprintf(stderr, "Error in config, bad value '%s' for scrollleftclick!\n",
-			        raw);
-			return false;
-		}
-		
-		if (strcmp(str, "up") == 0) {
-			m->scrollleft = SCROLL_up;
-		} else if (strcmp(str, "down") == 0) {
-			m->scrollleft = SCROLL_down;
-		} else if (strcmp(str, "immediate") == 0) {
-			m->scrollleft = SCROLL_immediate;
-		} else {
-			fprintf(stderr, "Bad value %s for scrollleft!\n", str);
-			free(str);
-			return false;
-		}
-		
-		free(str);
-	}
-	
-	raw = toml_raw_in(conf, "scrollrightclick");
-	if (raw != NULL) {
-		if (toml_rtos(raw, &str) != 0)  {
-			fprintf(stderr, "Error in config, bad value '%s' for scrollrightclick!\n",
-			        raw);
-			return false;
-		}
-		
-		if (strcmp(str, "up") == 0) {
-			m->scrollright = SCROLL_up;
-		} else if (strcmp(str, "down") == 0) {
-			m->scrollright = SCROLL_down;
-		} else if (strcmp(str, "immediate") == 0) {
-			m->scrollright = SCROLL_immediate;
-		} else {
-			fprintf(stderr, "Bad value %s for scrollright!\n", str);
-			free(str);
-			return false;
-		}
-		
-		free(str);
-	}
-	
-	raw = toml_raw_in(conf, "scrollmiddleclick");
-	if (raw != NULL) {
-		if (toml_rtos(raw, &str) != 0)  {
-			fprintf(stderr, "Error in config, bad value '%s' for scrollmiddleclick!\n",
-			        raw);
-			return false;
-		}
-		
-		if (strcmp(str, "up") == 0) {
-			m->scrollmiddle = SCROLL_up;
-		} else if (strcmp(str, "down") == 0) {
-			m->scrollmiddle = SCROLL_down;
-		} else if (strcmp(str, "immediate") == 0) {
-			m->scrollmiddle = SCROLL_immediate;
-		} else {
-			fprintf(stderr, "Bad value %s for scrollmiddle!\n", str);
-			free(str);
-			return false;
-		}
-		
-		free(str);
-	}
-	
 	raw = toml_raw_in(conf, "defaulttab");
 	if (raw != NULL) {			
 		if (m->pane->tabs == NULL) {
@@ -259,6 +168,82 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 			  
 		  paneaddtab(m->pane, t, -1);
 	  }
+	}
+	
+	return true;
+}
+
+static bool
+applyconfigscroll(struct mace *m, toml_table_t *conf)
+{
+	const char *key, *raw;
+	scroll_action_t *b;
+	char *str;
+	int i;
+	
+	i = 0;
+	while ((key = toml_key_in(conf, i++)) != NULL) {
+		raw = toml_raw_in(conf, key);
+		
+		if (strcmp(key, "side") == 0) {
+			if (toml_rtos(raw, &str) != 0)  {
+				fprintf(stderr, "Error in config, bad value '%s' for scroll side!\n",
+				        raw);
+				return false;
+			}
+			
+			if (strcmp(str, "left") == 0) {
+				m->scrollbarleftside = true;
+				
+			} else if (strcmp(str, "right") == 0) {
+				m->scrollbarleftside = false;
+				
+			} else {
+				fprintf(stderr, "Bad value %s for scrollbarside!\n", str);
+				free(str);
+				return false;
+			}
+			
+			free(str);
+		
+		} else if (strstr(key, "Button-") != NULL) {
+			/* For now. Button presses need to be redone to support
+			 * modifiers and so on. */
+			 
+			if (strcmp(key, "Button-1") == 0) {
+				b = &m->scrollleft;
+			} else if (strcmp(key, "Button-2") == 0) {
+				b = &m->scrollmiddle;
+			} else if (strcmp(key, "Button-3") == 0) {
+				b = &m->scrollright;
+			} else {
+				b = &m->scrollleft;
+			}
+		
+			if (toml_rtos(raw, &str) != 0)  {
+				fprintf(stderr, "Error in config, bad value '%s' for scroll %s!\n",
+				        raw, key);
+				return false;
+			}
+		
+			if (strcmp(str, "up") == 0) {
+				*b = SCROLL_up;
+			} else if (strcmp(str, "down") == 0) {
+				*b = SCROLL_down;
+			} else if (strcmp(str, "immediate") == 0) {
+				*b = SCROLL_immediate;
+			} else {
+				fprintf(stderr, "Bad value %s for scrollmiddle!\n", str);
+				free(str);
+				return false;
+			}
+			
+			free(str);
+			
+		} else {
+			fprintf(stderr, "Unknown key in scroll table '%s'\n", key);
+			return false;
+		}
 	}
 	
 	return true;
@@ -292,12 +277,19 @@ applyconfigkeybindings(struct mace *m, toml_table_t *conf)
 static bool
 applyconfig(struct mace *m, toml_table_t *conf) 
 {
-	toml_table_t *mace, *keybindings;
+	toml_table_t *mace, *scroll, *keybindings;
 	size_t i;
 	
 	mace = toml_table_in(conf, "mace");
 	if (mace != NULL && !applyconfigmace(m, mace)) {
 		return false;
+  }
+  
+  scroll = toml_table_in(conf, "scroll");
+  if (scroll != NULL) {
+  	if (!applyconfigscroll(m, scroll)) {
+  		return false;
+  	}
   }
   
 	keybindings = toml_table_in(conf, "keybindings");
@@ -337,16 +329,15 @@ findconfig(FILE **f, char *path, size_t l)
 	xdg = getenv("XDG_CONFIG_HOME");
 	
 	if (xdg != NULL) {
-		snprintf(path, l, "%s/mace/mace.toml", xdg);
+		snprintf(path, l, "%s/mace/config.toml", xdg);
 		*f = fopen(path, "r");
 		if (*f != NULL) {
 				return true;
 		}
-		
 	}
 	
 	if (home != NULL) {
-		snprintf(path, l, "%s/.config/mace/mace.toml", home);
+		snprintf(path, l, "%s/.config/mace/config.toml", home);
 		*f = fopen(path, "r");
 		if (*f != NULL) {
 				return true;
@@ -358,7 +349,6 @@ findconfig(FILE **f, char *path, size_t l)
 				return true;
 		}
 	}
-	
 	
 	snprintf(path, l, "/etc/mace.toml");
 	*f = fopen(path, "r");
