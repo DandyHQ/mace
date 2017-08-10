@@ -185,6 +185,16 @@ handlemotion(struct mace *m, int x, int y)
 	}
 
 	if (m->immediatescrolling) {
+		if (m->mousefocus->maxheight == 0) {
+			return false;
+		}
+		
+		if (y < 0) {
+			y = 0;
+		} else if (y > m->mousefocus->maxheight) {
+			y = m->mousefocus->maxheight;
+		}
+		
 		pos = sequencelen(m->mousefocus->sequence) * y 
 		    / m->mousefocus->maxheight;
 		
