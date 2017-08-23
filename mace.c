@@ -173,15 +173,15 @@ handlemotion(struct mace *m, int x, int y)
 		return false;
 	}
 		
-  x -= m->mousefocus->tab->x;
+	x -= m->mousefocus->tab->x;
 	y -= m->mousefocus->tab->y;
 
 	if (m->mousefocus->tab->main == m->mousefocus) {
 		y -= m->mousefocus->tab->action->height;
-	}
 		
-	if (m->scrollbarleftside) {
-		x -= SCROLL_WIDTH;
+		if (m->scrollbarleftside) {
+			x -= SCROLL_WIDTH;
+		}
 	}
 
 	if (m->immediatescrolling) {
