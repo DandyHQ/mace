@@ -107,13 +107,15 @@ applydefaultconfig(struct mace *m)
 	struct tab *t;
 	size_t i;
 	
-	t = maketutorialtab(m);
-	if (t == NULL) {
-		fprintf(stderr, "Error: failed to create tutorial tab!\n");
-		return false;
+	if (m->pane->tabs == NULL) {
+		t = maketutorialtab(m);
+		if (t == NULL) {
+			fprintf(stderr, "Error: failed to create tutorial tab!\n");
+			return false;
+		}
+		
+		paneaddtab(m->pane, t, -1);
 	}
-	
-	paneaddtab(m->pane, t, -1);
 	
 	for (i = 0; 
 	     i < sizeof(defaultkeybindings) / sizeof(defaultkeybindings[0]); 
