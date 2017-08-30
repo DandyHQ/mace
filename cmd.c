@@ -335,7 +335,33 @@ cmdback(struct mace *m)
 static bool
 cmdtab(struct mace *m)
 {
-	insertstring(m, (uint8_t *) "\t", 1);
+	struct cursel *c;
+	size_t pos;
+	int count, selectionsize;
+	
+	for (c = m->cursels; c != NULL; c = c->next) {
+		count = 0;
+		selectionsize = c->end - c->start;
+		
+		if (selectionsize == 0) {
+			pos = c->start;
+		} else {
+		  pos = sequenceindexline(c->tb->sequence, c->start); 		
+	  }																			
+
+		while (pos <= c->end + 1) {
+			sequencereplace(c->tb->sequence, pos, pos, (uint8_t *) "\t", 1);
+			pos = sequenceindexnextline(c->tb->sequence, pos);
+			count++;
+		}
+		
+		c->start = c->start + 1;
+		c->end = c->end + count;
+		c->cur = c->end - c->start;	
+		
+		textboxplaceglyphs(c->tb);
+	}
+	
 	return true;
 }
 
