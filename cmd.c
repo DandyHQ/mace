@@ -358,6 +358,7 @@ cmdtab(struct mace *m)
 		c->start = c->start + 1;
 		c->end = c->end + count;
 		c->cur = c->end - c->start;	
+		shiftcursels(m, c->tb, c->start + 1, count);
 		
 		textboxplaceglyphs(c->tb);
 	}
