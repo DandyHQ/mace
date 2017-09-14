@@ -68,7 +68,7 @@ symtounicode(KeySym sym)
 }
 
 static size_t
-encodekey(KeySym sym, uint8_t *s, size_t n)
+encodekey(KeySym sym, uint8_t *s, size_t n, bool *special)
 {
 	int32_t code;
 
@@ -100,6 +100,7 @@ encodekey(KeySym sym, uint8_t *s, size_t n)
   case XK_Escape:    strcpy((char *) s, "Escape"); break;
 
   default:
+  	*special = false;
     code = symtounicode(sym);
 		if (code == 0) {
 			return 0;
@@ -108,42 +109,51 @@ encodekey(KeySym sym, uint8_t *s, size_t n)
 		return utf8encode(s, n, code);
   }
 
+	*special = true;
 	return strlen((char *) s);
 }
 
 static bool
 xhandlekeypress(struct mace *m, XKeyEvent *e)
 {
-  size_t n = 32, nn = 0;
+  size_t kn, nn = 0;
+  uint8_t s[32], k[32];
+  bool special;
   KeySym sym;
-  uint8_t s[n];
-
+  
   sym = XkbKeycodeToKeysym(display, e->keycode, 0,
-			   e->state & ShiftMask);
+			                     e->state & ShiftMask);
 
-	if ((e->state & ShiftMask) != 0) {
+  kn = encodekey(sym, k, sizeof(k), &special);
+	
+	if (special && (e->state & ShiftMask) != 0) {
 		memmove(s + nn, "S-", 2);
 		nn += 2;
+		special = true;
 	}
 
 	if ((e->state & ControlMask) != 0) {
 		memmove(s + nn, "C-", 2);
 		nn += 2;
+		special = true;
 	}
 
 	if ((e->state & Mod1Mask) != 0) {
 		memmove(s + nn, "A-", 2);
-		nn += 2;;
+		nn += 2;
+		special = true;
 	}
 
 	if ((e->state & Mod4Mask) != 0) {
 		memmove(s + nn, "M-", 2);
 		nn += 2;
+		special = true;
 	}
 
-  n = encodekey(sym, s + nn, n - nn);
-  if (n > 0) {
-    return handlekey(m, s, n + nn);
+	memmove(s + nn, k, kn);
+
+  if (nn + kn > 0) {
+    return handlekey(m, s, nn + kn, special);
   } else {
 		return false;
 	}

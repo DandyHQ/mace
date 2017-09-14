@@ -356,7 +356,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 /* Handle UI events. Return true if mace needs to be redrawn */
 
 bool
-handlekey(struct mace *mace, uint8_t *s, size_t n);
+handlekey(struct mace *mace, uint8_t *s, size_t n, bool special);
 
 bool
 handlebuttonpress(struct mace *mace, int x, int y, int b);

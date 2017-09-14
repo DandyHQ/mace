@@ -257,7 +257,7 @@ handletyping(struct mace *m, uint8_t *s, size_t n)
 }
 
 bool
-handlekey(struct mace *m, uint8_t *s, size_t n)
+handlekey(struct mace *m, uint8_t *s, size_t n, bool special)
 {
 	struct keybinding *k;
 
@@ -269,12 +269,17 @@ handlekey(struct mace *m, uint8_t *s, size_t n)
 			return true;
 		}
 	}
+	
+	if (special) {
+		return false;
 
-	/* Remove modifiers if we're putting it straight in. */
-	while (n > 2 && s[1] == '-') {
-		s += 2;
-		n -= 2;
+	} else {
+		/* Remove modifiers if we're putting it straight in. */
+		while (n > 2 && s[1] == '-') {
+			s += 2;
+			n -= 2;
+		}
+	
+		return handletyping(m, s, n);
 	}
-
-	return handletyping(m, s, n);
 }
