@@ -749,16 +749,17 @@ textboxindexbelow(struct textbox *t, size_t pos)
 }
 
 size_t
-textboxindentation(struct textbox *t, size_t i,
+textboxindentation(struct textbox *t, size_t start,
                    uint8_t *buf, size_t len)
 {
-	size_t a, ii;
+	size_t a, i, ii;
 	int32_t code;
 
 	/* TODO: This is broken. It should only find whitespace from
 	   the start of the line to i. Otherwise if you have whitespace
 	   after your cursor it moves your cursor across. */
-	   
+
+	i = start;	   
 	while ((a = sequenceprevcodepoint(t->sequence, i, &code)) != 0) {
 		if (islinebreak(code)) {
 			break;
@@ -767,7 +768,7 @@ textboxindentation(struct textbox *t, size_t i,
 		}
 	}
 
-	for (ii = 0; ii < len; ii += a) {
+	for (ii = 0; ii < len && i + ii < start; ii += a) {
 		a = sequencecodepoint(t->sequence, i + ii, &code);
 		if (a == 0) {
 			break;
