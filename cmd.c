@@ -157,17 +157,23 @@ cmdclose(struct mace *m)
   struct pane *p;
   struct tab *t;
 
-  if (m->mousefocus == NULL) {
-    return false;
+  if (m->mousefocus != NULL) {
+  	t = m->mousefocus->tab;
+  } else {
+  	t = m->pane->focus;
   }
 
-  t = m->mousefocus->tab;
+	if (t == NULL) {
+		return false;
+	}
+	
   p = t->pane;
 
   paneremovetab(p, t);
   tabfree(t);
 
   if (p->tabs == NULL) {
+  	/* Should this happen? In future no but for now yes? */
     m->running = false;
   }
   
