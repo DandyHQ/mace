@@ -415,11 +415,6 @@ cmdleft(struct mace *m)
 			c->end = c->start;
 			c->cur = 0;
 		}
-		
-		if (c->start < c->tb->start) {
-			c->tb->start = textboxindexabove(c->tb, c->tb->start);
-			textboxplaceglyphs(c->tb);
-		}
 	}
 	
 	return true;
@@ -442,12 +437,6 @@ cmdright(struct mace *m)
 			c->start = c->end;
 			c->cur = 0;
 		}
-		
-		if (c->tb->start + c->tb->drawablelen
-		    <= textboxindexbelow(c->tb, c->start)) {
-			c->tb->start = textboxindexbelow(c->tb, c->tb->start);
-			textboxplaceglyphs(c->tb);
-		}
 	}
 	
 	return true;
@@ -467,11 +456,6 @@ cmdup(struct mace *m)
 			c->end = c->start;
 			c->cur = 0;
 		}
-		
-		if (c->start < c->tb->start) {
-			c->tb->start = textboxindexabove(c->tb, c->tb->start);
-			textboxplaceglyphs(c->tb);
-		}
 	}
 	
 	return true;
@@ -490,12 +474,6 @@ cmddown(struct mace *m)
 		} else {
 			c->start = c->end;
 			c->cur = 0;
-		}
-		
-		if (c->tb->start + c->tb->drawablelen
-		    <= textboxindexbelow(c->tb, c->start)) {
-			c->tb->start = textboxindexbelow(c->tb, c->tb->start);
-			textboxplaceglyphs(c->tb);
 		}
 	}
 	
