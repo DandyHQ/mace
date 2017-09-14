@@ -159,6 +159,7 @@ cmdclose(struct mace *m)
 
   if (m->mousefocus != NULL) {
   	t = m->mousefocus->tab;
+  	m->mousefocus = NULL;
   } else {
   	t = m->pane->focus;
   }
