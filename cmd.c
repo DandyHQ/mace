@@ -525,6 +525,9 @@ cmdgoto(struct mace *m)
 	
 	index = sequenceindexpos(t->sequence, lineno, colno);
 	
+	t->start = sequenceindexline(t->sequence, index);
+	textboxplaceglyphs(t);
+	
 	curselremoveall(m);
 	curseladd(m, t, CURSEL_nrm, index);
   
