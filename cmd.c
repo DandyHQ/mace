@@ -343,23 +343,25 @@ static bool
 cmdtab(struct mace *m)
 {
 	struct cursel *c;
-	size_t pos;
-	int count, selectionsize;
+	size_t pos, count;
 	
 	for (c = m->cursels; c != NULL; c = c->next) {
-		count = 0;
-		selectionsize = c->end - c->start;
-		
-		if (selectionsize == 0) {
+		if (c->start == c->end) {
 			pos = c->start;
-		} else {
-		  pos = sequenceindexline(c->tb->sequence, c->start); 		
-	  }																			
+			count = 1;
+			sequencereplace(c->tb->sequence, c->start, c->start,
+			                (uint8_t *) "\t", 1);
 
-		while (pos <= c->end + 1) {
-			sequencereplace(c->tb->sequence, pos, pos, (uint8_t *) "\t", 1);
-			pos = sequenceindexnextline(c->tb->sequence, pos);
-			count++;
+		} else {
+			count = 0;
+			for (pos = sequenceindexline(c->tb->sequence, c->start); 
+		       pos <= c->end;
+			   	pos = sequenceindexnextline(c->tb->sequence, pos)) {
+			
+				sequencereplace(c->tb->sequence, pos, pos, 
+				                (uint8_t *) "\t", 1);
+				count++;
+			}
 		}
 		
 		c->start = c->start + 1;
@@ -643,3 +645,4 @@ command(struct mace *mace, const uint8_t *s)
 		return false;
 	}
 }
+		
