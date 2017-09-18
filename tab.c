@@ -222,6 +222,7 @@ bool
 tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 {
   int ah, lines, pos, ay, by;
+  scroll_action_t action;
   
 	ah = t->action->height;
 
@@ -242,73 +243,54 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
   } else {
   	ay = (t->mace->font->face->size->metrics.ascender >> 6);
   	by = -(t->mace->font->face->size->metrics.descender >> 6);
+  	
+		t->mace->mousefocus = t->main;
   
-  	/* Relative line movement. */
-    lines = (y - ah - 1) / (ay + by) / 2;
-    if (lines == 0) {
-    	lines = 1;
-    }
-    
-    /* Immediate position. */
-    pos = sequencelen(t->main->sequence) * (y - ah - 1) / (t->height - ah - 1);
-
-		switch (button) {
-		case 1:
-			switch (t->mace->scrollleft) {
-			case SCROLL_up:
-				return textboxscroll(t->main, -lines);
+  	switch (button) {
+  	case 1: 
+  		action = t->mace->scrollleft;
+  	  break;
+  	 
+  	case 2: 
+  		action = t->mace->scrollmiddle;
+  	  break;
+  	 
+  	case 3: 
+  		action = t->mace->scrollright;
+  	  break;
+  	  
+  	default:
+  		action = SCROLL_none;
+  		break;
+  	}
+  	
+  	switch (action) {
+  	case SCROLL_up:
+	    lines = (y - ah - 1) / (ay + by) / 2;
+	    if (lines == 0) {
+	    	lines = 1;
+	    }
+			return textboxscroll(t->main, -lines);
 				
-			case SCROLL_down:
-				return textboxscroll(t->main, lines);
+		case SCROLL_down:
+	    lines = (y - ah - 1) / (ay + by) / 2;
+	    if (lines == 0) {
+	    	lines = 1;
+	    }
+			return textboxscroll(t->main, lines);
 			
-			case SCROLL_immediate:
-				t->mace->mousefocus = t->main;
-				t->mace->immediatescrolling = true;
-				t->main->start = pos;
-				textboxplaceglyphs(t->main);
-				return true;
+		case SCROLL_immediate:
+			pos = sequencelen(t->main->sequence) * (y - ah - 1) 
+			    / (t->height - ah - 1);
+			pos = sequenceindexline(t->main->sequence, pos);
+			
+			t->mace->immediatescrolling = true;
+			t->main->start = pos;
+			textboxplaceglyphs(t->main);
+			
+			return true;
 				
-			case SCROLL_none:
-				return false;
-			}
-
-		case 2:
-			switch (t->mace->scrollmiddle) {
-			case SCROLL_up:
-				return textboxscroll(t->main, -lines);
-			case SCROLL_down:
-				return textboxscroll(t->main, lines);
-			
-			case SCROLL_immediate:
-				t->mace->mousefocus = t->main;
-				t->mace->immediatescrolling = true;
-				t->main->start = pos;
-				textboxplaceglyphs(t->main);
-				return true;
-				
-			case SCROLL_none:
-				return false;
-			}
-			
-		case 3:
-			switch (t->mace->scrollright) {
-			case SCROLL_up:
-				return textboxscroll(t->main, -lines);
-			case SCROLL_down:
-				return textboxscroll(t->main, lines);
-			
-			case SCROLL_immediate:
-				t->mace->mousefocus = t->main;
-				t->mace->immediatescrolling = true;
-				t->main->start = pos;
-				textboxplaceglyphs(t->main);
-				return true;
-				
-			case SCROLL_none:
-				return false;
-			}
-			    
-		default:
+		case SCROLL_none:
 			return false;
 		}
   }

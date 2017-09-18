@@ -197,6 +197,8 @@ handlemotion(struct mace *m, int x, int y)
 		
 		pos = sequencelen(m->mousefocus->sequence) * y 
 		    / m->mousefocus->maxheight;
+	
+		pos = sequenceindexline(m->mousefocus->sequence, pos);
 		
 		if (m->mousefocus->start != pos) {
 			m->mousefocus->start = pos;
