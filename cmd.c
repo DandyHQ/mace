@@ -184,39 +184,40 @@ cmdclose(struct mace *m)
 static bool
 cmdcut(struct mace *m)
 {
-  struct cursel *c, *n;
+  struct cursel *c;
 	struct textbox *t;
 	size_t start, len;
 
-  for (c = m->cursels; c != NULL; c = n) {
-    n = c->next;
-    if ((c->type & CURSEL_cmd) != 0 || c->start == c->end) continue;
-		t = c->tb;
+  c = m->cursels;
+  
+  if (c == NULL || (c->type & CURSEL_cmd) != 0 || c->start == c->end) 
+  	return false;
+ 
+	t = c->tb;
 
-		start = c->start;
-		len = c->end - c->start;
+	start = c->start;
+	len = c->end - c->start;
 		
-		if (m->clipboard != NULL) {
-			free(m->clipboard);
-		}
+	if (m->clipboard != NULL) {
+		free(m->clipboard);
+	}
 
-		m->clipboard = malloc(len);
-		if (m->clipboard == NULL) {
-			m->clipboardlen = 0;
-			return false;
-		}
+	m->clipboard = malloc(len);
+	if (m->clipboard == NULL) {
+		m->clipboardlen = 0;
+		return false;
+	}
 
-		m->clipboardlen = sequenceget(t->sequence, start, 
-		                              m->clipboard, len);
+	m->clipboardlen = sequenceget(t->sequence, start, 
+	                              m->clipboard, len);
 
-		sequencereplace(t->sequence, start, c->end, NULL, 0);
-		textboxplaceglyphs(t);
+	sequencereplace(t->sequence, start, c->end, NULL, 0);
+	textboxplaceglyphs(t);
     
-		shiftcursels(m, t, start, -m->clipboardlen);
-		c->start = start;
-		c->end = start;
-		c->cur = 0;		
-  }
+	shiftcursels(m, t, start, -m->clipboardlen);
+	c->start = start;
+	c->end = start;
+	c->cur = 0;
   
   return true;
 }
@@ -227,24 +228,26 @@ cmdcopy(struct mace *m)
   struct textbox *t;
   struct cursel *c;
 
-  for (c = m->cursels; c != NULL; c = c->next) {
-    if ((c->type & CURSEL_cmd) != 0 || c->start == c->end) continue;
-		t = c->tb;
+  c = m->cursels;
+  
+  if (c == NULL || (c->type & CURSEL_cmd) != 0 || c->start == c->end) 
+  	return false;
+ 
+	t = c->tb;
     
-    if (m->clipboard != NULL) {
-    	free(m->clipboard);
-    }
-    
-    m->clipboardlen = c->end - c->start;
-    m->clipboard = malloc(m->clipboardlen);
-    if (m->clipboard == NULL) {
-      m->clipboardlen = 0;
-      return false;
-    }
-
-    m->clipboardlen = sequenceget(t->sequence, c->start,
-			                            m->clipboard, m->clipboardlen);
+  if (m->clipboard != NULL) {
+  	free(m->clipboard);
   }
+    
+  m->clipboardlen = c->end - c->start;
+  m->clipboard = malloc(m->clipboardlen);
+  if (m->clipboard == NULL) {
+    m->clipboardlen = 0;
+    return false;
+  }
+
+  m->clipboardlen = sequenceget(t->sequence, c->start,
+	                              m->clipboard, m->clipboardlen);
   
   return true;
 }
