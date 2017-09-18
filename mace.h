@@ -157,14 +157,20 @@ struct mace {
   
 	bool scrollbarleftside;
 	scroll_action_t scrollleft, scrollmiddle, scrollright;
-	
-	uint8_t *clipboard;
-	size_t clipboardlen;
 };
 
 
 int
 dodisplay(struct mace *m);
+
+/* Claims data. */
+void
+setclipboard(uint8_t *data, size_t len);
+
+/* Do not free. */
+uint8_t *
+getclipboard(size_t *len);
+
 
 struct mace *
 macenew(void);

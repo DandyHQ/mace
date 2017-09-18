@@ -22,6 +22,23 @@ static int width, height;
 static cairo_surface_t *sfc;
 static cairo_t *cr;
 
+uint8_t *clip;
+size_t cliplen;
+
+void
+setclipboard(uint8_t *data, size_t len)
+{
+	clip = data;
+	cliplen = len;
+}
+
+uint8_t *
+getclipboard(size_t *len)
+{
+	*len = cliplen;
+	return clip;
+}
+
 static void
 xresize(struct mace *m, int w, int h)
 {

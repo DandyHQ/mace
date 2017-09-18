@@ -187,6 +187,7 @@ cmdcut(struct mace *m)
   struct cursel *c;
 	struct textbox *t;
 	size_t start, len;
+	uint8_t *data;
 
   c = m->cursels;
   
@@ -197,24 +198,21 @@ cmdcut(struct mace *m)
 
 	start = c->start;
 	len = c->end - c->start;
-		
-	if (m->clipboard != NULL) {
-		free(m->clipboard);
-	}
-
-	m->clipboard = malloc(len);
-	if (m->clipboard == NULL) {
-		m->clipboardlen = 0;
+	
+	data = malloc(len);
+	if (data == NULL) {
 		return false;
 	}
 
-	m->clipboardlen = sequenceget(t->sequence, start, 
-	                              m->clipboard, len);
+	len = sequenceget(t->sequence, start, 
+	                  data, len);
+	
+	setclipboard(data, len);
 
 	sequencereplace(t->sequence, start, c->end, NULL, 0);
 	textboxplaceglyphs(t);
     
-	shiftcursels(m, t, start, -m->clipboardlen);
+	shiftcursels(m, t, start, -len);
 	c->start = start;
 	c->end = start;
 	c->cur = 0;
@@ -227,6 +225,8 @@ cmdcopy(struct mace *m)
 {
   struct textbox *t;
   struct cursel *c;
+  uint8_t *data;
+  size_t len;
 
   c = m->cursels;
   
@@ -234,20 +234,17 @@ cmdcopy(struct mace *m)
   	return false;
  
 	t = c->tb;
-    
-  if (m->clipboard != NULL) {
-  	free(m->clipboard);
-  }
-    
-  m->clipboardlen = c->end - c->start;
-  m->clipboard = malloc(m->clipboardlen);
-  if (m->clipboard == NULL) {
-    m->clipboardlen = 0;
-    return false;
-  }
+  
+  len = c->end - c->start;
+	data = malloc(len);
+	if (data == NULL) {
+		return false;
+	}
 
-  m->clipboardlen = sequenceget(t->sequence, c->start,
-	                              m->clipboard, m->clipboardlen);
+	len = sequenceget(t->sequence, c->start, 
+	                  data, len);
+	
+	setclipboard(data, len);
   
   return true;
 }
@@ -275,12 +272,16 @@ insertstring(struct mace *m, uint8_t *s, size_t n)
 static bool
 cmdpaste(struct mace *m)
 {
-  if (m->clipboard != NULL) {
-    insertstring(m, m->clipboard, m->clipboardlen);
+	uint8_t *data;
+	size_t len;
+	
+	data = getclipboard(&len);
+	if (data != NULL) {
+    insertstring(m, data, len);
     return true;
-  } else {
-  	return false;
-  }
+	} else {
+		return false;
+	}
 }
 
 static bool

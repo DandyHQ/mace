@@ -35,11 +35,6 @@ macenew(void)
   }
   
   memmove(m->defaultaction, defaultaction, l + 1);
-  
-  m->clipboard = NULL;
-  m->clipboardlen = 0;
-  
-  
 	
 	m->scrollbarleftside = true;
 	m->scrollleft = SCROLL_up;
