@@ -7,6 +7,7 @@
 #include <X11/Xutil.h>
 #include <X11/XKBlib.h>
 #include <X11/keysymdef.h>
+#include <X11/Xatom.h>
 #include <cairo-xlib.h>
 
 #include "mace.h"
@@ -22,21 +23,37 @@ static int width, height;
 static cairo_surface_t *sfc;
 static cairo_t *cr;
 
-uint8_t *clip;
-size_t cliplen;
+static Atom XA_TARGETS;
+static Atom clipatom;
+static uint8_t clip[16*1024];
+static size_t cliplen;
 
 void
 setclipboard(uint8_t *data, size_t len)
 {
-	clip = data;
+	if (len > sizeof(clip)) {
+		return;
+	}
+	
+	memmove(clip, data, len);
 	cliplen = len;
+	
+	XSetSelectionOwner(display, clipatom, win, CurrentTime);
 }
 
 uint8_t *
 getclipboard(size_t *len)
 {
+	uint8_t *d;
+	
+	d = malloc(cliplen);
+	if (d == NULL) {
+		return NULL;
+	}
+	
+	memmove(d, clip, cliplen);
 	*len = cliplen;
-	return clip;
+	return d;
 }
 
 static void
@@ -215,12 +232,47 @@ xhandlemotion(struct mace *m, XMotionEvent *e)
   return handlemotion(m, e->x, e->y);
 } 
 
+/* This is not a very good implimentation but it works. */
+
+static void
+xhandleselectionrequest(XSelectionRequestEvent *e)
+{
+	XSelectionEvent *r;
+	XEvent rr;
+	
+	r = &rr.xselection;
+	
+  printf("selection request\n");
+	
+	r->type = SelectionNotify;
+	r->requestor = e->requestor;
+	r->selection = e->selection;
+	r->target = e->target;
+	r->property = None;
+	r->time = CurrentTime;
+	
+	r->property = e->property;
+	XChangeProperty(display, e->requestor, e->property,
+	                e->target, 8, PropModeReplace,
+	                clip, cliplen);
+	
+	XSendEvent(display, e->requestor, True, 0, &rr);
+}
+
 static void
 eventLoop(struct mace *m)
 {
   bool redraw;
   XEvent e;
 
+	XA_TARGETS = XInternAtom(display, "TARGETS", False);
+	clipatom = XInternAtom(display, "CLIPBOARD", 0);
+
+	Atom to_be_requested = None;
+	int sent_request = 0;
+	
+	XConvertSelection(display, clipatom, XA_TARGETS, clipatom, win, CurrentTime);
+	
   while (m->running) {
     XNextEvent(display, &e);
 
@@ -237,7 +289,45 @@ eventLoop(struct mace *m)
       }
       
       break;
+     
+    case SelectionRequest:
+    	xhandleselectionrequest(&e.xselectionrequest);
+    	break;
+    	
+		case SelectionNotify:
+			printf("selection notify\n");
+			
+			Atom target = e.xselection.target;
 
+			if(e.xselection.property != None) {
+				printf("have prop\n");
+				
+			//	struct Property prop = read_property(disp, w, sel);
+
+				//If we're being given a list of targets (possible conversions)
+				if(target == XA_TARGETS && !sent_request) {
+					printf("target && !sent\n");
+					
+					sent_request = 1;
+					to_be_requested = XA_STRING;
+
+					XConvertSelection(display, clipatom, XA_STRING, clipatom, win, CurrentTime);
+					
+				} else if(target == to_be_requested) {
+					printf("requested\n");
+					
+					//Dump the binary data
+					printf("Data begins:\n");
+					printf("--------\n");
+	//				fwrite((char*)prop.data, prop.format/8, prop.nitems, stdout);
+					printf("\n--------\nData ends\n");
+				}
+
+//				XFree(prop.data);
+			}
+			
+			break;
+			
     case Expose:
       redraw = true;
      break;
