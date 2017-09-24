@@ -380,6 +380,32 @@ cmdtab(struct mace *m)
 }
 
 static bool
+cmdshifttab(struct mace *m)
+{
+	struct cursel *c;
+	int count = 0;
+	int32_t code;
+	size_t pos;
+
+	for (c = m->cursels; c != NULL; c = c->next) {
+		pos = sequenceindexline(c->tb->sequence, c->start);
+		while (pos <= c->end) {
+			sequencecodepoint(c->tb->sequence, pos, &code);
+			if (iswhitespace(code)) {
+				sequencereplace(c->tb->sequence, pos, pos + 1, NULL, 0);
+				count++;
+				c->end = c->end - 1;
+				c->cur = c->end - c->start;
+			}
+			pos = sequenceindexnextline(c->tb->sequence, pos);
+		}
+		shiftcursels(m, c->tb, c->start + 1, -count);
+		textboxplaceglyphs(c->tb);
+	}
+	return true;	
+}
+
+static bool
 cmdreturn(struct mace *m)
 {
 	uint8_t buf[64];
@@ -619,6 +645,7 @@ static struct cmd cmds[] = {
 	{ "back",       cmdback },
 	{ "del",        cmddel },
 	{ "tab",        cmdtab },
+  { "shifttab",   cmdshifttab },
 	{ "return",     cmdreturn },
 	{ "left",       cmdleft },
   { "right",      cmdright },

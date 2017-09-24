@@ -40,6 +40,7 @@ struct defkeybinding {
 
 static struct defkeybinding defaultkeybindings[] = {
 	{ (uint8_t *) "Tab",         (uint8_t *) "tab" },
+	{ (uint8_t *) "C-Tab",       (uint8_t *) "shifttab" },
 	{ (uint8_t *) "Return",      (uint8_t *) "return" },
 	{ (uint8_t *) "Delete",      (uint8_t *) "del" },
 	{ (uint8_t *) "BackSpace",   (uint8_t *) "back" },

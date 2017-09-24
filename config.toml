@@ -36,6 +36,7 @@ side = "right"
 # Bind special keys to do what one expects.
 
 "Tab" = "tab"
+"S-Tab" = "shifttab"
 "Return" = "return"
 "S-Return" = "return"
 "Delete" = "del"
