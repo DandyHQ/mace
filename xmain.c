@@ -197,10 +197,15 @@ xhandlekeypress(struct mace *m, XKeyEvent *e)
   bool special;
   KeySym sym;
   
-  sym = XkbKeycodeToKeysym(display, e->keycode, 0,
-			                     e->state & ShiftMask);
-
-  kn = encodekey(sym, k, sizeof(k), &special);
+  sym = XkbKeycodeToKeysym(display, e->keycode, 0, 0);
+	kn = encodekey(sym, k, sizeof(k), &special);
+  
+  if (!special) {
+	  sym = XkbKeycodeToKeysym(display, e->keycode, 0, 
+	            e->state & (ShiftMask|LockMask));
+	
+	  kn = encodekey(sym, k, sizeof(k), &special);
+  }
 	
 	if (special && (e->state & ShiftMask) != 0) {
 		memmove(s + nn, "S-", 2);
