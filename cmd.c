@@ -191,8 +191,8 @@ cmdcut(struct mace *m)
 
   c = m->cursels;
   
-  if (c == NULL || (c->type & CURSEL_cmd) != 0 || c->start == c->end) 
-  	return false;
+	if (c == NULL || (c->type & CURSEL_cmd) != 0 || c->start == c->end) 
+		return false;
  
 	t = c->tb;
 
@@ -230,8 +230,8 @@ cmdcopy(struct mace *m)
 
   c = m->cursels;
   
-  if (c == NULL || (c->type & CURSEL_cmd) != 0 || c->start == c->end) 
-  	return false;
+	if (c == NULL || (c->type & CURSEL_cmd) != 0 || c->start == c->end) 
+		return false;
  
 	t = c->tb;
   

@@ -290,7 +290,7 @@ tabbuttonpress(struct tab *t, int x, int y, unsigned int button)
 			
 			return true;
 				
-		case SCROLL_none:
+		default:
 			return false;
 		}
   }

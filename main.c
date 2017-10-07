@@ -241,7 +241,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 		}
 	
 		if (!fontsettabwidth(m->font, (size_t) i)) {
-			fprintf(stderr, "Failed to set tab width to %lli\n", i);
+			fprintf(stderr, "Failed to set tab width to %li\n", i);
 			return false;
 		}
 	}
