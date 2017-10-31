@@ -9,8 +9,11 @@ conf_data = configuration_data()
 conf_data.set('version', '0.3')
 
 configure_file(input : 'config.h.in',
-	       output : 'config.h',
-	       configuration : conf_data)
+	             output : 'config.h',
+	             configuration : conf_data)
+
+install_data('mace.desktop', install_dir : 
+                join_paths(get_option('datadir'), 'applications'))
 
 executable('mace', install: true,
 	sources: [
