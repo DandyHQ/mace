@@ -18,7 +18,7 @@ install_data('mace.desktop', install_dir :
 executable('mace', install: true,
 	sources: [
 		'mace.c',
-		'pane.c',
+		'column.c',
 		'tab.c',
 		'textbox.c',
 		'textboxdraw.c',

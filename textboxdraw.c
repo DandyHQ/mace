@@ -102,6 +102,9 @@ textboxdraw(struct textbox *t, cairo_t *cr,
   cairo_set_font_face(cr, t->mace->font->cface);
   cairo_set_font_size(cr, t->mace->font->size);
   cs = t->mace->cursels;
+  
+  t->x = x;
+  t->y = y;
 
   while (cs != NULL) {
     if (cs->tb == t) {

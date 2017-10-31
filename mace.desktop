@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Mace
+GenericName=Text Editor
+Comment=The Simple Text Editor
+Exec=mace %F
+MimeType=text/plain;
+Categories=Development;

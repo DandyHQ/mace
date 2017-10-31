@@ -103,7 +103,7 @@ xresize(struct mace *m, int w, int h)
   height = h;
   cairo_xlib_surface_set_size(sfc, w, h);
 
-  if (!paneresize(m->pane, 0, 0, w, h)) {
+  if (!maceresize(m, w, h)) {
     /* What should actually happen here? */
     errx(1, "Failed to resize!");
   }
@@ -395,7 +395,7 @@ eventLoop(struct mace *m)
 
     if (redraw) {
       cairo_push_group(cr);
-      panedraw(m->pane, cr);
+      macedraw(m, cr);
       cairo_pop_group_to_source(cr);
       cairo_paint(cr);
       cairo_surface_flush(sfc);
@@ -435,7 +435,7 @@ dodisplay(struct mace *m)
   cr = cairo_create(sfc);
   xresize(m, width, height);
   cairo_push_group(cr);
-  panedraw(m->pane, cr);
+  macedraw(m, cr);
   cairo_pop_group_to_source(cr);
   cairo_paint(cr);
   cairo_surface_flush(sfc);

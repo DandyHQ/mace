@@ -1,7 +1,7 @@
 #include "mace.h"
 
 struct textbox *
-textboxnew(struct mace *m, struct tab *tab,
+textboxnew(struct mace *m,
            struct colour *bg,
            struct sequence *seq)
 {
@@ -13,9 +13,7 @@ textboxnew(struct mace *m, struct tab *tab,
   }
 
   t->mace = m;
-  t->tab = tab;
   t->sequence = seq;
-  t->tab = tab;
   t->curcs = NULL;
   t->start = 0;
   t->linewidth = 0;

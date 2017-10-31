@@ -4,11 +4,19 @@
 static const uint8_t defaultaction[] =
   "save open close cut copy paste undo redo";
 
+static const uint8_t defaultmain[] =
+  "quit newcol";
+
+struct colour bg   = { 1, 1, 1 };
+struct colour abg  = { 0.86, 0.94, 1 };
+
 struct mace *
 macenew(void)
 {
+	struct sequence *seq;
   struct mace *m;
   size_t l;
+  
   m = calloc(1, sizeof(struct mace));
 
   if (m == NULL) {
@@ -21,14 +29,34 @@ macenew(void)
     macefree(m);
     return NULL;
   }
-
-  m->pane = panenew(m);
-
-  if (m->pane == NULL) {
+  
+  seq = sequencenew(NULL, 0);
+  if (seq == NULL) {
     macefree(m);
     return NULL;
   }
+  
+  if (!sequencereplace(seq, 0, 0, 
+      defaultmain, strlen((const char *) defaultmain))) {
+    sequencefree(seq);
+    macefree(m);
+  }
 
+  m->textbox = textboxnew(m, &abg,
+                          seq);
+	if (m->textbox == NULL) {
+  	sequencefree(seq);
+  	macefree(m);
+  	return NULL;
+  }
+
+  m->columns = columnnew(m);
+
+  if (m->columns == NULL) {
+    macefree(m);
+    return NULL;
+  }
+  
   l = strlen((char *) defaultaction);
   m->defaultaction = malloc(sizeof(uint8_t) * (l + 1));
 
@@ -38,11 +66,12 @@ macenew(void)
   }
 
   memmove(m->defaultaction, defaultaction, l + 1);
-  m->scrollbarleftside = true;
+  
   m->scrollleft = SCROLL_up;
   m->scrollmiddle = SCROLL_immediate;
   m->scrollright = SCROLL_down;
   m->running = true;
+  
   return m;
 }
 
@@ -55,11 +84,20 @@ macequit(struct mace *m)
 void
 macefree(struct mace *m)
 {
+	struct column *c, *cn;
+	
   curselremoveall(m);
 
-  if (m->pane != NULL) {
-    panefree(m->pane);
-  }
+	if (m->textbox != NULL) {
+		textboxfree(m->textbox);
+	}
+
+	c = m->columns;
+	while (c != NULL) {
+		cn = c->next;
+		columnfree(c);
+		c = cn;
+	}
 
   if (m->font != NULL) {
     fontfree(m->font);
@@ -108,29 +146,50 @@ maceaddkeybinding(struct mace *m, uint8_t *key,
   return true;
 }
 
-static struct pane *
-findpane(struct mace *m, int x, int y)
+struct textbox *
+findtextbox(struct mace *m, int x, int y)
 {
-  struct pane *p;
-  p = m->pane;
-  /* Once we had multiple panes in find the one that bounds x,y. */
-  return p;
+	struct column *c;
+	struct tab *tab;
+	
+	if (y < m->textbox->height) {
+		return m->textbox;
+	} else {
+		y -= m->textbox->height + 1;
+	
+		for (c = m->columns; c != NULL; x -= c->width, c = c->next) {
+			if (x <= c->width) {
+				if (y < c->textbox->height) {
+					return c->textbox;
+				}
+				
+				y -= c->textbox->height + 1;
+				for (tab = c->tabs; tab != NULL; tab = tab->next) {
+					if (y < tab->action->height) {
+						return tab->action;
+					} else if (y < tab->height) {
+						return tab->main;
+					}
+				}
+			}
+		}
+	}
+	
+	return NULL;
 }
 
 bool
 handlebuttonpress(struct mace *m, int x, int y, int button)
 {
-  struct pane *p = findpane(m, x, y);
-  x -= p->x;
-  y -= p->y;
-
-  if (y < m->font->lineheight) {
-    m->mousefocus = NULL;
-    return tablistbuttonpress(p, x, y, button);
-  } else {
-    return tabbuttonpress(p->focus, x, y - m->font->lineheight,
-                          button);
-  }
+	struct textbox *t;
+	
+	t = findtextbox(m, x, y);
+	if (t == NULL) {
+		return false;
+	}
+	
+	m->mousefocus = t;
+	return textboxbuttonpress(t, x - t->x, y - t->y, button);
 }
 
 bool
@@ -141,12 +200,8 @@ handlebuttonrelease(struct mace *m, int x, int y,
     return false;
   }
 
-  x -= m->mousefocus->tab->x;
-  y -= m->mousefocus->tab->y;
-
-  if (m->mousefocus->tab->main == m->mousefocus) {
-    y -= m->mousefocus->tab->action->height;
-  }
+  x -= m->mousefocus->x;
+  y -= m->mousefocus->y;
 
   if (m->immediatescrolling) {
     m->immediatescrolling = false;
@@ -165,16 +220,8 @@ handlemotion(struct mace *m, int x, int y)
     return false;
   }
 
-  x -= m->mousefocus->tab->x;
-  y -= m->mousefocus->tab->y;
-
-  if (m->mousefocus->tab->main == m->mousefocus) {
-    y -= m->mousefocus->tab->action->height;
-
-    if (m->scrollbarleftside) {
-      x -= SCROLL_WIDTH;
-    }
-  }
+  x -= m->mousefocus->x;
+  y -= m->mousefocus->y;
 
   if (m->immediatescrolling) {
     if (m->mousefocus->maxheight == 0) {
@@ -206,22 +253,20 @@ handlemotion(struct mace *m, int x, int y)
 bool
 handlescroll(struct mace *m, int x, int y, int dx, int dy)
 {
-  struct pane *p = findpane(m, x, y);
+	struct textbox *t;
   int lines;
-  x -= p->x;
-  y -= p->y;
-
-  if (y < m->font->lineheight) {
-    return tablistscroll(p, x, y, dx, dy);
-  } else {
-    lines = dy > 0 ? 1 : -1;
-
-    if (y < p->focus->action->height) {
-      return false;
-    } else {
-      return textboxscroll(p->focus->main, lines);
-    }
+  
+  t = findtextbox(m, x, y);
+  if (t == NULL) {
+  	return false;
   }
+  
+  x -= t->x;
+  y -= t->y;
+
+  lines = dy > 0 ? 1 : -1;
+
+  return textboxscroll(t, lines);
 }
 
 static bool
@@ -272,5 +317,50 @@ handlekey(struct mace *m, uint8_t *s, size_t n,
     }
 
     return handletyping(m, s, n);
+  }
+}
+
+bool
+maceresize(struct mace *m, int w, int h)
+{
+	struct column *c;
+	
+	m->width = w;
+	m->height = h;
+	
+	if (!textboxresize(m->textbox, w, h)) {
+		return false;
+	}
+	
+	for (c = m->columns; c != NULL; c = c->next) {
+		columnresize(c, 0, m->font->lineheight, w, h);
+	}
+	
+	return true;
+}
+
+void
+macedraw(struct mace *m, cairo_t *cr)
+{
+	struct column *c;
+	int x;
+	
+	textboxdraw(m->textbox, cr, 0, 0, m->width, m->height);
+	
+  cairo_set_source_rgb(cr, 0, 0, 0);
+  cairo_move_to(cr, 0, 1 + m->textbox->height);
+  cairo_line_to(cr, m->width, 1 + m->textbox->height);
+  cairo_stroke(cr);
+  
+  if (m->columns != NULL) {
+  	for (x = 0, c = m->columns; c != NULL; x += c->width, c = c->next) {
+  		columndraw(c, cr, x, m->textbox->height + 2);
+  	}
+  } else {
+    cairo_set_source_rgb(cr, 1, 1, 1);
+    cairo_rectangle(cr, 0, m->textbox->height + 2,
+                    m->width,
+                    m->height);
+    cairo_fill(cr);
   }
 }

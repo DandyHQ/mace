@@ -126,7 +126,7 @@ maketutorialtab(struct mace *m)
     return NULL;
   }
 
-  t = tabnew(m, name, name, s);
+  t = tabnew(m, name, s);
 
   if (t == NULL) {
     sequencefree(s);
@@ -139,9 +139,10 @@ maketutorialtab(struct mace *m)
 static bool
 applydefaultconfig(struct mace *m)
 {
-  struct tab *t;
   size_t i;
 
+/*
+TODO
   if (m->pane->tabs == NULL) {
     t = maketutorialtab(m);
 
@@ -152,6 +153,7 @@ applydefaultconfig(struct mace *m)
 
     paneaddtab(m->pane, t, -1);
   }
+*/
 
   for (i = 0;
        i < sizeof(defaultkeybindings) / sizeof(
@@ -168,7 +170,6 @@ applydefaultconfig(struct mace *m)
 static bool
 applyconfigmace(struct mace *m, toml_table_t *conf)
 {
-  struct tab *t = NULL;
   const char *raw;
   char *str;
   int64_t i;
@@ -192,6 +193,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
       return false;
     }
 
+/* TODO
     if (m->pane->tabs == NULL) {
       if (strcmp(str, "empty") == 0) {
         t = tabnewempty(m, (uint8_t *) "*scratch*");
@@ -212,6 +214,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
 
       paneaddtab(m->pane, t, -1);
     }
+    */
 
     free(str);
   }
@@ -262,25 +265,7 @@ applyconfigscroll(struct mace *m, toml_table_t *conf)
   while ((key = toml_key_in(conf, i++)) != NULL) {
     raw = toml_raw_in(conf, key);
 
-    if (strcmp(key, "side") == 0) {
-      if (toml_rtos(raw, &str) != 0)  {
-        fprintf(stderr, "Bad value '%s' for scroll side!\n",
-                raw);
-        return false;
-      }
-
-      if (strcmp(str, "left") == 0) {
-        m->scrollbarleftside = true;
-      } else if (strcmp(str, "right") == 0) {
-        m->scrollbarleftside = false;
-      } else {
-        fprintf(stderr, "Bad value %s for scrollbarside!\n", str);
-        free(str);
-        return false;
-      }
-
-      free(str);
-    } else if (strstr(key, "Button-") != NULL) {
+    if (strstr(key, "Button-") != NULL) {
       /* For now. Button presses need to be redone to support
        * modifiers and so on. */
       if (strcmp(key, "Button-1") == 0) {
@@ -502,7 +487,9 @@ main(int argc, char **argv)
       continue;
     }
 
+/* TODO
     paneaddtab(m->pane, t, -1);
+    */
   }
 
   if (findconfig(&f, configpath, sizeof(configpath))) {
@@ -529,7 +516,6 @@ main(int argc, char **argv)
     }
   }
 
-  m->pane->focus = m->pane->tabs;
   r = dodisplay(m);
   macefree(m);
   return r;

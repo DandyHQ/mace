@@ -1,0 +1,27 @@
+cmd.c:  len = sequenceget(s->tb->sequence, s->start, name, len);
+cmd.c:  paneaddtab(s->tb->tab->pane, t, -1);
+cmd.c:  s->tb->tab->pane->focus = t;
+cmd.c:    sequencereplace(c->tb->sequence, start, c->end, s, n);
+cmd.c:      sequencereplace(c->tb->sequence, start, c->end, NULL, 0);
+cmd.c:      n = sequencecodepoint(c->tb->sequence, start, &code);
+cmd.c:      sequencereplace(c->tb->sequence, start, start + n, NULL, 0);
+cmd.c:      sequencereplace(c->tb->sequence, start, c->end, NULL, 0);
+cmd.c:      n = sequenceprevcodepoint(c->tb->sequence, start, &code);
+cmd.c:      sequencereplace(c->tb->sequence, start, start + n, NULL, 0);
+cmd.c:      sequencereplace(c->tb->sequence, c->start, c->start,
+cmd.c:      for (pos = sequenceindexline(c->tb->sequence, c->start);
+cmd.c:           pos = sequenceindexnextline(c->tb->sequence, pos)) {
+cmd.c:        sequencereplace(c->tb->sequence, pos, pos,
+cmd.c:    pos = sequenceindexline(c->tb->sequence, c->start);
+cmd.c:      sequencecodepoint(c->tb->sequence, pos, &code);
+cmd.c:        sequencereplace(c->tb->sequence, pos, pos + 1, NULL, 0);
+cmd.c:      pos = sequenceindexnextline(c->tb->sequence, pos);
+cmd.c:    sequencereplace(c->tb->sequence, start, c->end,
+cmd.c:    sequencereplace(c->tb->sequence, start + 1, start + 1, buf,
+cmd.c:      n = sequenceprevcodepoint(c->tb->sequence, c->start, &code);
+cmd.c:      n = sequencecodepoint(c->tb->sequence, c->start, &code);
+cmd.c:  len = sequenceget(s->tb->sequence, s->start, name, len);
+cmd.c:    sequencechangeup(c->tb->sequence);
+cmd.c:    sequencechangedown(c->tb->sequence);
+cmd.c:    sequencechangecycle(c->tb->sequence);
+mace.c:    sequencereplace(c->tb->sequence, c->start, c->end, s, n);

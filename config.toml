@@ -19,9 +19,6 @@ tabwidth = 2
 
 [scroll]
 
-# scroll bar should be on the left or right side.
-side = "right"
-
 # Assign buttons to scroll actions:
 #  up
 #  immediate

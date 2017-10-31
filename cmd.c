@@ -35,6 +35,9 @@ getfilename(struct tab *t, uint8_t *buf, size_t len)
 static bool
 cmdsave(struct mace *m)
 {
+	return false;
+	#if 0
+	
   uint8_t filename[1024], *buf;
   struct sequence *s;
   size_t len;
@@ -80,11 +83,17 @@ cmdsave(struct mace *m)
   close(fd);
   free(buf);
   return r;
+  
+  #endif
+  
 }
 
 static bool
 openselection(struct mace *m, struct cursel *s)
 {
+	return false;
+	#if 0
+	
   uint8_t name[1024];
   struct tab *t;
   size_t len;
@@ -103,9 +112,12 @@ openselection(struct mace *m, struct cursel *s)
     return false;
   }
 
-  paneaddtab(s->tb->tab->pane, t, -1);
+/* TODO: fix */
+/*  paneaddtab(s->tb->tab->pane, t, -1);
   s->tb->tab->pane->focus = t;
+*/
   return true;
+  #endif
 }
 
 static bool
@@ -130,14 +142,7 @@ cmdopen(struct mace *m)
 static bool
 openfile(struct mace *m, const uint8_t *filename)
 {
-  struct pane *p;
   struct tab *t;
-
-  if (m->mousefocus != NULL) {
-    p = m->mousefocus->tab->pane;
-  } else {
-    p = m->pane;
-  }
 
   t = tabnewfromfile(m, filename);
 
@@ -145,14 +150,16 @@ openfile(struct mace *m, const uint8_t *filename)
     return false;
   }
 
-  paneaddtab(p, t, -1);
-  p->focus = t;
+/* TODO: fix */
+	return false;
   return true;
 }
 
 static bool
 cmdclose(struct mace *m)
 {
+	return false;
+/* TODO
   struct pane *p;
   struct tab *t;
 
@@ -172,11 +179,11 @@ cmdclose(struct mace *m)
   tabfree(t);
 
   if (p->tabs == NULL) {
-    /* Should this happen? In future no but for now yes? */
     m->running = false;
   }
 
   return true;
+  */
 }
 
 static bool
@@ -509,6 +516,8 @@ cmddown(struct mace *m)
 static bool
 cmdgoto(struct mace *m)
 {
+	return false;
+	#if 0
   struct textbox *t;
   struct cursel *s;
   uint8_t name[1024];
@@ -556,6 +565,7 @@ cmdgoto(struct mace *m)
   curselremoveall(m);
   curseladd(m, t, CURSEL_nrm, index);
   return true;
+  #endif
 }
 
 /* These should all do one action per text box if a text
@@ -605,22 +615,21 @@ cmdundocycle(struct mace *m)
 static bool
 cmdscratch(struct mace *m)
 {
-  struct pane *p;
+  struct column *c;
   struct tab *t;
 
   if (m->mousefocus == NULL) {
     return false;
   }
 
-  p = m->mousefocus->tab->pane;
+  c = m->columns;
   t = tabnewempty(m, (uint8_t *)"*scratch*");
 
   if (t == NULL) {
     return false;
   }
 
-  paneaddtab(p, t, -1);
-  p->focus = t;
+  columnaddtab(c, t);
   return true;
 }
 
@@ -665,4 +674,6 @@ command(struct mace *mace, const uint8_t *s)
             "Failed to run '%s' as a command or open as a file!\n", s);
     return false;
   }
+  
+  return false;
 }

@@ -37,12 +37,13 @@ struct cursel {
 
 struct textbox {
   struct mace *mace;
-  struct tab *tab;
 
   struct colour bg;
 
   struct sequence *sequence;
 
+	int x, y;
+	
   /* Maximum width a line can be. */
   int linewidth;
 
@@ -76,37 +77,27 @@ struct textbox {
 #define SCROLL_WIDTH   10
 
 struct tab {
-  /* Mace structure that created this. */
   struct mace *mace;
 
-  /* Parent pane. */
-  struct pane *pane;
+  struct column *column;
 
-  uint8_t *name;
-  size_t nlen;
-
-  int x, y, width, height;
+  int width, height;
 
   struct textbox *action, *main;
 
-  /* Next in linked list. */
   struct tab *next;
 };
 
-/* There is currently only one pane but in future you will be able to
-   split them and have multiple set up however you like. Each pane has
-   a linked list of tabs. */
-
-struct pane {
+struct column {
   struct mace *mace;
 
-  int x, y, width, height;
+  int width, height;
+  
+  struct textbox *textbox;
 
-  /* Linked list of tabs in this pane. */
   struct tab *tabs;
-
-  /* Currently focused tab. */
-  struct tab *focus;
+  
+  struct column *next;
 };
 
 struct keybinding {
@@ -144,11 +135,15 @@ typedef enum {
 struct mace {
   bool running;
 
+	int width, height;
+	
   struct font *font;
 
   struct keybinding *keybindings;
 
-  struct pane *pane;
+  struct textbox *textbox;
+  struct column *columns;
+  
   struct cursel *cursels;
 
   uint8_t *defaultaction;
@@ -156,7 +151,6 @@ struct mace {
   struct textbox *mousefocus;
   bool immediatescrolling;
 
-  bool scrollbarleftside;
   scroll_action_t scrollleft, scrollmiddle, scrollright;
 };
 
@@ -187,6 +181,12 @@ macequit(struct mace *mace);
 bool
 maceaddkeybinding(struct mace *m, uint8_t *key,
                   uint8_t *cmd);
+
+bool
+maceresize(struct mace *m, int w, int h);
+
+void
+macedraw(struct mace *m, cairo_t *cr);
 
 bool
 command(struct mace *mace, const uint8_t *cmd);
@@ -237,33 +237,23 @@ shiftcursels(struct mace *mace, struct textbox *t,
 
 
 
-struct pane *
-panenew(struct mace *mace);
+struct column *
+columnnew(struct mace *mace);
 
 void
-panefree(struct pane *p);
+columnfree(struct column *c);
 
 bool
-paneresize(struct pane *p, int x, int y, int w, int h);
+columnaddtab(struct column *c, struct tab *t);
 
 void
-panedraw(struct pane *p, cairo_t *cr);
+columnremovetab(struct column *c, struct tab *t);
 
 bool
-tablistbuttonpress(struct pane *p, int x, int y,
-                   int button);
-
-bool
-tablistscroll(struct pane *p, int x, int y, int dx, int dy);
-
-/* Pos = -1  puts the tab at the end. Otherwise it puts it in the list
-   so that it is the pos'th tab */
-void
-paneaddtab(struct pane *p, struct tab *t, int pos);
+columnresize(struct column *c, int x, int y, int w, int h);
 
 void
-paneremovetab(struct pane *p, struct tab *t);
-
+columndraw(struct column *c, cairo_t *cr, int x, int y);
 
 
 /* New tabs are not added to any pane on creation, You must do that
@@ -272,7 +262,6 @@ paneremovetab(struct pane *p, struct tab *t);
 
 struct tab *
 tabnew(struct mace *mace,
-       const uint8_t *name,
        const uint8_t *filename,
        struct sequence *mainseq);
 
@@ -291,10 +280,11 @@ bool
 tabsetname(struct tab *t, const uint8_t *name, size_t len);
 
 bool
-tabresize(struct tab *t, int x, int y, int w, int h);
+tabresize(struct tab *t, int w, int h);
 
 void
-tabdraw(struct tab *t, cairo_t *cr);
+tabdraw(struct tab *t, cairo_t *cr, 
+        int x, int y, int w, int h);
 
 bool
 tabbuttonpress(struct tab *t, int x, int y,
@@ -304,7 +294,6 @@ tabbuttonpress(struct tab *t, int x, int y,
 
 struct textbox *
 textboxnew(struct mace *mace,
-           struct tab *t,
            struct colour *bg,
            struct sequence *seq);
 
@@ -381,3 +370,5 @@ handlemotion(struct mace *mace, int x, int y);
 bool
 handlescroll(struct mace *mace, int x, int y, int dx,
              int dy);
+
+extern struct colour bg, abg;
