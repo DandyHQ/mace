@@ -22,22 +22,23 @@ struct colour {
 /* Should be in a ordered list in mace. Order by start and group by tb. */
 
 struct cursel {
-	int type; /* Some OR of the above options. */
+  int type; /* Some OR of the above options. */
 
-	struct textbox *tb;
-	size_t start, end;     /* Start and end of selection in tb. */
-	size_t cur;              /* Offset of cursor from start. */
-	
-	struct cursel *next;
+  struct textbox *tb;
+  size_t start,
+         end;     /* Start and end of selection in tb. */
+  size_t cur;              /* Offset of cursor from start. */
+
+  struct cursel *next;
 };
 
 /* Padding used for textbox's. */
 #define PAD 5
 
 struct textbox {
-	struct mace *mace;
-	struct tab *tab;
-	
+  struct mace *mace;
+  struct tab *tab;
+
   struct colour bg;
 
   struct sequence *sequence;
@@ -45,29 +46,29 @@ struct textbox {
   /* Maximum width a line can be. */
   int linewidth;
 
-	/* Maximum height that will be displayed. */
-	int maxheight;
+  /* Maximum height that will be displayed. */
+  int maxheight;
 
-	/* Index in sequence that drawing starts from. */
+  /* Index in sequence that drawing starts from. */
   size_t start;
   /* Number of bytes that are part of glyphs. ie: drawable. */
   size_t drawablelen;
-  
+
   /* Height needed to display glyphs. Should be <= to maxheight. */
   int height;
 
-	/* This is not done quite how I want, currently it is the placing
-	   all the glyphs in the sequence. */
-	/* Number of glyphs to display. */
-	size_t nglyphs;
-	
-	/* Number of glyphs glphys can currently fit. */
-	size_t nglyphsmax;
-	
-	cairo_glyph_t *glyphs;
+  /* This is not done quite how I want, currently it is the placing
+     all the glyphs in the sequence. */
+  /* Number of glyphs to display. */
+  size_t nglyphs;
 
-	/* Last added cursel in this textbox. 
-	   Used for making selections. */
+  /* Number of glyphs glphys can currently fit. */
+  size_t nglyphsmax;
+
+  cairo_glyph_t *glyphs;
+
+  /* Last added cursel in this textbox.
+     Used for making selections. */
   struct cursel *curcs;
 };
 
@@ -80,12 +81,12 @@ struct tab {
 
   /* Parent pane. */
   struct pane *pane;
-  
+
   uint8_t *name;
   size_t nlen;
 
   int x, y, width, height;
-  
+
   struct textbox *action, *main;
 
   /* Next in linked list. */
@@ -109,8 +110,8 @@ struct pane {
 };
 
 struct keybinding {
-	uint8_t *key, *cmd;
-	struct keybinding *next;
+  uint8_t *key, *cmd;
+  struct keybinding *next;
 };
 
 /* A wrapper around freetype with functions that use fontconfig to
@@ -119,7 +120,7 @@ struct keybinding {
 struct font {
   char path[1024];
   double size;
-  
+
   FT_Library library;
 
   FT_Face face;
@@ -134,10 +135,10 @@ struct font {
    runtime. */
 
 typedef enum {
-	SCROLL_down,
-	SCROLL_up,
-	SCROLL_immediate,
-	SCROLL_none
+  SCROLL_down,
+  SCROLL_up,
+  SCROLL_immediate,
+  SCROLL_none
 } scroll_action_t;
 
 struct mace {
@@ -145,18 +146,18 @@ struct mace {
 
   struct font *font;
 
-	struct keybinding *keybindings;
-  
+  struct keybinding *keybindings;
+
   struct pane *pane;
-	struct cursel *cursels;
-	
-	uint8_t *defaultaction;
-	
+  struct cursel *cursels;
+
+  uint8_t *defaultaction;
+
   struct textbox *mousefocus;
   bool immediatescrolling;
-  
-	bool scrollbarleftside;
-	scroll_action_t scrollleft, scrollmiddle, scrollright;
+
+  bool scrollbarleftside;
+  scroll_action_t scrollleft, scrollmiddle, scrollright;
 };
 
 
@@ -184,7 +185,8 @@ void
 macequit(struct mace *mace);
 
 bool
-maceaddkeybinding(struct mace *m, uint8_t *key, uint8_t *cmd);
+maceaddkeybinding(struct mace *m, uint8_t *key,
+                  uint8_t *cmd);
 
 bool
 command(struct mace *mace, const uint8_t *cmd);
@@ -206,15 +208,16 @@ fontsettabwidth(struct font *font, size_t spaces);
 bool
 loadglyph(FT_Face face, int32_t code);
 
-void 
+void
 drawglyph(struct font *f, cairo_t *cr, int x, int y,
-	  struct colour *fg, struct colour *bg);
+          struct colour *fg, struct colour *bg);
 
 
 
 
 struct cursel *
-curseladd(struct mace *mace, struct textbox *t, int type, size_t pos);
+curseladd(struct mace *mace, struct textbox *t, int type,
+          size_t pos);
 
 void
 curselremove(struct mace *mace, struct cursel *c);
@@ -230,7 +233,7 @@ curselat(struct mace *mace, struct textbox *t,  size_t pos);
 
 void
 shiftcursels(struct mace *mace, struct textbox *t,
-                   size_t from, int dist);
+             size_t from, int dist);
 
 
 
@@ -247,7 +250,8 @@ void
 panedraw(struct pane *p, cairo_t *cr);
 
 bool
-tablistbuttonpress(struct pane *p, int x, int y, int button);
+tablistbuttonpress(struct pane *p, int x, int y,
+                   int button);
 
 bool
 tablistscroll(struct pane *p, int x, int y, int dx, int dy);
@@ -294,12 +298,12 @@ tabdraw(struct tab *t, cairo_t *cr);
 
 bool
 tabbuttonpress(struct tab *t, int x, int y,
-	             unsigned int button);
+               unsigned int button);
 
 
 
 struct textbox *
-textboxnew(struct mace *mace, 
+textboxnew(struct mace *mace,
            struct tab *t,
            struct colour *bg,
            struct sequence *seq);
@@ -312,11 +316,11 @@ textboxresize(struct textbox *t, int width, int maxheight);
 
 bool
 textboxbuttonpress(struct textbox *t, int x, int y,
-		   unsigned int button);
+                   unsigned int button);
 
 bool
 textboxbuttonrelease(struct textbox *t, int x, int y,
-		     unsigned int button);
+                     unsigned int button);
 
 bool
 textboxmotion(struct textbox *t, int x, int y);
@@ -325,12 +329,12 @@ bool
 textboxscroll(struct textbox *t, int lines);
 
 
-/* Returns the index of the nearest glyph above the glyph at 
+/* Returns the index of the nearest glyph above the glyph at
    position i. */
 size_t
 textboxindexabove(struct textbox *t, size_t i);
 
-/* Returns the index of the nearest glyph below the glyph at 
+/* Returns the index of the nearest glyph below the glyph at
    position i. */
 size_t
 textboxindexbelow(struct textbox *t, size_t i);
@@ -353,8 +357,8 @@ textboxplaceglyphs(struct textbox *t);
 
 /* Width should be t->linewidth otherwise it will not be drawn properly. */
 void
-textboxdraw(struct textbox *t, cairo_t *cr, 
-            int x, int y, 
+textboxdraw(struct textbox *t, cairo_t *cr,
+            int x, int y,
             int width, int height);
 
 
@@ -362,7 +366,8 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 /* Handle UI events. Return true if mace needs to be redrawn */
 
 bool
-handlekey(struct mace *mace, uint8_t *s, size_t n, bool special);
+handlekey(struct mace *mace, uint8_t *s, size_t n,
+          bool special);
 
 bool
 handlebuttonpress(struct mace *mace, int x, int y, int b);
@@ -374,4 +379,5 @@ bool
 handlemotion(struct mace *mace, int x, int y);
 
 bool
-handlescroll(struct mace *mace, int x, int y, int dx, int dy);
+handlescroll(struct mace *mace, int x, int y, int dx,
+             int dy);

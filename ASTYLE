@@ -1,0 +1,13 @@
+# Options file for astyle.
+
+--style=kr 
+-s2 
+-f 
+-p 
+-H 
+-xe 
+-k3 
+-W3 
+-j 
+-xC70
+
