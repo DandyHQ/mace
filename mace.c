@@ -72,6 +72,8 @@ macenew(void)
   m->scrollright = SCROLL_down;
   m->running = true;
   
+  m->width = 1;
+  
   return m;
 }
 
@@ -147,29 +149,41 @@ maceaddkeybinding(struct mace *m, uint8_t *key,
 }
 
 struct textbox *
-findtextbox(struct mace *m, int x, int y)
+findtextbox(struct mace *m, int xx, int yy, int *x, int *y, struct column **col, struct tab **tab)
 {
 	struct column *c;
-	struct tab *tab;
+
+	*x = xx;
+	*y = yy;
+		
+	*col = NULL;
+	*tab = NULL;
 	
-	if (y < m->textbox->height) {
+	if (*y < m->textbox->height) {
 		return m->textbox;
 	} else {
-		y -= m->textbox->height + 1;
+		*y -= m->textbox->height + 1;
 	
-		for (c = m->columns; c != NULL; x -= c->width, c = c->next) {
-			if (x <= c->width) {
-				if (y < c->textbox->height) {
+		for (c = m->columns; c != NULL; *x -= c->width, c = c->next) {
+			if (*x <= c->width) {
+				*col = c;
+				
+				if (*y < c->textbox->height) {
 					return c->textbox;
 				}
 				
-				y -= c->textbox->height + 1;
-				for (tab = c->tabs; tab != NULL; tab = tab->next) {
-					if (y < tab->action->height) {
-						return tab->action;
-					} else if (y < tab->height) {
-						return tab->main;
+				*y -= c->textbox->height + 1;
+				for (*tab = c->tabs; *tab != NULL; *tab = (*tab)->next) {
+					if (*y < (*tab)->action->height) {
+						return (*tab)->action;
+					} 
+					
+					if (*y < (*tab)->height) {
+						*y -= (*tab)->action->height + 1;
+						return (*tab)->main;
 					}
+					
+					*y -= (*tab)->height;
 				}
 			}
 		}
@@ -179,27 +193,189 @@ findtextbox(struct mace *m, int x, int y)
 }
 
 bool
+mousescroll(struct mace *m, int y, int button, struct tab *tab, struct textbox *tb)
+{
+  int lines, pos, ay, by;
+  scroll_action_t action;
+  
+	ay = (m->font->face->size->metrics.ascender >> 6);
+  by = -(m->font->face->size->metrics.descender >> 6);
+  m->mousefocus = tb;
+
+  switch (button) {
+  case 1:
+    action = m->scrollleft;
+    break;
+
+  case 2:
+    action = m->scrollmiddle;
+    break;
+
+  case 3:
+    action = m->scrollright;
+    break;
+
+  default:
+    action = SCROLL_none;
+    break;
+  }
+
+  switch (action) {
+  case SCROLL_up:
+    lines = (y - tab->action->height - 1) / (ay + by) / 2;
+
+    if (lines == 0) {
+      lines = 1;
+    }
+
+    return textboxscroll(tb, -lines);
+
+  case SCROLL_down:
+    lines = (y - tab->action->height - 1) / (ay + by) / 2;
+
+    if (lines == 0) {
+      lines = 1;
+    }
+
+    return textboxscroll(tb, lines);
+
+  case SCROLL_immediate:
+    pos = sequencelen(tb->sequence) * (y - tab->action->height - 1)
+          / (tab->height - tab->action->height - 1);
+    pos = sequenceindexline(tb->sequence, pos);
+    m->immediatescrolling = true;
+    tb->start = pos;
+    textboxplaceglyphs(tb);
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+bool
 handlebuttonpress(struct mace *m, int x, int y, int button)
 {
 	struct textbox *t;
+	struct column *col;
+	struct tab *tab;
+	int ox, oy;
 	
-	t = findtextbox(m, x, y);
+	t = findtextbox(m, x, y, &ox, &oy, &col, &tab);
 	if (t == NULL) {
 		return false;
 	}
 	
+	if (tab != NULL) {
+		if (t == tab->action && x < SCROLL_WIDTH) {
+			/* Move tab. */
+			
+			m->movingtab = tab;
+			m->offx = ox;
+			m->offy = oy;
+			m->px = x;
+			m->py = y;
+			
+			return true;
+		} else if (t == tab->main && ox < SCROLL_WIDTH) {
+			/* Scroll tab. */
+			return mousescroll(m, oy, button, tab, t);
+		} else {
+			ox -= SCROLL_WIDTH;
+		}
+	} else if (col != NULL && t == col->textbox) {
+		if (ox < SCROLL_WIDTH) {
+			/* Move column. */
+			
+			m->movingcolumn = col;
+			m->offx = ox;
+			m->offy = oy;
+			m->px = x;
+			m->py = y;
+			
+			return true;
+		} else {
+			ox -= SCROLL_WIDTH;
+		}
+	}
+	
 	m->mousefocus = t;
-	return textboxbuttonpress(t, x - t->x, y - t->y, button);
+	return textboxbuttonpress(t, ox, oy, button);
 }
 
 bool
-handlebuttonrelease(struct mace *m, int x, int y,
-                    int button)
+handlebuttonreleasetab(struct mace *m, int x, int y,
+                       int button)
 {
-  if (m->mousefocus == NULL) {
-    return false;
-  }
+	/* TODO: place tab. */
+	m->movingtab = NULL;
+	return true;
+}
 
+bool
+handlebuttonreleasecol(struct mace *m, int x, int y,
+                       int button)
+{
+	struct column *p, *n, *a;
+	
+	x -= m->offx;
+	
+	a = m->movingcolumn;
+	m->movingcolumn = NULL;
+	
+	if (a == m->columns) {
+		n = m->columns->next;
+		
+		m->columns = n;		
+		if (n == NULL) {
+			return true;
+		}
+		
+		if (!columnresize(n, n->width + a->width, m->height)) {
+			fprintf(stderr, "Failed to resize column!\n");
+			exit(EXIT_FAILURE);
+		}
+	} else {
+		for (p = m->columns; p->next != a; p = p->next)
+			;
+		
+		p->next = a->next;
+			
+		if (!columnresize(p, p->width + a->width, m->height)) {
+			fprintf(stderr, "Failed to resize column!\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	
+	
+	for (p = m->columns; p->next != a; p = p->next) {
+		if (x < p->width) {
+			if (!columnresize(a, p->width - x, m->height)) {
+				fprintf(stderr, "Failed to resize column!\n");
+				exit(EXIT_FAILURE);
+			}
+			
+			if (!columnresize(p, x, m->height)) {
+				fprintf(stderr, "Failed to resize column!\n");
+				exit(EXIT_FAILURE);
+			}
+			
+			a->next = p->next;
+			p->next = a;
+			return true;
+			
+		} else {
+			x -= p->width;
+		}
+	}
+	
+	return false;
+}
+
+bool
+handlebuttonreleasetb(struct mace *m, int x, int y,
+                      int button)
+{
   x -= m->mousefocus->x;
   y -= m->mousefocus->y;
 
@@ -212,14 +388,41 @@ handlebuttonrelease(struct mace *m, int x, int y,
 }
 
 bool
-handlemotion(struct mace *m, int x, int y)
+handlebuttonrelease(struct mace *m, int x, int y,
+                    int button)
+{
+	if (m->movingtab != NULL) {
+    return handlebuttonreleasetab(m, x, y, button);
+	} else if (m->movingcolumn != NULL) {
+    return handlebuttonreleasecol(m, x, y, button);
+	} else if (m->mousefocus != NULL) {
+    return handlebuttonreleasetb(m, x, y, button);
+  } else {
+  	return false;
+  }
+}
+
+bool
+handlemotiontab(struct mace *m, int x, int y)
+{
+	m->px = x;
+	m->py = y;
+	return true;
+}
+
+bool
+handlemotioncol(struct mace *m, int x, int y)
+{
+	m->px = x;
+	m->py = y;
+	return true;
+}
+
+bool
+handlemotiontb(struct mace *m, int x, int y)
 {
   size_t pos;
-
-  if (m->mousefocus == NULL) {
-    return false;
-  }
-
+  
   x -= m->mousefocus->x;
   y -= m->mousefocus->y;
 
@@ -251,18 +454,32 @@ handlemotion(struct mace *m, int x, int y)
 }
 
 bool
+handlemotion(struct mace *m, int x, int y)
+{
+	if (m->movingtab != NULL) {
+    return handlemotiontab(m, x, y);
+	} else if (m->movingcolumn != NULL) {
+    return handlemotioncol(m, x, y);
+	} else if (m->mousefocus != NULL) {
+    return handlemotiontb(m, x, y);
+  } else {
+  	return false;
+  }
+}
+
+bool
 handlescroll(struct mace *m, int x, int y, int dx, int dy)
 {
+	struct column *col;
+	struct tab *tab;
 	struct textbox *t;
   int lines;
+  int ox, oy;
   
-  t = findtextbox(m, x, y);
+  t = findtextbox(m, x, y, &ox, &oy, &col, &tab);
   if (t == NULL) {
   	return false;
   }
-  
-  x -= t->x;
-  y -= t->y;
 
   lines = dy > 0 ? 1 : -1;
 
@@ -325,16 +542,23 @@ maceresize(struct mace *m, int w, int h)
 {
 	struct column *c;
 	
-	m->width = w;
-	m->height = h;
+	printf("resizing\n");
 	
 	if (!textboxresize(m->textbox, w, h)) {
 		return false;
 	}
 	
 	for (c = m->columns; c != NULL; c = c->next) {
-		columnresize(c, 0, m->font->lineheight, w, h);
+		if (c->width == 0) {
+			c->width = 1;
+		}
+		
+		printf("change width from %i to scaled by %i / %i = %f -> %i\n", c->width, w, m->width, (float) w / m->width, (c->width * w) / m->width);
+		columnresize(c, (c->width * w) / m->width, h);
 	}
+	
+	m->width = w;
+	m->height = h;
 	
 	return true;
 }
@@ -363,4 +587,18 @@ macedraw(struct mace *m, cairo_t *cr)
                     m->height);
     cairo_fill(cr);
   }
+    
+	if (m->movingtab != NULL) {
+    cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
+    cairo_rectangle(cr, m->px - m->offx, m->py - m->offy,
+                    SCROLL_WIDTH,
+                    m->movingtab->action->height);
+    cairo_fill(cr);
+	} else if (m->movingcolumn != NULL) {
+    cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
+    cairo_rectangle(cr, m->px - m->offx, m->py - m->offy,
+                    SCROLL_WIDTH,
+                    m->movingcolumn->textbox->height);
+    cairo_fill(cr);
+	}
 }

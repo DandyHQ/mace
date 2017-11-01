@@ -174,86 +174,11 @@ tabresize(struct tab *t, int w, int h)
   t->width = w;
   t->height = h;
 
-  if (!textboxresize(t->action, w, h)) {
+  if (!textboxresize(t->action, w - SCROLL_WIDTH, h)) {
     return false;
   }
 
   return textboxresize(t->main, w - SCROLL_WIDTH, h);
-}
-
-bool
-tabbuttonpress(struct tab *t, int x, int y,
-               unsigned int button)
-{
-  int ah, lines, pos, ay, by;
-  scroll_action_t action;
-  
-  ah = t->action->height;
-
-  if (y < ah) {
-    t->mace->mousefocus = t->action;
-    return textboxbuttonpress(t->action, x, y, button);
-    
-  } else if (x >= SCROLL_WIDTH) {
-    t->mace->mousefocus = t->main;
-    return textboxbuttonpress(t->main, x - SCROLL_WIDTH,
-                              y - ah - 1,
-                              button);
-  } else {
-    ay = (t->mace->font->face->size->metrics.ascender >> 6);
-    by = -(t->mace->font->face->size->metrics.descender >> 6);
-    t->mace->mousefocus = t->main;
-
-    switch (button) {
-    case 1:
-      action = t->mace->scrollleft;
-      break;
-
-    case 2:
-      action = t->mace->scrollmiddle;
-      break;
-
-    case 3:
-      action = t->mace->scrollright;
-      break;
-
-    default:
-      action = SCROLL_none;
-      break;
-    }
-
-    switch (action) {
-    case SCROLL_up:
-      lines = (y - ah - 1) / (ay + by) / 2;
-
-      if (lines == 0) {
-        lines = 1;
-      }
-
-      return textboxscroll(t->main, -lines);
-
-    case SCROLL_down:
-      lines = (y - ah - 1) / (ay + by) / 2;
-
-      if (lines == 0) {
-        lines = 1;
-      }
-
-      return textboxscroll(t->main, lines);
-
-    case SCROLL_immediate:
-      pos = sequencelen(t->main->sequence) * (y - ah - 1)
-            / (t->height - ah - 1);
-      pos = sequenceindexline(t->main->sequence, pos);
-      t->mace->immediatescrolling = true;
-      t->main->start = pos;
-      textboxplaceglyphs(t->main);
-      return true;
-
-    default:
-      return false;
-    }
-  }
 }
 
 static int
@@ -263,7 +188,13 @@ tabdrawaction(struct tab *t, cairo_t *cr, int x, int y, int w, int h)
   	h = t->action->height;
   }
   
-  textboxdraw(t->action, cr, x, y, w, h);
+  cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
+  cairo_rectangle(cr, x, y,
+                  SCROLL_WIDTH,
+                  t->action->height);
+  cairo_fill(cr);
+  
+  textboxdraw(t->action, cr, x + SCROLL_WIDTH, y, w - SCROLL_WIDTH, h);
   return y + h;
 }
 
@@ -330,6 +261,7 @@ void
 tabdraw(struct tab *t, cairo_t *cr, int x, int y, int w, int h)
 {
   y = tabdrawaction(t, cr, x, y, w, h);
+  
   cairo_set_source_rgb(cr, 0, 0, 0);
   cairo_move_to(cr, x, y);
   cairo_line_to(cr, x + w, y);

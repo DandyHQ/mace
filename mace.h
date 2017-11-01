@@ -74,7 +74,7 @@ struct textbox {
 };
 
 
-#define SCROLL_WIDTH   10
+#define SCROLL_WIDTH   13
 
 struct tab {
   struct mace *mace;
@@ -143,6 +143,10 @@ struct mace {
 
   struct textbox *textbox;
   struct column *columns;
+  
+  int offx, offy, px, py;
+  struct tab *movingtab;
+  struct column *movingcolumn;
   
   struct cursel *cursels;
 
@@ -250,7 +254,7 @@ void
 columnremovetab(struct column *c, struct tab *t);
 
 bool
-columnresize(struct column *c, int x, int y, int w, int h);
+columnresize(struct column *c, int w, int h);
 
 void
 columndraw(struct column *c, cairo_t *cr, int x, int y);

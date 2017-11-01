@@ -156,6 +156,13 @@ openfile(struct mace *m, const uint8_t *filename)
 }
 
 static bool
+cmdquit(struct mace *m)
+{
+	m->running = false;
+	return false;
+}
+
+static bool
 cmdclose(struct mace *m)
 {
 	return false;
@@ -633,6 +640,38 @@ cmdscratch(struct mace *m)
   return true;
 }
 
+static bool
+cmdnewcol(struct mace *m)
+{
+	struct column *c, *p;
+	int w;
+	
+	c = columnnew(m);
+	if (c == NULL) {
+		return false;
+	}
+	
+	if (m->columns == NULL) {
+		m->columns = c;
+		return columnresize(c, m->width, m->height);
+	} else {
+		for (p = m->columns; p->next != NULL; p = p->next)
+			;
+	
+		p->next = c;
+		
+		w = p->width;
+		
+		if (!columnresize(p, w / 2, m->height)) {
+			return false;
+		} else if (!columnresize(c, w - p->width, m->height)) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+}
+
 static struct cmd cmds[] = {
   { "save",       cmdsave },
   { "open",       cmdopen },
@@ -654,6 +693,8 @@ static struct cmd cmds[] = {
   { "redo",       cmdredo },
   { "undocycle",  cmdundocycle },
   { "scratch",    cmdscratch },
+  { "newcol",     cmdnewcol },
+  { "quit",       cmdquit },
 };
 
 bool
