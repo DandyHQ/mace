@@ -15,6 +15,7 @@ columnnew(struct mace *mace)
   }
 
   c->mace = mace;
+  c->height = 1;
   
   seq = sequencenew(NULL, 0);
   if (seq == NULL) {
@@ -64,6 +65,7 @@ columnaddtab(struct column *c, struct tab *t)
   	return false;
   }
   	
+  t->column = c;
 	t->next = c->tabs;
 	c->tabs = t;
 	
@@ -76,31 +78,25 @@ columnremovetab(struct column *c, struct tab *t)
  
 }
 
-static bool
-placetabs(struct column *c)
-{
-	struct tab *t;
-	  
-  for (t = c->tabs; t != NULL; t = t->next) {
-  	if (!tabresize(t, c->width, c->height - c->textbox->height)) {
-  		return false;
-  	}
-  }
-   
-  return true;
-}
-
 bool
 columnresize(struct column *c, int w, int h)
 {
-  c->width = w;
-  c->height = h;
+	struct tab *t;
   
   if (!textboxresize(c->textbox, w - SCROLL_WIDTH, h)) {
   	return false;
   }
+  	  
+  for (t = c->tabs; t != NULL; t = t->next) {
+  	if (!tabresize(t, c->width, t->height * h / c->height)) {
+  		return false;
+  	}
+  }
+	
+  c->width = w;
+  c->height = h;
   
-  return placetabs(c);
+  return true;
 }
 
 void
@@ -125,17 +121,20 @@ columndraw(struct column *c, cairo_t *cr, int x, int y)
   cairo_line_to(cr, x, c->mace->height);
   cairo_stroke(cr);
   
+  y += c->textbox->height + 2;
+  
   if (c->tabs != NULL) {
   	for (t = c->tabs; t != NULL; t = t->next) {
-  		tabdraw(t, cr, x, y + c->textbox->height + 2, 
-  		        c->width, c->mace->height - y - c->textbox->height - 2);
+  		tabdraw(t, cr, x, y, 
+  		        c->width, t->height);
+  		y += t->height;
   	}
   } else {
     cairo_set_source_rgb(cr, 1, 1, 1);
     cairo_rectangle(cr, x + 1, 
-                    y + c->textbox->height + 2,
+                    y,
                     c->width - 1,
-                    c->mace->height - (y + c->textbox->height + 2));
+                    c->mace->height - y);
     cairo_fill(cr);
   }
 }

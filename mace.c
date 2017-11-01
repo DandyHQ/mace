@@ -267,7 +267,7 @@ handlebuttonpress(struct mace *m, int x, int y, int button)
 	}
 	
 	if (tab != NULL) {
-		if (t == tab->action && x < SCROLL_WIDTH) {
+		if (t == tab->action && ox < SCROLL_WIDTH) {
 			/* Move tab. */
 			
 			m->movingtab = tab;
@@ -307,9 +307,100 @@ bool
 handlebuttonreleasetab(struct mace *m, int x, int y,
                        int button)
 {
-	/* TODO: place tab. */
+	struct tab *p, *n, *a;
+	struct column *c;
+	
+	printf("finish moving tab\n");
+	
+	x -= m->offx;
+	y -= m->offy;
+	
+	a = m->movingtab;
 	m->movingtab = NULL;
-	return true;
+	
+	if (a == a->column->tabs) {
+		printf("first tab\n");
+		n = a->next;
+		a->column->tabs = n;
+		
+		if (n != NULL && !tabresize(n, n->width, n->height + a->height)) {
+			fprintf(stderr, "Failed to resize tab!\n");
+			exit(EXIT_FAILURE);
+		}
+	} else {
+		printf("go through\n");
+		for (p = a->column->tabs; p->next != a; p = p->next)
+			;
+		
+		printf("found\n");
+		p->next = a->next;
+			
+		printf("resize prev\n");
+		if (!tabresize(p, p->width, a->height + p->height)) {
+			fprintf(stderr, "Failed to resize tab!\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	
+	printf("find column\n");
+	
+	for (c = m->columns; c != NULL; c = c->next) {
+		if (x < c->width) {
+			break;
+		} else {
+			x -= c->width;
+		}
+	}
+	
+	if (c == NULL) {
+		fprintf(stderr, "Failed to find column for x pos %i\n", x);
+		c = m->columns;
+	}
+	
+	printf("add tab\n");
+	a->column = c;
+	
+	y -= m->textbox->height + 1 + c->textbox->height + 1;
+	
+	if (c->tabs == NULL) {
+		printf("no tabs\n");
+		a->next = c->tabs;
+		c->tabs = a;
+		
+		if (!tabresize(a, c->width, c->height)) {
+			fprintf(stderr, "Failed to resize tab!\n");
+			exit(EXIT_FAILURE);
+		}
+		
+		return true;
+	} else {
+		printf("go through tabs\n");
+		for (p = c->tabs; p != NULL; p = p->next) {
+			printf("after this?\n");
+			if (y < p->height) {
+				printf("yes\n");
+				
+				if (!tabresize(a, p->width, p->height - y)) {
+					fprintf(stderr, "Failed to resize tab!\n");
+					exit(EXIT_FAILURE);
+				}
+				
+				if (!tabresize(p, p->width, y)) {
+					fprintf(stderr, "Failed to resize tab!\n");
+					exit(EXIT_FAILURE);
+				}
+				
+				a->next = p->next;
+				p->next = a;
+				return true;
+				
+			} else {
+				y -= p->height;
+			}
+		}
+	}
+	
+	return false;
 }
 
 bool
@@ -327,11 +418,7 @@ handlebuttonreleasecol(struct mace *m, int x, int y,
 		n = m->columns->next;
 		
 		m->columns = n;		
-		if (n == NULL) {
-			return true;
-		}
-		
-		if (!columnresize(n, n->width + a->width, m->height)) {
+		if (n != NULL && !columnresize(n, n->width + a->width, m->height)) {
 			fprintf(stderr, "Failed to resize column!\n");
 			exit(EXIT_FAILURE);
 		}
@@ -345,28 +432,37 @@ handlebuttonreleasecol(struct mace *m, int x, int y,
 			fprintf(stderr, "Failed to resize column!\n");
 			exit(EXIT_FAILURE);
 		}
-	}
+	}	
 	
-	
-	for (p = m->columns; p->next != a; p = p->next) {
-		if (x < p->width) {
-			if (!columnresize(a, p->width - x, m->height)) {
-				fprintf(stderr, "Failed to resize column!\n");
-				exit(EXIT_FAILURE);
-			}
-			
-			if (!columnresize(p, x, m->height)) {
-				fprintf(stderr, "Failed to resize column!\n");
-				exit(EXIT_FAILURE);
-			}
-			
-			a->next = p->next;
-			p->next = a;
-			return true;
-			
-		} else {
-			x -= p->width;
+	if (m->columns == NULL) {
+		m->columns = a;
+		
+		if (!columnresize(a, m->width, m->height)) {
+			fprintf(stderr, "Failed to resize column!\n");
+			exit(EXIT_FAILURE);
+		}	
+				
+	} else {
+		for (p = m->columns; p != NULL; p = p->next) {
+			if (x < p->width) {
+				if (!columnresize(a, p->width - x, m->height)) {
+					fprintf(stderr, "Failed to resize column!\n");
+					exit(EXIT_FAILURE);
+				}
+				
+				if (!columnresize(p, x, m->height)) {
+					fprintf(stderr, "Failed to resize column!\n");
+					exit(EXIT_FAILURE);
+				}
+				
+				a->next = p->next;
+				p->next = a;
+				return true;
+				
+			} else {
+				x -= p->width;
 		}
+	}
 	}
 	
 	return false;
