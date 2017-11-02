@@ -1,7 +1,7 @@
 #include "mace.h"
 
 static const uint8_t defaultcol[] =
-  "ummm";
+  "del scratch";
 
 struct column *
 columnnew(struct mace *mace)
@@ -113,15 +113,15 @@ columndraw(struct column *c, cairo_t *cr, int x, int y)
   cairo_fill(cr);
   
   cairo_set_source_rgb(cr, 0, 0, 0);
-  cairo_move_to(cr, x, y + 1 + c->textbox->height);
-  cairo_line_to(cr, x + c->width, y + 1 + c->textbox->height);
+  cairo_move_to(cr, x, y + c->textbox->height);
+  cairo_line_to(cr, x + c->width, y + c->textbox->height);
   cairo_stroke(cr);
   
   cairo_move_to(cr, x, y);
   cairo_line_to(cr, x, c->mace->height);
   cairo_stroke(cr);
   
-  y += c->textbox->height + 2;
+  y += c->textbox->height + 1;
   
   if (c->tabs != NULL) {
   	for (t = c->tabs; t != NULL; t = t->next) {
