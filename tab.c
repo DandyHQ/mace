@@ -18,11 +18,10 @@ tabnew(struct mace *mace,
   if (t == NULL) {
     return NULL;
   }
-  
+
   flen = strlen((char *) filename);
   t->mace = mace;
   t->next = NULL;
-
   actionseq = sequencenew(NULL, 0);
 
   if (actionseq == NULL) {
@@ -62,10 +61,9 @@ tabnew(struct mace *mace,
     tabfree(t);
     return NULL;
   }
-  
+
   t->action->tab = t;
   t->main->tab = t;
-
   return t;
 }
 
@@ -86,6 +84,7 @@ tabnewemptyfile(struct mace *mace,
   if (t == NULL) {
     sequencefree(seq);
     return NULL;
+
   } else {
     return t;
   }
@@ -107,7 +106,6 @@ tabnewfromfile(struct mace *mace,
   struct stat st;
   struct tab *t;
   int fd;
-  
   fd = open((const char *) filename, O_RDONLY);
 
   if (fd < 0) {
@@ -152,6 +150,7 @@ tabnewfromfile(struct mace *mace,
   if (t == NULL) {
     sequencefree(seq);
     return NULL;
+
   } else {
     return t;
   }
@@ -188,15 +187,14 @@ static int
 tabdrawaction(struct tab *t, cairo_t *cr, int x, int y, int w, int h)
 {
   if (t->action->height < h) {
-  	h = t->action->height;
+    h = t->action->height;
   }
-  
+
   cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
   cairo_rectangle(cr, x, y,
                   SCROLL_WIDTH,
                   t->action->height);
   cairo_fill(cr);
-  
   textboxdraw(t->action, cr, x + SCROLL_WIDTH, y, w - SCROLL_WIDTH, h);
   return y + h;
 }
@@ -207,16 +205,15 @@ static int
 tabdrawmain(struct tab *t, cairo_t *cr, int x, int y, int w, int h)
 {
   int pos, size, len;
-
   textboxdraw(t->main, cr, x + SCROLL_WIDTH, y,
               w - SCROLL_WIDTH, h);
-
   /* Draw scroll bar */
   len = sequencelen(t->main->sequence);
 
   if (len > 0) {
     pos = t->main->start * h / len;
     size = t->main->drawablelen * h / len;
+
   } else {
     pos = 0;
     size = h;
@@ -227,12 +224,10 @@ tabdrawmain(struct tab *t, cairo_t *cr, int x, int y, int w, int h)
   }
 
   cairo_set_source_rgb(cr, 0, 0, 0);
-
   cairo_move_to(cr, x + SCROLL_WIDTH - 1, y);
   cairo_line_to(cr,
                 x + SCROLL_WIDTH - 1,
                 y + h);
- 
   cairo_set_line_width(cr, 1.0);
   cairo_stroke(cr);
   cairo_set_source_rgb(cr, 1, 1, 1);
@@ -248,7 +243,6 @@ tabdrawmain(struct tab *t, cairo_t *cr, int x, int y, int w, int h)
                   y + pos,
                   SCROLL_WIDTH - 1,
                   size);
-                  
   cairo_fill(cr);
   cairo_set_source_rgb(cr, 1, 1, 1);
   cairo_rectangle(cr,
@@ -264,12 +258,10 @@ void
 tabdraw(struct tab *t, cairo_t *cr, int x, int y, int w, int h)
 {
   y = tabdrawaction(t, cr, x, y, w, h);
-  
   cairo_set_source_rgb(cr, 0, 0, 0);
   cairo_move_to(cr, x, y);
   cairo_line_to(cr, x + w, y);
   cairo_stroke(cr);
   y += 1;
-  
   tabdrawmain(t, cr, x, y, w, h);
 }

@@ -75,6 +75,7 @@ sequencenew(uint8_t *data, size_t len)
     s->changes[CHANGE_root].apieces[s->changes[CHANGE_root].napieces++]
       = s->plen;
     s->plen++;
+
   } else {
     s->dlen = 0;
     s->dmax = 1024;
@@ -122,6 +123,7 @@ sequencepiecefind(struct sequence *s,
     if (pos <= s->pieces[p].pos + s->pieces[p].len) {
       *i = pos - s->pieces[p].pos;
       return p;
+
     } else {
       p = s->pieces[p].next;
     }
@@ -212,6 +214,7 @@ sequenceprintchangetree(struct sequence *s, char *h,
 
   if (s->changehead == c) {
     printf("%schange HEAD %zi ", h, c);
+
   } else {
     printf("%schange %zi ", h, c);
   }
@@ -322,6 +325,7 @@ sequencereplace(struct sequence *s,
     /* Set up prev as being the previous thing. */
     s->changes[c].prev = t;
     p = n;
+
   } else {
     s->changes[c].prev = b;
     s->changes[c].rstart = s->pieces[b].next;
@@ -360,6 +364,7 @@ sequencereplace(struct sequence *s,
     s->changes[c].apieces[s->changes[c].napieces++] = n;
     s->changes[c].next = t;
     e = n;
+
   } else {
     s->changes[c].next = e;
     s->changes[c].rend = s->pieces[e].prev;
@@ -481,6 +486,7 @@ findwordstart(struct sequence *s, size_t i)
          && (a = sequenceprevcodepoint(s, i, &code)) > 0) {
     if (islinebreak(code) || iswhitespace(code)) {
       return i;
+
     } else {
       i -= a;
     }
@@ -498,6 +504,7 @@ findwordend(struct sequence *s, size_t i)
   while ((a = sequencecodepoint(s, i, &code)) > 0) {
     if (islinebreak(code) || iswhitespace(code)) {
       return i;
+
     } else {
       i += a;
     }

@@ -76,12 +76,14 @@ curselupdate(struct cursel *s, size_t pos)
       s->start = pos;
       s->cur = 0;
       return true;
+
     } else if (pos != s->end) {
       /* Updating end */
       s->end = pos;
       s->cur = s->end - s->start;
       return true;
     }
+
   } else {
     if (pos > s->end) {
       /* Going right. */
@@ -90,6 +92,7 @@ curselupdate(struct cursel *s, size_t pos)
       s->end = pos;
       s->cur = s->end - s->start;
       return true;
+
     } else if (pos != s->start) {
       /* Changing start */
       s->start = pos;

@@ -2,7 +2,7 @@
 
 --style=kr 
 -s2 
--f 
+-F
 -p 
 -H 
 -xe 

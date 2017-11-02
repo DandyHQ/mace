@@ -102,13 +102,13 @@ textboxdraw(struct textbox *t, cairo_t *cr,
   cairo_set_font_face(cr, t->mace->font->cface);
   cairo_set_font_size(cr, t->mace->font->size);
   cs = t->mace->cursels;
-  
   t->x = x;
   t->y = y;
 
   while (cs != NULL) {
     if (cs->tb == t) {
       break;
+
     } else {
       cs = cs->next;
     }
@@ -129,6 +129,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
 
       if (pp == SEQ_end) {
         goto end;
+
       } else {
         p = &s->pieces[pp];
         ii = 0;
@@ -152,6 +153,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
       if (cs->start + cs->cur == p->pos + ii
           && (cs->type & CURSEL_nrm) != 0) {
         drawcursornow = true;
+
       } else {
         drawcursornow = false;
       }
@@ -187,8 +189,10 @@ textboxdraw(struct textbox *t, cairo_t *cr,
       if (cs->start == cs->end) {
         bg = NULL;
         drawcursornow = true;
+
       } else if ((cs->type & CURSEL_cmd) != 0) {
         bg = &cbg;
+
       } else {
         bg = &sbg;
       }
@@ -213,6 +217,7 @@ textboxdraw(struct textbox *t, cairo_t *cr,
                         ay + by);
         cairo_fill(cr);
       }
+
     } else if (code == '\t') {
       if (startg < g) {
         drawglyphs(cr, &t->glyphs[startg], g - startg,
@@ -300,12 +305,15 @@ textboxfindpos(struct textbox *t, int lx, int ly)
 
     if (islinebreak(code)) {
       return i;
+
     } else if (g + 1 < t->nglyphs
                && t->glyphs[g + 1].x == 0.0) {
       /* Word wrapping. */
       return i;
+
     } else if (code == '\t') {
       ww = t->mace->font->tabwidthpixels;
+
     } else {
       if (FT_Load_Glyph(t->mace->font->face, t->glyphs[g].index,
                         FT_LOAD_DEFAULT) != 0) {
@@ -318,6 +326,7 @@ textboxfindpos(struct textbox *t, int lx, int ly)
     if (lx <= t->glyphs[g].x + ww * 0.75f) {
       /* Left three quarters of the glyph so go to the left side. */
       return i;
+
     } else if (lx <= t->glyphs[g].x + ww) {
       /* Right quarters of the glyph so go to the right side. */
       return i + a;
@@ -345,6 +354,7 @@ placesomeglyphs(struct textbox *t,
     if (glyphs[g].index == '\t') {
       index = 0;
       ww = t->mace->font->tabwidthpixels;
+
     } else {
       index = FT_Get_Char_Index(t->mace->font->face,
                                 glyphs[g].index);
@@ -379,6 +389,7 @@ placesomeglyphs(struct textbox *t,
       }
 
       linestart = lineend;
+
     } else if (iswordbreak(glyphs[g].index)) {
       lineend = g + 1;
     }
@@ -421,6 +432,7 @@ textboxplaceglyphs(struct textbox *t)
 
       if (pp == SEQ_end) {
         goto end;
+
       } else {
         p = &s->pieces[pp];
         i = 0;
@@ -431,6 +443,7 @@ textboxplaceglyphs(struct textbox *t)
 
     if (a == 0) {
       goto end;
+
     } else {
       i += a;
     }
@@ -450,6 +463,7 @@ textboxplaceglyphs(struct textbox *t)
       x = 0;
       y += ay + by;
       startg = g + 1;
+
     } else {
       t->glyphs[g].index = code;
     }
@@ -509,6 +523,7 @@ loadandplaceglyphs(struct textbox *t,
 
     if (a == 0) {
       break;
+
     } else {
       glyphs[g].index = code;
     }
@@ -539,6 +554,7 @@ findglyphabove(struct sequence *s,
 
     if (a == 0) {
       break;
+
     } else {
       i -= a;
     }
@@ -588,6 +604,7 @@ textboxindexabove(struct textbox *t, size_t pos)
     if (i > start || (wantx == 0.0 && wanty > 0.0)) {
       return i;
     }
+
   } else {
     wantx = 0.0;
   }
@@ -642,9 +659,11 @@ findglyphbelow(struct sequence *s,
 
     if (a == 0) {
       break;
+
     } else if (glyphs[g].y > wanty) {
       if (g + 1 == nglyphs || glyphs[g + 1].y > glyphs[g].y) {
         break;
+
       } else if (glyphs[g].x <= wantx) {
         if (g + 1 == nglyphs || glyphs[g + 1].x > wantx) {
           break;
@@ -691,6 +710,7 @@ textboxindexbelow(struct textbox *t, size_t pos)
     if (i < end) {
       return i;
     }
+
   } else {
     wantx = 0.0;
   }
@@ -738,6 +758,7 @@ textboxindentation(struct textbox *t, size_t start,
                                     &code)) != 0) {
     if (islinebreak(code)) {
       break;
+
     } else {
       i -= a;
     }
@@ -748,6 +769,7 @@ textboxindentation(struct textbox *t, size_t start,
 
     if (a == 0) {
       break;
+
     } else if (!iswhitespace(code)) {
       break;
     }

@@ -153,6 +153,7 @@ utf8deiterate(const uint8_t *s, size_t slen, size_t off,
 
       if (l == ll) {
         return ll;
+
       } else {
         /* We were probably given an offput that was not a codepoint
            boundary. */
@@ -177,6 +178,7 @@ utf8codepoints(const uint8_t *s, size_t len)
 
     if (a == 0) {
       break;
+
     } else {
       i += a;
       j++;

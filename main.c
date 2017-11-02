@@ -141,19 +141,19 @@ applydefaultconfig(struct mace *m)
 {
   size_t i;
 
-/*
-TODO
-  if (m->pane->tabs == NULL) {
-    t = maketutorialtab(m);
+  /*
+  TODO
+    if (m->pane->tabs == NULL) {
+      t = maketutorialtab(m);
 
-    if (t == NULL) {
-      fprintf(stderr, "Error: failed to create tutorial tab!\n");
-      return false;
+      if (t == NULL) {
+        fprintf(stderr, "Error: failed to create tutorial tab!\n");
+        return false;
+      }
+
+      paneaddtab(m->pane, t, -1);
     }
-
-    paneaddtab(m->pane, t, -1);
-  }
-*/
+  */
 
   for (i = 0;
        i < sizeof(defaultkeybindings) / sizeof(
@@ -173,7 +173,6 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
   const char *raw;
   char *str;
   int64_t i;
-  
   raw = toml_raw_in(conf, "actionbar");
 
   if (raw != NULL) {
@@ -197,7 +196,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
     free(m->defaultcol);
     m->defaultcol = (uint8_t *) str;
   }
-  
+
   raw = toml_raw_in(conf, "mainbar");
 
   if (raw != NULL) {
@@ -209,7 +208,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
     free(m->defaultmain);
     m->defaultmain = (uint8_t *) str;
   }
-  
+
   raw = toml_raw_in(conf, "defaulttab");
 
   if (raw != NULL) {
@@ -218,29 +217,28 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
       return false;
     }
 
-/* TODO
-    if (m->pane->tabs == NULL) {
-      if (strcmp(str, "empty") == 0) {
-        t = tabnewempty(m, (uint8_t *) "*scratch*");
-      } else if (strcmp(str, "tutorial") == 0) {
-        t = maketutorialtab(m);
-      } else {
-        fprintf(stderr, "defaulttab has invalid value '%s'\n", raw);
-        fprintf(stderr, "should be one of: tutorial, empty\n");
-        free(str);
-        return false;
-      }
+    /* TODO
+        if (m->pane->tabs == NULL) {
+          if (strcmp(str, "empty") == 0) {
+            t = tabnewempty(m, (uint8_t *) "*scratch*");
+          } else if (strcmp(str, "tutorial") == 0) {
+            t = maketutorialtab(m);
+          } else {
+            fprintf(stderr, "defaulttab has invalid value '%s'\n", raw);
+            fprintf(stderr, "should be one of: tutorial, empty\n");
+            free(str);
+            return false;
+          }
 
-      if (t == NULL) {
-        fprintf(stderr, "Failed to make default tab!\n");
-        free(str);
-        return false;
-      }
+          if (t == NULL) {
+            fprintf(stderr, "Failed to make default tab!\n");
+            free(str);
+            return false;
+          }
 
-      paneaddtab(m->pane, t, -1);
-    }
-    */
-
+          paneaddtab(m->pane, t, -1);
+        }
+        */
     free(str);
   }
 
@@ -295,10 +293,13 @@ applyconfigscroll(struct mace *m, toml_table_t *conf)
        * modifiers and so on. */
       if (strcmp(key, "Button-1") == 0) {
         b = &m->scrollleft;
+
       } else if (strcmp(key, "Button-2") == 0) {
         b = &m->scrollmiddle;
+
       } else if (strcmp(key, "Button-3") == 0) {
         b = &m->scrollright;
+
       } else {
         b = &m->scrollleft;
       }
@@ -311,10 +312,13 @@ applyconfigscroll(struct mace *m, toml_table_t *conf)
 
       if (strcmp(str, "up") == 0) {
         *b = SCROLL_up;
+
       } else if (strcmp(str, "down") == 0) {
         *b = SCROLL_down;
+
       } else if (strcmp(str, "immediate") == 0) {
         *b = SCROLL_immediate;
+
       } else {
         fprintf(stderr, "Bad value %s for scrollmiddle!\n", str);
         free(str);
@@ -322,6 +326,7 @@ applyconfigscroll(struct mace *m, toml_table_t *conf)
       }
 
       free(str);
+
     } else {
       fprintf(stderr,
               "Unknown configuration in scroll table '%s'\n", key);
@@ -383,6 +388,7 @@ applyconfig(struct mace *m, toml_table_t *conf)
     if (!applyconfigkeybindings(m, keybindings)) {
       return false;
     }
+
   } else {
     for (i = 0;
          i < sizeof(defaultkeybindings) / sizeof(
@@ -407,6 +413,7 @@ findconfig(FILE **f, char *path, size_t l)
 
     if (*f != NULL) {
       return true;
+
     } else {
       fprintf(stderr, "Failed to load config file %s!\n", path);
       return false;
@@ -512,9 +519,9 @@ main(int argc, char **argv)
       continue;
     }
 
-/* TODO
-    paneaddtab(m->pane, t, -1);
-    */
+    /* TODO
+        paneaddtab(m->pane, t, -1);
+        */
   }
 
   if (findconfig(&f, configpath, sizeof(configpath))) {
@@ -534,6 +541,7 @@ main(int argc, char **argv)
       macefree(m);
       return EXIT_FAILURE;
     }
+
   } else {
     if (!applydefaultconfig(m)) {
       macefree(m);
