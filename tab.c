@@ -18,8 +18,8 @@ tabnew(struct mace *mace,
   if (t == NULL) {
     return NULL;
   }
-
-  flen = strlen((char *)filename);
+  
+  flen = strlen((char *) filename);
   t->mace = mace;
   t->next = NULL;
 
@@ -62,6 +62,9 @@ tabnew(struct mace *mace,
     tabfree(t);
     return NULL;
   }
+  
+  t->action->tab = t;
+  t->main->tab = t;
 
   return t;
 }

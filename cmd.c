@@ -13,6 +13,83 @@ struct cmd {
   bool (*func)(struct mace *mace);
 };
 
+
+static bool
+cmdquit(struct mace *m)
+{
+	m->running = false;
+	return false;
+}
+
+static bool
+cmdnewcol(struct mace *m)
+{
+	struct column *c, *p;
+	int w;
+	
+	c = columnnew(m);
+	if (c == NULL) {
+		return false;
+	}
+	
+	if (m->columns == NULL) {
+		m->columns = c;
+		return columnresize(c, m->width, m->height);
+	} else {
+		for (p = m->columns; p->next != NULL; p = p->next)
+			;
+	
+		p->next = c;
+		
+		w = p->width;
+		
+		if (!columnresize(p, w / 2, m->height)) {
+			return false;
+		} else if (!columnresize(c, w - p->width, m->height)) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+}
+
+static bool
+cmddelcol(struct mace *m)
+{
+	return false;
+}
+
+static bool
+cmdscratch(struct mace *m)
+{
+  struct column *c;
+  struct tab *t;
+
+  if (m->mousefocus != NULL && m->mousefocus->tab != NULL) {
+  	c = m->mousefocus->tab->column;
+  } else {
+  	for (c = m->columns; c != NULL && c->next != NULL; c = c->next)
+  		;
+  	if (c == NULL && !cmdnewcol(m)) {
+  		return false;
+  	}
+  }
+
+  c = m->columns;
+  t = tabnewempty(m, (uint8_t *)"*scratch*");
+
+  if (t == NULL) {
+    return false;
+  }
+
+  if (!columnaddtab(c, t)) {
+  	tabfree(t);
+  	return false;
+  } else {
+	  return true;
+	}
+}
+
 static size_t
 getfilename(struct tab *t, uint8_t *buf, size_t len)
 {
@@ -34,17 +111,14 @@ getfilename(struct tab *t, uint8_t *buf, size_t len)
 
 static bool
 cmdsave(struct mace *m)
-{
-	return false;
-	#if 0
-	
+{	
   uint8_t filename[1024], *buf;
   struct sequence *s;
   size_t len;
   bool r;
   int fd;
 
-  if (m->mousefocus == NULL) {
+  if (m->mousefocus == NULL || m->mousefocus->tab == NULL) {
     return false;
   }
 
@@ -83,19 +157,42 @@ cmdsave(struct mace *m)
   close(fd);
   free(buf);
   return r;
+}
+
+static bool
+openfile(struct mace *m, const uint8_t *filename)
+{
+  struct column *c;
+  struct tab *t;
+
+  t = tabnewfromfile(m, filename);
+
+  if (t == NULL) {
+    return false;
+  }
+
+  if (m->mousefocus != NULL && m->mousefocus->tab != NULL) {
+  	c = m->mousefocus->tab->column;
+  } else {
+  	for (c = m->columns; c != NULL && c->next != NULL; c = c->next)
+  		;
+  	if (c == NULL && !cmdnewcol(m)) {
+  		return false;
+  	}
+  }
   
-  #endif
-  
+  if (!columnaddtab(c, t)) {
+  	tabfree(t);
+  	return false;
+  } else {
+	  return true;
+	}
 }
 
 static bool
 openselection(struct mace *m, struct cursel *s)
 {
-	return false;
-	#if 0
-	
   uint8_t name[1024];
-  struct tab *t;
   size_t len;
   len = s->end - s->start;
 
@@ -106,18 +203,8 @@ openselection(struct mace *m, struct cursel *s)
 
   len = sequenceget(s->tb->sequence, s->start, name, len);
   name[len] = 0;
-  t = tabnewfromfile(m, name);
-
-  if (t == NULL) {
-    return false;
-  }
-
-/* TODO: fix */
-/*  paneaddtab(s->tb->tab->pane, t, -1);
-  s->tb->tab->pane->focus = t;
-*/
-  return true;
-  #endif
+ 
+	return openfile(m, name);
 }
 
 static bool
@@ -140,57 +227,21 @@ cmdopen(struct mace *m)
 }
 
 static bool
-openfile(struct mace *m, const uint8_t *filename)
+cmddel(struct mace *m)
 {
   struct tab *t;
 
-  t = tabnewfromfile(m, filename);
-
-  if (t == NULL) {
-    return false;
-  }
-
-/* TODO: fix */
-	return false;
-  return true;
-}
-
-static bool
-cmdquit(struct mace *m)
-{
-	m->running = false;
-	return false;
-}
-
-static bool
-cmdclose(struct mace *m)
-{
-	return false;
-/* TODO
-  struct pane *p;
-  struct tab *t;
-
-  if (m->mousefocus != NULL) {
+  if (m->mousefocus != NULL && m->mousefocus->tab != NULL) {
     t = m->mousefocus->tab;
     m->mousefocus = NULL;
   } else {
-    t = m->pane->focus;
+  	return false;
   }
 
-  if (t == NULL) {
-    return false;
-  }
-
-  p = t->pane;
-  paneremovetab(p, t);
+	columnremovetab(t->column, t);
   tabfree(t);
 
-  if (p->tabs == NULL) {
-    m->running = false;
-  }
-
   return true;
-  */
 }
 
 static bool
@@ -289,7 +340,7 @@ cmdpaste(struct mace *m)
 }
 
 static bool
-cmddel(struct mace *m)
+cmddelete(struct mace *m)
 {
   struct cursel *c;
   size_t start, n;
@@ -317,7 +368,7 @@ cmddel(struct mace *m)
 }
 
 static bool
-cmdback(struct mace *m)
+cmdbackspace(struct mace *m)
 {
   struct cursel *c;
   size_t start, n;
@@ -619,82 +670,38 @@ cmdundocycle(struct mace *m)
   return true;
 }
 
-static bool
-cmdscratch(struct mace *m)
-{
-  struct column *c;
-  struct tab *t;
-
-  if (m->mousefocus == NULL) {
-    return false;
-  }
-
-  c = m->columns;
-  t = tabnewempty(m, (uint8_t *)"*scratch*");
-
-  if (t == NULL) {
-    return false;
-  }
-
-  columnaddtab(c, t);
-  return true;
-}
-
-static bool
-cmdnewcol(struct mace *m)
-{
-	struct column *c, *p;
-	int w;
-	
-	c = columnnew(m);
-	if (c == NULL) {
-		return false;
-	}
-	
-	if (m->columns == NULL) {
-		m->columns = c;
-		return columnresize(c, m->width, m->height);
-	} else {
-		for (p = m->columns; p->next != NULL; p = p->next)
-			;
-	
-		p->next = c;
-		
-		w = p->width;
-		
-		if (!columnresize(p, w / 2, m->height)) {
-			return false;
-		} else if (!columnresize(c, w - p->width, m->height)) {
-			return false;
-		} else {
-			return true;
-		}
-	}
-}
-
 static struct cmd cmds[] = {
+  { "quit",       cmdquit },
+  { "newcol",     cmdnewcol },
+  { "delcol",     cmddelcol },
+  { "scratch",    cmdscratch },
+  
   { "save",       cmdsave },
   { "open",       cmdopen },
-  { "close",      cmdclose },
+  { "del",        cmddel },
+  
   { "cut",        cmdcut },
   { "copy",       cmdcopy },
   { "paste",      cmdpaste },
-  { "back",       cmdback },
-  { "del",        cmddel },
+  
+  { "backspace",       cmdbackspace },
+  { "delete",     cmddelete },
+  
   { "tab",        cmdtab },
   { "shifttab",   cmdshifttab },
+  
   { "return",     cmdreturn },
+  
   { "left",       cmdleft },
   { "right",      cmdright },
   { "up",         cmdup },
   { "down",       cmddown },
+  
   { "goto",       cmdgoto },
+  
   { "undo",       cmdundo },
   { "redo",       cmdredo },
   { "undocycle",  cmdundocycle },
-  { "scratch",    cmdscratch },
-  { "newcol",     cmdnewcol },
-  { "quit",       cmdquit },
 };
 
 bool

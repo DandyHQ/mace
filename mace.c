@@ -2,8 +2,11 @@
 #include "mace.h"
 
 static const uint8_t defaultaction[] =
-  "save open close cut copy paste undo redo";
+  "save open del cut copy paste undo redo";
 
+static const uint8_t defaultcol[] =
+  "delcol scratch";
+  
 static const uint8_t defaultmain[] =
   "quit newcol";
 
@@ -30,6 +33,36 @@ macenew(void)
     return NULL;
   }
   
+  l = strlen((char *) defaultaction);
+  m->defaultaction = malloc(sizeof(uint8_t) * (l + 1));
+
+  if (m->defaultaction == NULL) {
+    macefree(m);
+    return NULL;
+  }
+
+  memmove(m->defaultaction, defaultaction, l + 1);
+  
+  l = strlen((char *) defaultcol);
+  m->defaultcol = malloc(sizeof(uint8_t) * (l + 1));
+
+  if (m->defaultcol == NULL) {
+    macefree(m);
+    return NULL;
+  }
+
+  memmove(m->defaultcol, defaultcol, l + 1);
+    
+  l = strlen((char *) defaultmain);
+  m->defaultmain = malloc(sizeof(uint8_t) * (l + 1));
+
+  if (m->defaultmain == NULL) {
+    macefree(m);
+    return NULL;
+  }
+
+  memmove(m->defaultmain, defaultmain, l + 1);
+
   seq = sequencenew(NULL, 0);
   if (seq == NULL) {
     macefree(m);
@@ -41,7 +74,7 @@ macenew(void)
     sequencefree(seq);
     macefree(m);
   }
-
+    
   m->textbox = textboxnew(m, &abg,
                           seq);
 	if (m->textbox == NULL) {
@@ -49,7 +82,7 @@ macenew(void)
   	macefree(m);
   	return NULL;
   }
-
+  
   m->columns = columnnew(m);
 
   if (m->columns == NULL) {
@@ -57,15 +90,6 @@ macenew(void)
     return NULL;
   }
   
-  l = strlen((char *) defaultaction);
-  m->defaultaction = malloc(sizeof(uint8_t) * (l + 1));
-
-  if (m->defaultaction == NULL) {
-    macefree(m);
-    return NULL;
-  }
-
-  memmove(m->defaultaction, defaultaction, l + 1);
   
   m->scrollleft = SCROLL_up;
   m->scrollmiddle = SCROLL_immediate;
@@ -107,6 +131,14 @@ macefree(struct mace *m)
 
   if (m->defaultaction != NULL) {
     free(m->defaultaction);
+  }
+  
+  if (m->defaultcol != NULL) {
+    free(m->defaultcol);
+  }
+  
+  if (m->defaultmain != NULL) {
+    free(m->defaultmain);
   }
 
   free(m);

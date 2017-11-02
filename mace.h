@@ -37,6 +37,7 @@ struct cursel {
 
 struct textbox {
   struct mace *mace;
+  struct tab *tab;
 
   struct colour bg;
 
@@ -151,6 +152,8 @@ struct mace {
   struct cursel *cursels;
 
   uint8_t *defaultaction;
+  uint8_t *defaultcol;
+  uint8_t *defaultmain;
 
   struct textbox *mousefocus;
   bool immediatescrolling;

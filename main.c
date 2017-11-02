@@ -173,6 +173,7 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
   const char *raw;
   char *str;
   int64_t i;
+  
   raw = toml_raw_in(conf, "actionbar");
 
   if (raw != NULL) {
@@ -185,6 +186,30 @@ applyconfigmace(struct mace *m, toml_table_t *conf)
     m->defaultaction = (uint8_t *) str;
   }
 
+  raw = toml_raw_in(conf, "colbar");
+
+  if (raw != NULL) {
+    if (toml_rtos(raw, &str) != 0)  {
+      fprintf(stderr, "Bad value '%s' for colbar!\n", raw);
+      return false;
+    }
+
+    free(m->defaultcol);
+    m->defaultcol = (uint8_t *) str;
+  }
+  
+  raw = toml_raw_in(conf, "mainbar");
+
+  if (raw != NULL) {
+    if (toml_rtos(raw, &str) != 0)  {
+      fprintf(stderr, "Bad value '%s' for mainbar!\n", raw);
+      return false;
+    }
+
+    free(m->defaultmain);
+    m->defaultmain = (uint8_t *) str;
+  }
+  
   raw = toml_raw_in(conf, "defaulttab");
 
   if (raw != NULL) {

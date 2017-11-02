@@ -7,7 +7,9 @@
 #
 
 [mace]
-actionbar = "save close undo redo"
+mainbar   = "quit newcol"
+colbar    = "scratch open delcol"
+actionbar = "save del undo redo"
 
 # If no files are given open either an empty tab
 # or a tab containing a tutorial.
@@ -36,10 +38,10 @@ tabwidth = 2
 "S-Tab" = "shifttab"
 "Return" = "return"
 "S-Return" = "return"
-"Delete" = "del"
-"S-Delete" = "del"
-"BackSpace" = "back"
-"S-BackSpace" = "back"
+"Delete" = "delete"
+"S-Delete" = "delete"
+"BackSpace" = "backspace"
+"S-BackSpace" = "backspace"
 "Left" = "left"
 "Right" = "right"
 "Up" = "up"
@@ -53,5 +55,5 @@ tabwidth = 2
 "C-v" = "paste"
 
 "C-s" = "save"
-"C-w" = "close"
+"C-w" = "del"
 

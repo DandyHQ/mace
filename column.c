@@ -1,8 +1,5 @@
 #include "mace.h"
 
-static const uint8_t defaultcol[] =
-  "del scratch";
-
 struct column *
 columnnew(struct mace *mace)
 {
@@ -24,7 +21,7 @@ columnnew(struct mace *mace)
   }
   
   if (!sequencereplace(seq, 0, 0, 
-      defaultcol, strlen((const char *) defaultcol))) {
+      mace->defaultcol, strlen((const char *) mace->defaultcol))) {
     sequencefree(seq);
     columnfree(c);
     return NULL;
@@ -75,7 +72,7 @@ columnaddtab(struct column *c, struct tab *t)
 void
 columnremovetab(struct column *c, struct tab *t)
 {
- 
+	
 }
 
 bool
