@@ -43,8 +43,8 @@ struct textbox {
 
   struct sequence *sequence;
 
-  int x, y;
-
+	int x, y;
+	
   /* Maximum width a line can be. */
   int linewidth;
 
@@ -93,11 +93,11 @@ struct column {
   struct mace *mace;
 
   int width, height;
-
+  
   struct textbox *textbox;
 
   struct tab *tabs;
-
+  
   struct column *next;
 };
 
@@ -136,19 +136,19 @@ typedef enum {
 struct mace {
   bool running;
 
-  int width, height;
-
+	int width, height;
+	
   struct font *font;
 
   struct keybinding *keybindings;
 
   struct textbox *textbox;
   struct column *columns;
-
+  
   int offx, offy, px, py;
   struct tab *movingtab;
   struct column *movingcolumn;
-
+  
   struct cursel *cursels;
 
   uint8_t *defaultaction;
@@ -176,6 +176,9 @@ getclipboard(size_t *len);
 
 struct mace *
 macenew(void);
+
+bool
+maceinit(struct mace *m);
 
 void
 macefree(struct mace *mace);
@@ -290,7 +293,7 @@ bool
 tabresize(struct tab *t, int w, int h);
 
 void
-tabdraw(struct tab *t, cairo_t *cr,
+tabdraw(struct tab *t, cairo_t *cr, 
         int x, int y, int w, int h);
 
 bool

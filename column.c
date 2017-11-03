@@ -12,6 +12,7 @@ columnnew(struct mace *mace)
   }
 
   c->mace = mace;
+  c->width = 1;
   c->height = 1;
   
   seq = sequencenew(NULL, 0);
@@ -58,14 +59,44 @@ columnfree(struct column *c)
 bool
 columnaddtab(struct column *c, struct tab *t)
 {
-	if (!tabresize(t, c->width, c->height)) {
-  	return false;
-  }
-  	
-  t->column = c;
-	t->next = c->tabs;
-	c->tabs = t;
+	struct tab *p;
+	int ha, hb;
 	
+	if (c->tabs == NULL) {
+		t->next = c->tabs;
+		c->tabs = t;
+
+		if (!tabresize(t, c->width, c->height)) {
+  		return false;
+  	}
+  	
+	} else {
+		for (p = c->tabs; p->next != NULL; p = p->next)
+			;
+		
+		p->next = t;
+		t->next = NULL;
+		
+		hb = p->height / 2;
+		if (hb < c->mace->font->lineheight + 2)
+			hb = c->mace->font->lineheight + 2;
+		
+		ha = p->height - hb;
+		if (ha < c->mace->font->lineheight + 2)
+			ha = c->mace->font->lineheight + 2;
+					
+		if (!tabresize(t, p->width, ha)) {
+			fprintf(stderr, "Failed to resize tab!\n");
+			exit(EXIT_FAILURE);
+		}
+		
+		if (!tabresize(p, p->width, hb)) {
+			fprintf(stderr, "Failed to resize tab!\n");
+			exit(EXIT_FAILURE);
+		}				
+	}
+	
+	t->column = c;
 	return true;
 }
 
@@ -98,7 +129,7 @@ columnresize(struct column *c, int w, int h)
   }
   	  
   for (t = c->tabs; t != NULL; t = t->next) {
-  	if (!tabresize(t, c->width, t->height * h / c->height)) {
+  	if (!tabresize(t, w, t->height * h / c->height)) {
   		return false;
   	}
   }

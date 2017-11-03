@@ -1,24 +1,13 @@
 #include <string.h>
 #include "mace.h"
 
-static const uint8_t defaultaction[] =
-  "save open del cut copy paste undo redo";
-
-static const uint8_t defaultcol[] =
-  "delcol scratch";
-  
-static const uint8_t defaultmain[] =
-  "quit newcol";
-
 struct colour bg   = { 1, 1, 1 };
 struct colour abg  = { 0.86, 0.94, 1 };
 
 struct mace *
 macenew(void)
 {
-	struct sequence *seq;
   struct mace *m;
-  size_t l;
   
   m = calloc(1, sizeof(struct mace));
 
@@ -33,35 +22,16 @@ macenew(void)
     return NULL;
   }
   
-  l = strlen((char *) defaultaction);
-  m->defaultaction = malloc(sizeof(uint8_t) * (l + 1));
-
-  if (m->defaultaction == NULL) {
-    macefree(m);
-    return NULL;
-  }
-
-  memmove(m->defaultaction, defaultaction, l + 1);
   
-  l = strlen((char *) defaultcol);
-  m->defaultcol = malloc(sizeof(uint8_t) * (l + 1));
+  m->width = 1;
+  
+  return m;
+}
 
-  if (m->defaultcol == NULL) {
-    macefree(m);
-    return NULL;
-  }
-
-  memmove(m->defaultcol, defaultcol, l + 1);
-    
-  l = strlen((char *) defaultmain);
-  m->defaultmain = malloc(sizeof(uint8_t) * (l + 1));
-
-  if (m->defaultmain == NULL) {
-    macefree(m);
-    return NULL;
-  }
-
-  memmove(m->defaultmain, defaultmain, l + 1);
+bool
+maceinit(struct mace *m)
+{
+	struct sequence *seq;
 
   seq = sequencenew(NULL, 0);
   if (seq == NULL) {
@@ -70,9 +40,10 @@ macenew(void)
   }
   
   if (!sequencereplace(seq, 0, 0, 
-      defaultmain, strlen((const char *) defaultmain))) {
+      m->defaultmain, strlen((const char *) m->defaultmain))) {
     sequencefree(seq);
     macefree(m);
+  	return false;
   }
     
   m->textbox = textboxnew(m, &abg,
@@ -80,17 +51,12 @@ macenew(void)
 	if (m->textbox == NULL) {
   	sequencefree(seq);
   	macefree(m);
-  	return NULL;
+  	return false;
   }
   
-  m->scrollleft = SCROLL_up;
-  m->scrollmiddle = SCROLL_immediate;
-  m->scrollright = SCROLL_down;
   m->running = true;
   
-  m->width = 1;
-  
-  return m;
+  return true;
 }
 
 void
@@ -722,10 +688,6 @@ maceresize(struct mace *m, int w, int h)
 	}
 	
 	for (c = m->columns; c != NULL; c = c->next) {
-		if (c->width == 0) {
-			c->width = 1;
-		}
-		
 		if (!columnresize(c, (c->width * w) / m->width, h)) {
 			return false;
 		}

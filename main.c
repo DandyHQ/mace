@@ -5,28 +5,38 @@
 
 #include "resources/tomlc99/toml.h"
 
-struct defkeybinding {
-  uint8_t *key, *cmd;
-};
-
-static struct defkeybinding defaultkeybindings[] = {
-  { (uint8_t *) "Tab",         (uint8_t *) "tab" },
-  { (uint8_t *) "S-Tab",       (uint8_t *) "shifttab" },
-  { (uint8_t *) "Return",      (uint8_t *) "return" },
-  { (uint8_t *) "Delete",      (uint8_t *) "del" },
-  { (uint8_t *) "BackSpace",   (uint8_t *) "back" },
-  { (uint8_t *) "S-BackSpace", (uint8_t *) "back" },
-  { (uint8_t *) "Left",        (uint8_t *) "left" },
-  { (uint8_t *) "Right",       (uint8_t *) "right" },
-  { (uint8_t *) "Up",          (uint8_t *) "up" },
-  { (uint8_t *) "Down",        (uint8_t *) "down" },
-  { (uint8_t *) "C-z",         (uint8_t *) "undo" },
-  { (uint8_t *) "S-C-Z",       (uint8_t *) "redo" },
-  { (uint8_t *) "C-c",         (uint8_t *) "copy" },
-  { (uint8_t *) "C-x",         (uint8_t *) "cut" },
-  { (uint8_t *) "C-v",         (uint8_t *) "paste" },
-  { (uint8_t *) "C-s",         (uint8_t *) "save" },
-};
+static char *defaultconfig =
+"[mace]\n"
+"mainbar   = \"quit newcol\"\n"
+"colbar    = \"scratch open delcol\"\n"
+"actionbar = \"save del undo redo\"\n"
+"font      = \"LiberationMono-12\"\n"
+"tabwidth  = 2\n"
+"[scroll]\n"
+"\"Button-1\"   = \"up\"\n"
+"\"Button-2\"   = \"immediate\"\n"
+"\"Button-3\"   = \"down\"\n"
+"[keybindings]\n"
+"\"Tab\"        = \"tab\"\n"
+"\"S-Tab\"      = \"shifttab\"\n"
+"\"Return\"     = \"return\"\n"
+"\"S-Return\"   = \"return\"\n"
+"\"Delete\"     = \"delete\"\n"
+"\"S-Delete\"   = \"delete\"\n"
+"\"BackSpace\"  = \"backspace\"\n"
+"\"S-BackSpace\" = \"backspace\"\n"
+"\"Left\"       = \"left\"\n"
+"\"Right\"      = \"right\"\n"
+"\"Up\"         = \"up\"\n"
+"\"Down\"       = \"down\"\n"
+"\"C-z\"        = \"undo\"\n"
+"\"C-y\"        = \"redo\"\n"
+"\"C-x\"        = \"cut\"\n"
+"\"C-c\"        = \"copy\"\n"
+"\"C-v\"        = \"paste\"\n"
+"\"C-s\"        = \"save\"\n"
+"\"C-w\"        = \"del\"\n"
+;
 
 #define OPTPARSE_IMPLEMENTATION
 #include "resources/optparse/optparse.h"
@@ -41,23 +51,6 @@ static const char *help_message =
   "        Show the mace version.\n"
   "  -c config, --config config\n"
   "        Override the default config.\n";
-
-static bool
-applydefaultconfig(struct mace *m)
-{
-  size_t i;
-
-  for (i = 0;
-       i < sizeof(defaultkeybindings) / sizeof(
-         defaultkeybindings[0]);
-       i++) {
-    maceaddkeybinding(m,
-                      defaultkeybindings[i].key,
-                      defaultkeybindings[i].cmd);
-  }
-
-  return true;
-}
 
 static bool
 applyconfigmace(struct mace *m, toml_table_t *conf)
@@ -222,7 +215,7 @@ static bool
 applyconfig(struct mace *m, toml_table_t *conf)
 {
   toml_table_t *mace, *scroll, *keybindings;
-  size_t i;
+  
   mace = toml_table_in(conf, "mace");
 
   if (mace != NULL && !applyconfigmace(m, mace)) {
@@ -237,19 +230,8 @@ applyconfig(struct mace *m, toml_table_t *conf)
 
   keybindings = toml_table_in(conf, "keybindings");
 
-  if (keybindings != NULL) {
-    if (!applyconfigkeybindings(m, keybindings)) {
-      return false;
-    }
-  } else {
-    for (i = 0;
-         i < sizeof(defaultkeybindings) / sizeof(
-           defaultkeybindings[0]);
-         i++) {
-      maceaddkeybinding(m,
-                        defaultkeybindings[i].key,
-                        defaultkeybindings[i].cmd);
-    }
+  if (keybindings != NULL && !applyconfigkeybindings(m, keybindings)) {
+    return false;
   }
 
   return true;
@@ -356,15 +338,17 @@ main(int argc, char **argv)
   if (findconfig(&f, configpath, sizeof(configpath))) {
     conf = toml_parse_file(f, errbuf, sizeof(errbuf));
     fclose(f);
-
-    if (conf == NULL) {
-      fprintf(stderr, "Error parsing '%s': %s\n", configpath,
-              errbuf);
-    }
 	} else {
-		conf = NULL;
+    conf = toml_parse(defaultconfig, errbuf, sizeof(errbuf));
 	}
 	
+  if (conf == NULL) {
+    fprintf(stderr, "Error parsing config '%s': %s\n", 
+            configpath,
+            errbuf);
+    return EXIT_FAILURE;
+  }
+  
   m = macenew();
 
   if (m == NULL) {
@@ -372,20 +356,19 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   }
   
-  if (conf != NULL) {
-  	if (!applyconfig(m, conf)) {
-  		fprintf(stderr, "Error(s) in config '%s'.\n", configpath);
-   	 toml_free(conf);
-   	 macefree(m);
-   	 return EXIT_FAILURE;
-  	}
-  } else {
-    if (!applydefaultconfig(m)) {
-      macefree(m);
-      return EXIT_FAILURE;
-    }
+  if (!applyconfig(m, conf)) {
+  	fprintf(stderr, "Error(s) in config '%s'.\n", configpath);
+    toml_free(conf);
+    macefree(m);
+    return EXIT_FAILURE;
   }
-
+  
+  if (!maceinit(m)) {
+  	fprintf(stderr, "Error initializing mace!\n");
+  	macefree(m);
+    return EXIT_FAILURE;
+  }
+  
 	m->columns = columnnew(m);
 	
 	if (m->columns == NULL) {
@@ -406,9 +389,7 @@ main(int argc, char **argv)
     columnaddtab(m->columns, t);
   }
 
-	if (conf != NULL) {
-		toml_free(conf);
-  }
+	toml_free(conf);
   
   r = dodisplay(m);
   macefree(m);
