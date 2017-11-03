@@ -62,12 +62,15 @@ columnaddtab(struct column *c, struct tab *t)
 	struct tab *p;
 	int ha, hb;
 	
+	/* TODO: needs improvement to collapse and push tabs
+	   up if there are too many. */
+	
 	if (c->tabs == NULL) {
-		t->next = c->tabs;
 		c->tabs = t;
 
 		if (!tabresize(t, c->width, c->height)) {
-  		return false;
+			fprintf(stderr, "Failed to resize tab!\n");
+			exit(EXIT_FAILURE);
   	}
   	
 	} else {
@@ -75,28 +78,26 @@ columnaddtab(struct column *c, struct tab *t)
 			;
 		
 		p->next = t;
-		t->next = NULL;
 		
 		hb = p->height / 2;
-		if (hb < c->mace->font->lineheight + 2)
-			hb = c->mace->font->lineheight + 2;
-		
 		ha = p->height - hb;
-		if (ha < c->mace->font->lineheight + 2)
-			ha = c->mace->font->lineheight + 2;
-					
-		if (!tabresize(t, p->width, ha)) {
+		if (hb == 0) hb = 1;
+		if (ha == 0) ha = 1;
+		
+		if (!tabresize(t, c->width, ha)) {
 			fprintf(stderr, "Failed to resize tab!\n");
 			exit(EXIT_FAILURE);
 		}
 		
-		if (!tabresize(p, p->width, hb)) {
+		if (!tabresize(p, c->width, hb)) {
 			fprintf(stderr, "Failed to resize tab!\n");
 			exit(EXIT_FAILURE);
 		}				
 	}
 	
+	t->next = NULL;
 	t->column = c;
+	
 	return true;
 }
 

@@ -404,7 +404,7 @@ eventLoop(struct mace *m)
 }
 
 int
-dodisplay(struct mace *m)
+displayinit(struct mace *m)
 {
   int width, height;
   width = 800;
@@ -439,6 +439,12 @@ dodisplay(struct mace *m)
   cairo_pop_group_to_source(cr);
   cairo_paint(cr);
   cairo_surface_flush(sfc);
+	return EXIT_SUCCESS;
+}
+
+int
+displayloop(struct mace *m)
+{
   eventLoop(m);
   cairo_destroy(cr);
   cairo_surface_destroy(sfc);

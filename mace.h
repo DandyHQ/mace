@@ -163,7 +163,10 @@ struct mace {
 
 
 int
-dodisplay(struct mace *m);
+displayinit(struct mace *m);
+
+int
+displayloop(struct mace *m);
 
 /* Claims data. */
 void

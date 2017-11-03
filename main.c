@@ -376,6 +376,11 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
 	}
 	
+	r = displayinit(m);
+	if (r != EXIT_SUCCESS) {
+		return r;
+	}
+	
   /* Load remaining arguments as tabs. */
 	while ((arg = optparse_arg(&options))) {
     t = tabnewfromfile(m, (uint8_t *) arg);
@@ -391,7 +396,7 @@ main(int argc, char **argv)
 
 	toml_free(conf);
   
-  r = dodisplay(m);
+  r = displayloop(m);
   macefree(m);
   return r;
 }
