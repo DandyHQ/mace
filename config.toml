@@ -11,10 +11,6 @@ mainbar   = "quit newcol"
 colbar    = "scratch open delcol"
 actionbar = "save del undo redo"
 
-# If no files are given open either an empty tab
-# or a tab containing a tutorial.
-defaulttab = "empty" # tutorial, empty
-
 font = "LiberationMono-12"
 
 tabwidth = 2

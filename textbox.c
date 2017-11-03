@@ -53,15 +53,7 @@ textboxresize(struct textbox *t, int lw, int h)
 {
   t->linewidth = lw;
   t->maxheight = h;
-  free(t->glyphs);
   t->nglyphs = 0;
-  t->nglyphsmax = 1024;
-  t->glyphs = malloc(sizeof(cairo_glyph_t) * t->nglyphsmax);
-
-  if (t->glyphs == NULL) {
-    free(t);
-    return NULL;
-  }
 
   textboxplaceglyphs(t);
   return true;
@@ -92,13 +84,11 @@ textboxbuttonpress(struct textbox *t, int x, int y,
     if (c != NULL && c->start != c->end) {
       c->type |= CURSEL_cmd;
       return true;
-
     } else if (sequencefindword(t->sequence, pos, &start,
                                 &len)) {
       c = curseladd(t->mace, t, CURSEL_cmd, start);
       curselupdate(c, start + len);
       return true;
-
     } else {
       return false;
     }
@@ -128,7 +118,6 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
     if (c != NULL && (c->type & CURSEL_cmd) != 0) {
       start = c->start;
       len = c->end - start;
-
     } else {
       len = 0;
     }
@@ -139,7 +128,6 @@ textboxbuttonrelease(struct textbox *t, int x, int y,
       if ((c->type & CURSEL_cmd) != 0) {
         if ((c->type & CURSEL_nrm) != 0) {
           c->type &= ~CURSEL_cmd;
-
         } else {
           curselremove(t->mace, c);
         }
@@ -178,7 +166,6 @@ textboxmotion(struct textbox *t, int x, int y)
   if (t->curcs != NULL) {
     pos = textboxfindpos(t, x, y);
     return curselupdate(t->curcs, pos);
-
   } else {
     return false;
   }
@@ -191,7 +178,6 @@ scrollnewindex(struct textbox *t, size_t i, int lines)
     while (lines-- > 0) {
       i = textboxindexbelow(t, i);
     }
-
   } else if (lines < 0) {
     while (lines++ < 0) {
       i = textboxindexabove(t, i);
@@ -211,7 +197,6 @@ textboxscroll(struct textbox *t, int lines)
     t->start = newstart;
     textboxplaceglyphs(t);
     return true;
-
   } else {
     return false;
   }

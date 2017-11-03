@@ -54,7 +54,6 @@ getclipboard(size_t *len)
   if (w == win) {
     *len = cliplen;
     return clip;
-
   } else if (w == BadWindow) {
     *len = 0;
     return NULL;
@@ -66,7 +65,6 @@ getclipboard(size_t *len)
   while (true) {
     if (!XCheckTypedEvent(display, SelectionNotify, &e)) {
       continue;
-
     } else if (e.type != SelectionNotify) {
       continue;
     }
@@ -92,7 +90,6 @@ getclipboard(size_t *len)
       XFree(ret);
       *len = cliplen;
       return clip;
-
     } else {
       return NULL;
     }
@@ -125,11 +122,9 @@ symtounicode(KeySym sym)
     code = sym;
     /* At this point unicode was around and people decieded to
        just shift the values. */
-
   } else if (0x01000100 <= sym && sym <= 0x0110ffff) {
     code = sym - 0x01000000;
     /* But before that weird things happened. */
-
   } else if (0x0100 <= sym && sym <= 0x20ff) {
     for (i = 0;
          i < sizeof(keymappings) / sizeof(keymappings[0]); i++) {
@@ -272,7 +267,6 @@ xhandlekeypress(struct mace *m, XKeyEvent *e)
 
   if (nn + kn > 0) {
     return handlekey(m, s, nn + kn, special);
-
   } else {
     return false;
   }
@@ -338,13 +332,11 @@ xhandleselectionrequest(XSelectionRequestEvent *e)
                     XA_ATOM, 32, PropModeReplace,
                     (const uint8_t *) targets, sizeof(targets) / sizeof(Atom));
     r->property = e->property;
-
   } else if (e->target == XA_STRING) {
     r->property = e->property;
     XChangeProperty(display, e->requestor, e->property,
                     e->target, 8, PropModeReplace,
                     clip, cliplen);
-
   } else {
     r->property = None;
   }
