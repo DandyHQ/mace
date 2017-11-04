@@ -58,41 +58,90 @@ cmdnewcol(struct mace *m)
 static bool
 cmddelcol(struct mace *m)
 {
-  return false;
+	struct column *c, *p;
+	
+	if (m->mousefocus == NULL) {
+		return false;
+	} else if (m->mousefocus->tab != NULL) {
+		c = m->mousefocus->tab->column;
+	} else if (m->mousefocus->column != NULL) {
+		c = m->mousefocus->column;
+	} else {
+		return false;
+	}
+	
+	if (m->columns == c) {
+    if (c->next != NULL && 
+        !columnresize(c->next, c->width + c->next->width, m->height)) {
+    	return false;
+    }
+    
+    m->columns = c->next;
+    
+  } else {
+    for (p = m->columns; p->next != c; p = p->next)
+      ;
+
+    if (!columnresize(p, p->width + c->width, m->height)) {
+      return false;
+    }
+    
+    p->next = c->next;
+  }
+	
+	columnfree(c);
+	m->mousefocus = NULL;
+	return true;
+}
+
+static bool
+addtab(struct mace *m, struct tab *t)
+{
+  struct column *c;
+  
+	if (m->mousefocus != NULL) {
+  	if (m->mousefocus->tab != NULL) {
+   	 c = m->mousefocus->tab->column;
+		} else if (m->mousefocus->column != NULL) {
+   	 c = m->mousefocus->column;
+		} else {
+			c = NULL;
+		}
+			
+  } else {
+    for (c = m->columns; c != NULL && c->next != NULL; c = c->next)
+      ;
+  }
+
+  if (c == NULL) {
+  	if (!cmdnewcol(m)) {
+    	return false;
+    } else {
+    	c = m->columns;
+    	if (c == NULL) {
+    		return false;
+    	}
+    }
+  }
+  
+  return columnaddtab(c, t);
 }
 
 static bool
 cmdscratch(struct mace *m)
 {
-  struct column *c;
   struct tab *t;
 
-  if (m->mousefocus != NULL && m->mousefocus->tab != NULL) {
-    c = m->mousefocus->tab->column;
-
-  } else {
-    for (c = m->columns; c != NULL && c->next != NULL; c = c->next)
-      ;
-
-    if (c == NULL && !cmdnewcol(m)) {
-      return false;
-    }
-  }
-
-  c = m->columns;
-  t = tabnewempty(m, (uint8_t *)"*scratch*");
+  t = tabnewempty(m, (uint8_t *) "*scratch*");
 
   if (t == NULL) {
     return false;
-  }
-
-  if (!columnaddtab(c, t)) {
-    tabfree(t);
-    return false;
-
+  } else if (!addtab(m, t)) {
+  	tabfree(t);
+  	return false;
   } else {
-    return true;
-  }
+  	return true;
+  } 
 }
 
 static size_t
@@ -168,7 +217,6 @@ cmdsave(struct mace *m)
 static bool
 openfile(struct mace *m, const uint8_t *filename)
 {
-  struct column *c;
   struct tab *t;
   t = tabnewfromfile(m, filename);
 
@@ -176,25 +224,12 @@ openfile(struct mace *m, const uint8_t *filename)
     return false;
   }
 
-  if (m->mousefocus != NULL && m->mousefocus->tab != NULL) {
-    c = m->mousefocus->tab->column;
-
-  } else {
-    for (c = m->columns; c != NULL && c->next != NULL; c = c->next)
-      ;
-
-    if (c == NULL && !cmdnewcol(m)) {
-      return false;
-    }
-  }
-
-  if (!columnaddtab(c, t)) {
-    tabfree(t);
-    return false;
-
-  } else {
-    return true;
-  }
+	if (!addtab(m, t)) {
+		tabfree(t);
+		return false;
+	} else {
+		return true;
+	}
 }
 
 static bool

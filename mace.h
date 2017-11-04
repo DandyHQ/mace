@@ -38,6 +38,7 @@ struct cursel {
 struct textbox {
   struct mace *mace;
   struct tab *tab;
+  struct column *column;
 
   struct colour bg;
 

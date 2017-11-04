@@ -36,6 +36,8 @@ columnnew(struct mace *mace)
   	return NULL;
   }
   
+  c->textbox->column = c;
+  
   return c;
 }
 
