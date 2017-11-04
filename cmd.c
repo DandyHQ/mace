@@ -625,8 +625,6 @@ cmddown(struct mace *m)
 static bool
 cmdgoto(struct mace *m)
 {
-  return false;
-#if 0
   struct textbox *t;
   struct cursel *s;
   uint8_t name[1024];
@@ -635,7 +633,7 @@ cmdgoto(struct mace *m)
   int scanned;
   size_t index;
 
-  if (m->mousefocus == NULL) {
+  if (m->mousefocus == NULL || m->mousefocus->tab == NULL) {
     return false;
   }
 
@@ -675,7 +673,6 @@ cmdgoto(struct mace *m)
   curselremoveall(m);
   curseladd(m, t, CURSEL_nrm, index);
   return true;
-#endif
 }
 
 /* These should all do one action per text box if a text
