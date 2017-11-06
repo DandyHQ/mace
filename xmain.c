@@ -142,6 +142,8 @@ static size_t
 encodekey(KeySym sym, uint8_t *s, size_t n, bool *special)
 {
   int32_t code;
+  
+  *special = true;
 
   switch (sym) {
   case XK_Shift_L:
@@ -219,7 +221,6 @@ encodekey(KeySym sym, uint8_t *s, size_t n, bool *special)
     return utf8encode(s, n, code);
   }
 
-  *special = true;
   return strlen((char *) s);
 }
 
