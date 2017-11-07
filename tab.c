@@ -1,6 +1,10 @@
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <libgen.h>
+#include <dirent.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "mace.h"
 #include "config.h"
@@ -68,8 +72,7 @@ tabnew(struct mace *mace,
 }
 
 struct tab *
-tabnewemptyfile(struct mace *mace,
-                const uint8_t *filename)
+tabnewempty(struct mace *mace, const uint8_t *name)
 {
   struct sequence *seq;
   struct tab *t;
@@ -79,7 +82,7 @@ tabnewemptyfile(struct mace *mace,
     return NULL;
   }
 
-  t = tabnew(mace, filename, seq);
+  t = tabnew(mace, name, seq);
 
   if (t == NULL) {
     sequencefree(seq);
@@ -90,62 +93,124 @@ tabnewemptyfile(struct mace *mace,
   }
 }
 
-struct tab *
-tabnewempty(struct mace *mace, const uint8_t *name)
-{
-  return tabnewemptyfile(mace, name);
-}
-
-struct tab *
-tabnewfromfile(struct mace *mace,
-               const uint8_t *filename)
+struct sequence *
+sequencefromfile(struct stat *st, const uint8_t *path)
 {
   struct sequence *seq;
   size_t dlen;
   uint8_t *data;
-  struct stat st;
-  struct tab *t;
   int fd;
-  fd = open((const char *) filename, O_RDONLY);
-
-  if (fd < 0) {
-    return tabnewemptyfile(mace, filename);
-  }
-
-  if (fstat(fd, &st) != 0) {
-    close(fd);
-    return NULL;
-  }
-
-  dlen = st.st_size;
+  
+  dlen = st->st_size;
 
   if (dlen == 0) {
-    close(fd);
-    return tabnewemptyfile(mace, filename);
+    return sequencenew(NULL, 0);
   }
+  
+  fd = open((const char *) path, O_RDONLY);
 
+  if (fd < 0) {
+    return sequencenew(NULL, 0);
+  }
+  
   data = malloc(dlen);
 
   if (data == NULL) {
-    close(fd);
+  	close(fd);
     return NULL;
   }
 
   if (read(fd, data, dlen) != dlen) {
     free(data);
-    close(fd);
+  	close(fd);
     return NULL;
   }
 
-  close(fd);
   seq = sequencenew(data, dlen);
 
   if (seq == NULL) {
     free(data);
+  	close(fd);
+  	return NULL;
+  } else {
+    return seq;
+   }
+}
+
+struct sequence *
+sequencefromdir(struct stat *st, const uint8_t *path)
+{
+	struct sequence *seq;
+	struct dirent *dir;
+	size_t p, l;
+	DIR *d;
+	
+	d = opendir((const char *) path);
+	if (d == NULL) {
+		return NULL;
+	}
+	
+	seq = sequencenew(NULL, 0);
+	if (seq == NULL) {
+		closedir(d);
+		return NULL;
+	}
+	
+	p = 0;
+	while ((dir = readdir(d)) != NULL) {
+		if (strcmp(dir->d_name, ".") == 0) {
+			continue;
+		} else if (strcmp(dir->d_name, "..") == 0) {
+			continue;
+		}
+		
+		l = strlen(dir->d_name);
+		
+		if (!sequencereplace(seq, p, p, (const uint8_t *) dir->d_name, l)) {
+			closedir(d);
+			sequencefree(seq);
+			return NULL;
+		}
+		
+		p += l;		
+		
+		if (!sequencereplace(seq, p, p, (const uint8_t *) "\n", 1)) {
+			closedir(d);
+			sequencefree(seq);
+			return NULL;
+		}
+		
+		p += 1;
+	}
+	
+	closedir(d);
+	
+	return seq;
+}
+
+struct tab *
+tabnewfrompath(struct mace *mace,
+               const uint8_t *path)
+{
+  struct sequence *seq;
+  struct stat st;
+  struct tab *t;
+  
+  if (stat((const char *) path, &st) != 0) {
     return NULL;
   }
 
-  t = tabnew(mace, filename, seq);
+	if (S_ISDIR(st.st_mode)) {
+		seq = sequencefromdir(&st, path);
+	} else {
+		seq = sequencefromfile(&st, path);
+	}
+	
+	if (seq == NULL) {
+		return NULL;
+	}
+ 
+  t = tabnew(mace, path, seq);
 
   if (t == NULL) {
     sequencefree(seq);

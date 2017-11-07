@@ -284,8 +284,8 @@ tabnewempty(struct mace *mace,
             const uint8_t *name);
 
 struct tab *
-tabnewfromfile(struct mace *mace,
-               const uint8_t *filename);
+tabnewfrompath(struct mace *mace,
+               const uint8_t *path);
 
 void
 tabfree(struct tab *t);

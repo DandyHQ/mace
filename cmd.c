@@ -215,10 +215,10 @@ cmdsave(struct mace *m)
 }
 
 static bool
-openfile(struct mace *m, const uint8_t *filename)
+openpath(struct mace *m, const uint8_t *path)
 {
   struct tab *t;
-  t = tabnewfromfile(m, filename);
+  t = tabnewfrompath(m, path);
 
   if (t == NULL) {
     return false;
@@ -246,7 +246,7 @@ openselection(struct mace *m, struct cursel *s)
 
   len = sequenceget(s->tb->sequence, s->start, name, len);
   name[len] = 0;
-  return openfile(m, name);
+  return openpath(m, name);
 }
 
 static bool
@@ -733,7 +733,7 @@ static struct cmd cmds[] = {
   { "copy",       cmdcopy },
   { "paste",      cmdpaste },
 
-  { "backspace",       cmdbackspace },
+  { "backspace",  cmdbackspace },
   { "delete",     cmddelete },
 
   { "tab",        cmdtab },
@@ -764,7 +764,7 @@ command(struct mace *mace, const uint8_t *s)
     }
   }
 
-  if (openfile(mace, s)) {
+  if (openpath(mace, s)) {
     return true;
 
   } else {

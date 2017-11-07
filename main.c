@@ -383,7 +383,7 @@ main(int argc, char **argv)
 	
   /* Load remaining arguments as tabs. */
 	while ((arg = optparse_arg(&options))) {
-    t = tabnewfromfile(m, (uint8_t *) arg);
+    t = tabnewfrompath(m, (uint8_t *) arg);
 
     if (t == NULL) {
 			fprintf(stderr, "Error opening %s!\n", arg);
