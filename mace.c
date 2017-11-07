@@ -199,8 +199,13 @@ mousescroll(struct mace *m, int y, int button, struct tab *tab, struct textbox *
   
 	ay = (m->font->face->size->metrics.ascender >> 6);
   by = -(m->font->face->size->metrics.descender >> 6);
-  m->mousefocus = tb;
 
+	if (y < 0) {
+    y = 0;
+  } else if (y > tb->maxheight) {
+    y = tb->maxheight;
+  }
+    
   switch (button) {
   case 1:
     action = m->scrollleft;
@@ -221,7 +226,7 @@ mousescroll(struct mace *m, int y, int button, struct tab *tab, struct textbox *
 
   switch (action) {
   case SCROLL_up:
-    lines = (y - tab->action->height - 1) / (ay + by) / 2;
+    lines = y / (ay + by) / 2;
 
     if (lines == 0) {
       lines = 1;
@@ -230,7 +235,7 @@ mousescroll(struct mace *m, int y, int button, struct tab *tab, struct textbox *
     return textboxscroll(tb, -lines);
 
   case SCROLL_down:
-    lines = (y - tab->action->height - 1) / (ay + by) / 2;
+    lines = y / (ay + by) / 2;
 
     if (lines == 0) {
       lines = 1;
@@ -239,10 +244,13 @@ mousescroll(struct mace *m, int y, int button, struct tab *tab, struct textbox *
     return textboxscroll(tb, lines);
 
   case SCROLL_immediate:
-    pos = sequencelen(tb->sequence) * (y - tab->action->height - 1)
-          / (tab->height - tab->action->height - 1);
-    pos = sequenceindexline(tb->sequence, pos);
     m->immediatescrolling = true;
+       
+    pos = sequencelen(m->mousefocus->sequence) * y
+          / m->mousefocus->maxheight;
+          
+    pos = sequenceindexline(m->mousefocus->sequence, pos);
+		
     tb->start = pos;
     textboxplaceglyphs(tb);
     return true;
@@ -264,6 +272,8 @@ handlebuttonpress(struct mace *m, int x, int y, int button)
 	if (t == NULL) {
 		return false;
 	}
+	
+	m->mousefocus = t;
 	
 	if (tab != NULL) {
 		if (t == tab->action && ox < SCROLL_WIDTH) {
@@ -298,7 +308,6 @@ handlebuttonpress(struct mace *m, int x, int y, int button)
 		}
 	}
 	
-	m->mousefocus = t;
 	return textboxbuttonpress(t, ox, oy, button);
 }
 
@@ -517,6 +526,8 @@ bool
 handlebuttonreleasetb(struct mace *m, int x, int y,
                       int button)
 {
+	bool r;
+	
   x -= m->mousefocus->x;
   y -= m->mousefocus->y;
 
@@ -524,7 +535,9 @@ handlebuttonreleasetb(struct mace *m, int x, int y,
     m->immediatescrolling = false;
     return false;
   } else {
-    return textboxbuttonrelease(m->mousefocus, x, y, button);
+    r = textboxbuttonrelease(m->mousefocus, x, y, button);
+    m->mousefocus = NULL;
+    return r;
   }
 }
 
@@ -580,6 +593,7 @@ handlemotiontb(struct mace *m, int x, int y)
 
     pos = sequencelen(m->mousefocus->sequence) * y
           / m->mousefocus->maxheight;
+          
     pos = sequenceindexline(m->mousefocus->sequence, pos);
 
     if (m->mousefocus->start != pos) {
