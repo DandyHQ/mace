@@ -215,10 +215,37 @@ cmdsave(struct mace *m)
 }
 
 static bool
-openpath(struct mace *m, const uint8_t *path)
+openpath(struct mace *m, struct textbox *from, const uint8_t *path)
 {
   struct tab *t;
-  t = tabnewfrompath(m, path);
+  char full[1024], d[1024], *dir;
+  size_t l;
+  
+  if (path[0] == '/') {
+  	snprintf(full, sizeof(full), "%s", path);
+  } else {
+  	if (from != NULL && from->tab != NULL) {
+  		l = getfilename(from->tab, (uint8_t *) d, sizeof(d));
+  		if (l == 0) {
+  			return false;
+  		}
+  		
+  		if (d[l-1] != '/') {
+  			dir = dirname(d);
+  		} else {
+  			dir = d;
+  			dir[l-1] = 0;
+  		}
+	  } else {
+ 	 	d[0] = 0;
+	  	dir = d;
+ 	 	l = 0;
+ 	 }
+ 	 
+	  snprintf(full, sizeof(full), "%s/%s", dir, path);
+  }
+  
+  t = tabnewfrompath(m, (const uint8_t *) full);
 
   if (t == NULL) {
     return false;
@@ -246,7 +273,7 @@ openselection(struct mace *m, struct cursel *s)
 
   len = sequenceget(s->tb->sequence, s->start, name, len);
   name[len] = 0;
-  return openpath(m, name);
+  return openpath(m, s->tb, name);
 }
 
 static bool
@@ -764,7 +791,7 @@ command(struct mace *mace, const uint8_t *s)
     }
   }
 
-  if (openpath(mace, s)) {
+  if (openpath(mace, mace->mousefocus, s)) {
     return true;
 
   } else {

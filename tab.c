@@ -195,12 +195,23 @@ tabnewfrompath(struct mace *mace,
   struct sequence *seq;
   struct stat st;
   struct tab *t;
+  uint8_t *s;
+  size_t l;
   
   if (stat((const char *) path, &st) != 0) {
     return NULL;
   }
 
 	if (S_ISDIR(st.st_mode)) {
+		l = strlen((const char *) path);
+		if (path[l-1] != '/') {
+			s = malloc(l + 2);
+			memmove(s, path, l);
+			s[l] = '/';
+			s[l+1] = 0;
+			path = s;
+		}
+	
 		seq = sequencefromdir(&st, path);
 	} else {
 		seq = sequencefromfile(&st, path);
