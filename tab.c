@@ -202,6 +202,7 @@ tabnewfrompath(struct mace *mace,
     return NULL;
   }
 
+	s = NULL;
 	if (S_ISDIR(st.st_mode)) {
 		l = strlen((const char *) path);
 		if (path[l-1] != '/') {
@@ -218,11 +219,13 @@ tabnewfrompath(struct mace *mace,
 	}
 	
 	if (seq == NULL) {
+		free(s);
 		return NULL;
 	}
  
   t = tabnew(mace, path, seq);
 
+	free(s);
   if (t == NULL) {
     sequencefree(seq);
     return NULL;
