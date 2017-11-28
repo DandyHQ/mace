@@ -197,14 +197,25 @@ tabnewfrompath(struct mace *mace,
   struct tab *t;
   uint8_t *s;
   size_t l;
+  int d;
+  
+	l = strlen((const char *) path);
   
   if (stat((const char *) path, &st) != 0) {
-    return NULL;
+  	if (path[l-1] == '/') {
+  		d = mkdir((const char *) path, S_IRWXU);
+  	} else {
+  		d = creat((const char *) path, S_IRUSR|S_IWUSR);
+  		close(d);
+  	}
+  	
+  	if (d < 0) {
+  		return NULL;
+  	}
   }
 
 	s = NULL;
 	if (S_ISDIR(st.st_mode)) {
-		l = strlen((const char *) path);
 		if (path[l-1] != '/') {
 			s = malloc(l + 2);
 			memmove(s, path, l);
